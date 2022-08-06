@@ -21,34 +21,7 @@ def loadObjFile(fname):
                 triangles.append((indices[0], indices[1], indices[2]))
                 triangles.append((indices[0], indices[2], indices[3]))
     print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
-
-# OpenGL coord system: -z goes into the screen
-# 8 vertices form corners of the unit cube
-cubeVerts = [
-( 0.5,  0.5, 0.5),  # front top right     0
-( 0.5, -0.5, 0.5),  # front bottom right  1
-(-0.5, -0.5, 0.5),  # front bottom left   2
-(-0.5,  0.5, 0.5),  # front top left      3
-( 0.5,  0.5, -0.5), # back top right      4
-( 0.5, -0.5, -0.5), # back bottom right   5
-(-0.5, -0.5, -0.5), # back bottom left    6
-(-0.5,  0.5, -0.5)  # back top left       7
-]
-
-cubeIdxs = [
-(0, 1, 3), # front face  3 0
-(2, 3, 1), #             2 1
-(3, 2, 7), # left face   7 3
-(6, 7, 2), #             6 2
-(4, 5, 0), # right face  0 4
-(1, 0, 5), #             1 5
-(4, 0, 7), # top face    7 4
-(3, 7, 0), #             3 0
-(1, 5, 2), # bottom face 2 1
-(6, 2, 5), #             6 5
-(7, 6, 4), # back face   4 7
-(5, 4, 6)  #             5 6
-]
+    return {"verts" : vertices, "tris" : triangles}
 
 def subVec(v1, v2):
     return (v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2])
@@ -132,34 +105,31 @@ def projectVerts(m, srcV):
         dstV.append(pvec)
     return dstV
 
-def perspectiveDivide(srcV):
-    """
-    Takes vec4
-    Returns vec2
-    """
-    dstV = []
-    for vec4 in srcV:
-        dstV.append((vec4[0] / vec4[2], vec4[1] / vec4[2]))
-    return dstV
-
-def cullBackfaces(viewPoint, srcIdcs, worldVerts):
+def cullBackfaces(viewPoint, tris, worldVerts):
     idcs = []
-    i = 0
-    for tri in srcIdcs:
+    i = -1
+    for tri in tris:
+        i += 1
         v0 = worldVerts[tri[0]]
         v1 = worldVerts[tri[1]]
         v2 = worldVerts[tri[2]]
-        viewPointToTriVec = subVec(v0, viewPoint)
-        normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
-        if dotProduct(viewPointToTriVec, normal) > 0:
-            idcs.append(i)
-        i += 1
+        if v0[2] == 0 or v1[2] == 0 or v2[2] == 0:
+            continue
+        idcs.append(i)
+        # nearClip = 0.5
+        # if v0[2] <= nearClip and v1[2] <= nearClip and v2[2] <= nearClip:
+        #     continue
+        # viewPointToTriVec = subVec(v0, viewPoint)
+        # normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
+        # if dotProduct(viewPointToTriVec, normal) > 0:
+        #     idcs.append(i)
     return idcs
 
-if __name__ == '__main__':
-    loadObjFile("C:/svn/pyrasterize/teapot-low.obj")
+def perspDiv(vert):
+    return (vert[0] / vert[2], vert[1] / vert[2])
 
-    sys.exit()
+if __name__ == '__main__':
+    teapot = loadObjFile("C:/svn/pyrasterize/teapot-low.obj")
 
     pygame.init()
 
@@ -172,30 +142,33 @@ if __name__ == '__main__':
 
     screen = pygame.display.set_mode(size)
 
-    pygame.display.set_caption("Cube")
+    pygame.display.set_caption("PyRasterize")
 
     done = False
     clock = pygame.time.Clock()
 
-    def drawEdge(p0, p1):
+    def drawEdge(p0, p1, color):
         x1 = o_x + p0[0] * o_x
         y1 = o_y - p0[1] * o_y * (width/height)
         x2 = o_x + p1[0] * o_x
         y2 = o_y - p1[1] * o_y * (width/height)
-        pygame.draw.line(screen, RGB_WHITE, (x1, y1), (x2, y2), 1)
+        pygame.draw.line(screen, color, (x1, y1), (x2, y2), 1)
 
-    def drawObject(culledIdxList, idcs, perspVerts):
-        for idx in culledIdxList:
-            idc = idcs[idx]
-            i0 = idc[0]
-            i1 = idc[1]
-            i2 = idc[2]
-            p0 = perspVerts[i0]
-            p1 = perspVerts[i1]
-            p2 = perspVerts[i2]
-            drawEdge(p0, p1)
-            drawEdge(p0, p2)
-            drawEdge(p1, p2)
+    def drawMesh(rot, tran, mesh, color):
+        m = getRotateXMatrix(rot[0])
+        m = matMatMult(getRotateYMatrix(rot[1]), m)
+        m = matMatMult(getRotateZMatrix(rot[2]), m)
+        m = matMatMult(getTranslationMatrix(*tran), m)
+        worldVerts = projectVerts(m, mesh["verts"])
+        drawTriIdcs = cullBackfaces((0, 0, 0), mesh["tris"], worldVerts)
+        for idx in drawTriIdcs:
+            tri = mesh["tris"][idx]
+            p0 = perspDiv(worldVerts[tri[0]])
+            p1 = perspDiv(worldVerts[tri[1]])
+            p2 = perspDiv(worldVerts[tri[2]])
+            drawEdge(p0, p1, color)
+            drawEdge(p0, p2, color)
+            drawEdge(p1, p2, color)
 
     frame = 0
     while not done:
@@ -206,14 +179,8 @@ if __name__ == '__main__':
         screen.fill(RGB_BLACK)
 
         angle = math.pi / 180 * frame
-        m = getRotateXMatrix(angle)
-        m = matMatMult(getRotateYMatrix(angle), m)
-        m = matMatMult(getRotateZMatrix(angle), m)
-        m = matMatMult(getTranslationMatrix(0, 0, -3), m)
-        worldVerts = projectVerts(m, cubeVerts)
-        drawIdxList = cullBackfaces((0, 0, 0), cubeIdxs, worldVerts)
-        perspVerts = perspectiveDivide(worldVerts)
-        drawObject(drawIdxList, cubeIdxs, perspVerts)
+        rot = (angle, 0, 0)
+        drawMesh(rot, (0, 0, 25), teapot, RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
