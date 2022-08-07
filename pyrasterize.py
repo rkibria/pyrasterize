@@ -139,6 +139,7 @@ if __name__ == '__main__':
 
     RGB_BLACK = (0, 0, 0)
     RGB_WHITE = (255, 255, 255)
+    RGB_DARKGREEN = (0, 128, 0)
 
     screen = pygame.display.set_mode(size)
 
@@ -154,11 +155,17 @@ if __name__ == '__main__':
         y2 = o_y - p1[1] * o_y * (width/height)
         pygame.draw.line(screen, color, (x1, y1), (x2, y2), 1)
 
-    def drawMesh(rot, tran, mesh, color):
+    def getTransform(rot, tran):
         m = getRotateXMatrix(rot[0])
         m = matMatMult(getRotateYMatrix(rot[1]), m)
         m = matMatMult(getRotateZMatrix(rot[2]), m)
         m = matMatMult(getTranslationMatrix(*tran), m)
+        return m
+
+    def drawGround(m, color):
+        pass
+
+    def drawMesh(m, mesh, color):
         worldVerts = projectVerts(m, mesh["verts"])
         drawTriIdcs = cullBackfaces((0, 0, 0), mesh["tris"], worldVerts)
         for idx in drawTriIdcs:
@@ -180,7 +187,9 @@ if __name__ == '__main__':
 
         angle = math.pi / 180 * frame
         rot = (angle, 0, 0)
-        drawMesh(rot, (0, 0, 25), teapot, RGB_WHITE)
+        m = getTransform(rot, (0, 0, 25))
+        drawGround(m, RGB_DARKGREEN)
+        drawMesh(m, teapot, RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
