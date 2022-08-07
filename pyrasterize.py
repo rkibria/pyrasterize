@@ -19,7 +19,7 @@ def loadObjFile(fname):
                 triangles.append((indices[0], indices[1], indices[2]))
             elif len(indices) == 4:
                 triangles.append((indices[0], indices[1], indices[2]))
-                triangles.append((indices[0], indices[2], indices[3]))
+                triangles.append((indices[2], indices[3], indices[0]))
     print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
     return {"verts" : vertices, "tris" : triangles}
 
@@ -118,7 +118,7 @@ def cullBackfaces(viewPoint, tris, worldVerts):
             continue
         viewPointToTriVec = subVec(v0, viewPoint)
         normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
-        if dotProduct(viewPointToTriVec, normal) > 0:
+        if dotProduct(viewPointToTriVec, normal) < 0:
             idcs.append(i)
     return idcs
 
@@ -127,7 +127,7 @@ def perspDiv(vert):
     return (vert[0] / z, vert[1] / z)
 
 if __name__ == '__main__':
-    teapot = loadObjFile("C:/svn/pyrasterize/teapot-low.obj")
+    teapot = loadObjFile("C:/svn/pyrasterize/teapot.obj") # teapot-low.obj
 
     pygame.init()
 
