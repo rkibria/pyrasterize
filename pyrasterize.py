@@ -163,6 +163,7 @@ if __name__ == '__main__':
         return m
 
     def drawGround(m, color):
+        darkColor = (color[0]/2, color[1]/2, color[2]/2)
         numLines = 11
         for i in range(numLines):
             d = 1
@@ -170,10 +171,17 @@ if __name__ == '__main__':
             t = -s + i * d
             p0 = perspDiv(vecMatMult((t, 0, s, 1), m))
             p1 = perspDiv(vecMatMult((t, 0, -s, 1), m))
-            drawEdge(p0, p1, color)
+            drawEdge(p0, p1, darkColor)
             p0 = perspDiv(vecMatMult((s, 0, t, 1), m))
             p1 = perspDiv(vecMatMult((-s, 0, t, 1), m))
-            drawEdge(p0, p1, color)
+            drawEdge(p0, p1, darkColor)
+        origin = perspDiv(vecMatMult((0, 0, 0, 1), m))
+        drawEdge(origin, perspDiv(vecMatMult((5, 0, 0, 1), m)), color)
+        drawEdge(origin, perspDiv(vecMatMult((0, 5, 0, 1), m)), color)
+        drawEdge(origin, perspDiv(vecMatMult((0, 0, 5, 1), m)), color)
+        p0 = perspDiv(vecMatMult((5, 0, 1, 1), m))
+        p1 = perspDiv(vecMatMult((5, 0, -1, 1), m))
+        drawEdge(p0, p1, color)
 
     def drawMesh(m, mesh, color):
         worldVerts = projectVerts(m, mesh["verts"])
@@ -187,8 +195,7 @@ if __name__ == '__main__':
             drawEdge(p0, p2, color)
             drawEdge(p1, p2, color)
 
-    fontSize = 20
-    font = pygame.font.Font(None, fontSize)
+    font = pygame.font.Font(None, 20)
 
     frame = 0
     while not done:
@@ -214,7 +221,7 @@ if __name__ == '__main__':
 
         m = getTransform(rot, tran)
         drawGround(m, RGB_DARKGREEN)
-        drawMesh(m, teapot, RGB_WHITE)
+        # drawMesh(m, teapot, RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
