@@ -171,7 +171,7 @@ if __name__ == '__main__':
         y1 = o_y - p0[1] * o_y * (width/height)
         x2 = o_x + p1[0] * o_x
         y2 = o_y - p1[1] * o_y * (width/height)
-        pygame.draw.line(screen, color, (x1, y1), (x2, y2), 1)
+        pygame.draw.aaline(screen, color, (x1, y1), (x2, y2), 1)
 
     def getTransform(rot, tran):
         m = getRotateXMatrix(rot[0])
@@ -212,7 +212,7 @@ if __name__ == '__main__':
                 x1 = o_x + p0[0] * o_x
                 y1 = o_y - p0[1] * o_y * (width/height)
                 points.append((x1, y1))
-            pygame.draw.lines(screen, color, True, points)
+            pygame.draw.aalines(screen, color, True, points)
 
     font = pygame.font.Font(None, 30)
 
