@@ -116,7 +116,12 @@ def projectVerts(m, srcV):
         dstV.append(pvec)
     return dstV
 
-def cullBackfaces(viewPoint, tris, worldVerts):
+CULL_MODE_NONE = 0
+CULL_MODE_BACK = 1
+CULL_MODE_FRONT = 2
+def cullBackfaces(viewPoint, tris, worldVerts, cullMode):
+    """
+    """
     idcs = []
     i = -1
     for tri in tris:
@@ -127,9 +132,13 @@ def cullBackfaces(viewPoint, tris, worldVerts):
         nearClip = -0.5
         if v0[2] >= nearClip or v1[2] >= nearClip or v2[2] >= nearClip:
             continue
+        if(cullMode == CULL_MODE_NONE):
+            idcs.append(i)
+            continue
         viewPointToTriVec = subVec(v0, viewPoint)
         normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
-        if dotProduct(viewPointToTriVec, normal) < 0:
+        isVisible = (dotProduct(viewPointToTriVec, normal) < 0)
+        if (cullMode == CULL_MODE_BACK and isVisible) or (cullMode == CULL_MODE_FRONT and not isVisible):
             idcs.append(i)
     return idcs
 
@@ -149,6 +158,7 @@ if __name__ == '__main__':
     RGB_BLACK = (0, 0, 0)
     RGB_WHITE = (255, 255, 255)
     RGB_DARKGREEN = (0, 128, 0)
+    RGB_RED = (255, 0, 0)
 
     screen = pygame.display.set_mode(size)
 
@@ -192,9 +202,9 @@ if __name__ == '__main__':
         p1 = perspDiv(vecMatMult((5, 0, -1, 1), m))
         drawEdge(p0, p1, color)
 
-    def drawMesh(m, mesh, color):
+    def drawMesh(m, mesh, color, cullMode):
         worldVerts = projectVerts(m, mesh["verts"])
-        drawTriIdcs = cullBackfaces((0, 0, 0), mesh["tris"], worldVerts)
+        drawTriIdcs = cullBackfaces((0, 0, 0), mesh["tris"], worldVerts, cullMode)
         for idx in drawTriIdcs:
             tri = mesh["tris"][idx]
             p0 = perspDiv(worldVerts[tri[0]])
@@ -236,7 +246,8 @@ if __name__ == '__main__':
         mt = getScalingMatrix(0.25, 0.25, 0.25)
         mt = matMatMult(getRotateXMatrix(-math.pi/2), mt)
         m = matMatMult(m, mt)
-        drawMesh(m, teapot, RGB_WHITE)
+        drawMesh(m, teapot, RGB_RED, CULL_MODE_FRONT)
+        drawMesh(m, teapot, RGB_WHITE, CULL_MODE_BACK)
 
         pygame.display.flip()
         frame += 1
