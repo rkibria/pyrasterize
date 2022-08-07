@@ -248,7 +248,10 @@ if __name__ == '__main__':
         worldVerts = projectVerts(m, teapot["verts"])
         drawIdcs, cullIdcs = cullBackfaces((0, 0, 0), teapot["tris"], worldVerts)
 
-        # drawMesh(cullIdcs, worldVerts, teapot["tris"], RGB_RED)
+        seconds = int(frame/30)
+        if seconds % 2 == 0:
+            drawMesh(cullIdcs, worldVerts, teapot["tris"], RGB_RED)
+
         drawMesh(drawIdcs, worldVerts, teapot["tris"], RGB_WHITE)
 
         pygame.display.flip()
