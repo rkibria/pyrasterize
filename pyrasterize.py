@@ -163,7 +163,17 @@ if __name__ == '__main__':
         return m
 
     def drawGround(m, color):
-        pass
+        numLines = 11
+        for i in range(numLines):
+            d = 1
+            s = (numLines - 1) / 2
+            t = -s + i * d
+            p0 = perspDiv(vecMatMult((t, 0, s, 1), m))
+            p1 = perspDiv(vecMatMult((t, 0, -s, 1), m))
+            drawEdge(p0, p1, color)
+            p0 = perspDiv(vecMatMult((s, 0, t, 1), m))
+            p1 = perspDiv(vecMatMult((-s, 0, t, 1), m))
+            drawEdge(p0, p1, color)
 
     def drawMesh(m, mesh, color):
         worldVerts = projectVerts(m, mesh["verts"])
