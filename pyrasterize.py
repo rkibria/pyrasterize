@@ -214,18 +214,21 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
+        def degToRad(d):
+            return d * (math.pi / 180)
+
         def radToDeg(r):
             deg = r / (math.pi / 180)
             deg = divmod(deg, 360)[1]
             return deg
 
-        angle = math.pi / 180 * frame
-        rot = (angle, 0, 0)
-        tran = (0, 0, -10)
+        angle = degToRad(frame)
+        rot = (degToRad(20), angle, 0)
+        tran = (0, -2.5, -7.5)
 
         legend = "transl (%.1f, %.1f, %.1f) rot[deg] (%.1f, %.1f, %.1f)" % (tran[0], tran[1], tran[2],
             radToDeg(rot[0]), radToDeg(rot[1]), radToDeg(rot[2]))
-        text = font.render(legend, True, (255,255,255))
+        text = font.render(legend, True, RGB_WHITE)
         screen.blit(text, (0, 0))
 
         m = getTransform(rot, tran)
