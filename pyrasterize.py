@@ -149,7 +149,7 @@ if __name__ == '__main__':
 
     pygame.init()
 
-    size = width, height = 640, 480
+    size = width, height = 800, 600
     o_x = width/2
     o_y = height/2
 
@@ -157,6 +157,7 @@ if __name__ == '__main__':
     RGB_WHITE = (255, 255, 255)
     RGB_DARKGREEN = (0, 128, 0)
     RGB_RED = (255, 0, 0)
+    RGB_GRAY = (200, 200, 200)
 
     screen = pygame.display.set_mode(size)
 
@@ -213,7 +214,12 @@ if __name__ == '__main__':
                 points.append((x1, y1))
             pygame.draw.lines(screen, color, True, points)
 
-    font = pygame.font.Font(None, 20)
+    font = pygame.font.Font(None, 30)
+
+    legend = "BACK-FACE CULLING optimizes rendering by removing triangles that"
+    title1 = font.render(legend, True, RGB_WHITE)
+    legend = "are facing away from the viewpoint."
+    title2 = font.render(legend, True, RGB_WHITE)
 
     frame = 0
     while not done:
@@ -247,9 +253,14 @@ if __name__ == '__main__':
         # legend = "transl (%.1f, %.1f, %.1f) rot[deg] (%.1f, %.1f, %.1f)" % (tran[0], tran[1], tran[2],
         #     radToDeg(rot[0]), radToDeg(rot[1]), radToDeg(rot[2]))
         if frame % 10 == 0:
-            legend = "triangles drawn: %d, triangles removed: %d" % (len(drawIdcs), len(cullIdcs))
-            text = font.render(legend, True, RGB_WHITE)
-        screen.blit(text, (30, 30))
+            legend = "triangles drawn: %d" % (len(drawIdcs))
+            text1 = font.render(legend, True, RGB_GRAY)
+            legend = "triangles removed: %d" % (len(cullIdcs))
+            text2 = font.render(legend, True, RGB_RED)
+        screen.blit(title1, (30, 20))
+        screen.blit(title2, (30, 50))
+        screen.blit(text1, (30, 100))
+        screen.blit(text2, (300, 100))
 
         seconds = int(frame/30)
         if seconds % 2 == 0:
