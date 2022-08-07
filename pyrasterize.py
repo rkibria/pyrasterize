@@ -113,20 +113,18 @@ def cullBackfaces(viewPoint, tris, worldVerts):
         v0 = worldVerts[tri[0]]
         v1 = worldVerts[tri[1]]
         v2 = worldVerts[tri[2]]
-        if v0[2] == 0 or v1[2] == 0 or v2[2] == 0:
+        nearClip = -0.5
+        if v0[2] >= nearClip or v1[2] >= nearClip or v2[2] >= nearClip:
             continue
-        idcs.append(i)
-        # nearClip = 0.5
-        # if v0[2] <= nearClip and v1[2] <= nearClip and v2[2] <= nearClip:
-        #     continue
-        # viewPointToTriVec = subVec(v0, viewPoint)
-        # normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
-        # if dotProduct(viewPointToTriVec, normal) > 0:
-        #     idcs.append(i)
+        viewPointToTriVec = subVec(v0, viewPoint)
+        normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
+        if dotProduct(viewPointToTriVec, normal) > 0:
+            idcs.append(i)
     return idcs
 
 def perspDiv(vert):
-    return (vert[0] / vert[2], vert[1] / vert[2])
+    z = -vert[2]
+    return (vert[0] / z, vert[1] / z)
 
 if __name__ == '__main__':
     teapot = loadObjFile("C:/svn/pyrasterize/teapot-low.obj")
@@ -205,14 +203,14 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        angle = math.pi / 180 * frame
-        rot = (angle, 0, 0)
-        tran = (0, 0, 25)
-
         def radToDeg(r):
             deg = r / (math.pi / 180)
             deg = divmod(deg, 360)[1]
             return deg
+
+        angle = math.pi / 180 * frame
+        rot = (angle, 0, 0)
+        tran = (0, 0, -25)
 
         legend = "transl (%.1f, %.1f, %.1f) rot[deg] (%.1f, %.1f, %.1f)" % (tran[0], tran[1], tran[2],
             radToDeg(rot[0]), radToDeg(rot[1]), radToDeg(rot[2]))
@@ -221,7 +219,7 @@ if __name__ == '__main__':
 
         m = getTransform(rot, tran)
         drawGround(m, RGB_DARKGREEN)
-        # drawMesh(m, teapot, RGB_WHITE)
+        drawMesh(m, teapot, RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
