@@ -149,7 +149,7 @@ if __name__ == '__main__':
 
     pygame.init()
 
-    size = width, height = 800, 600
+    size = width, height = 640, 480
     o_x = width/2
     o_y = height/2
 
@@ -205,12 +205,13 @@ if __name__ == '__main__':
     def drawMesh(drawTriIdcs, worldVerts, tris, color):
         for idx in drawTriIdcs:
             tri = tris[idx]
-            p0 = perspDiv(worldVerts[tri[0]])
-            p1 = perspDiv(worldVerts[tri[1]])
-            p2 = perspDiv(worldVerts[tri[2]])
-            drawEdge(p0, p1, color)
-            drawEdge(p0, p2, color)
-            drawEdge(p1, p2, color)
+            points = []
+            for i in range(3):
+                p0 = perspDiv(worldVerts[tri[i]])
+                x1 = o_x + p0[0] * o_x
+                y1 = o_y - p0[1] * o_y * (width/height)
+                points.append((x1, y1))
+            pygame.draw.lines(screen, color, True, points)
 
     font = pygame.font.Font(None, 20)
 
@@ -234,11 +235,6 @@ if __name__ == '__main__':
         rot = (degToRad(20), angle, 0)
         tran = (0, -2.5, -7.5)
 
-        legend = "transl (%.1f, %.1f, %.1f) rot[deg] (%.1f, %.1f, %.1f)" % (tran[0], tran[1], tran[2],
-            radToDeg(rot[0]), radToDeg(rot[1]), radToDeg(rot[2]))
-        text = font.render(legend, True, RGB_WHITE)
-        screen.blit(text, (0, 0))
-
         m = getTransform(rot, tran)
         drawGround(m, RGB_DARKGREEN)
         mt = getScalingMatrix(0.25, 0.25, 0.25)
@@ -247,6 +243,13 @@ if __name__ == '__main__':
 
         worldVerts = projectVerts(m, teapot["verts"])
         drawIdcs, cullIdcs = cullBackfaces((0, 0, 0), teapot["tris"], worldVerts)
+
+        # legend = "transl (%.1f, %.1f, %.1f) rot[deg] (%.1f, %.1f, %.1f)" % (tran[0], tran[1], tran[2],
+        #     radToDeg(rot[0]), radToDeg(rot[1]), radToDeg(rot[2]))
+        if frame % 10 == 0:
+            legend = "triangles drawn: %d, triangles removed: %d" % (len(drawIdcs), len(cullIdcs))
+            text = font.render(legend, True, RGB_WHITE)
+        screen.blit(text, (30, 30))
 
         seconds = int(frame/30)
         if seconds % 2 == 0:
