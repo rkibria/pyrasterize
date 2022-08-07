@@ -187,6 +187,9 @@ if __name__ == '__main__':
             drawEdge(p0, p2, color)
             drawEdge(p1, p2, color)
 
+    fontSize = 20
+    font = pygame.font.Font(None, fontSize)
+
     frame = 0
     while not done:
         clock.tick(30)
@@ -197,7 +200,19 @@ if __name__ == '__main__':
 
         angle = math.pi / 180 * frame
         rot = (angle, 0, 0)
-        m = getTransform(rot, (0, 0, 25))
+        tran = (0, 0, 25)
+
+        def radToDeg(r):
+            deg = r / (math.pi / 180)
+            deg = divmod(deg, 360)[1]
+            return deg
+
+        legend = "transl (%.1f, %.1f, %.1f) rot[deg] (%.1f, %.1f, %.1f)" % (tran[0], tran[1], tran[2],
+            radToDeg(rot[0]), radToDeg(rot[1]), radToDeg(rot[2]))
+        text = font.render(legend, True, (255,255,255))
+        screen.blit(text, (0, 0))
+
+        m = getTransform(rot, tran)
         drawGround(m, RGB_DARKGREEN)
         drawMesh(m, teapot, RGB_WHITE)
 
