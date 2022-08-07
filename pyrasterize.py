@@ -35,6 +35,9 @@ def crossProduct(a, b):
         a[0]*b[1] - a[1]*b[0])
 
 def matMatMult(m1, m2):
+    """
+    Rows and columns correspond to as written in source
+    """
     newM = []
     for r in range(4):
         for c in range(4):
@@ -60,6 +63,14 @@ def getTranslationMatrix(dx, dy, dz):
                 1.0, 0.0, 0.0, float(dx),
                 0.0, 1.0, 0.0, float(dy),
                 0.0, 0.0, 1.0, float(dz),
+                0.0, 0.0, 0.0, 1.0,
+                ]
+
+def getScalingMatrix(sx, sy, sz):
+        return [
+                float(sx), 0.0, 0.0, 0,
+                0.0, float(sy), 0.0, 0,
+                0.0, 0.0, float(sz), 0,
                 0.0, 0.0, 0.0, 1.0,
                 ]
 
@@ -210,7 +221,7 @@ if __name__ == '__main__':
 
         angle = math.pi / 180 * frame
         rot = (angle, 0, 0)
-        tran = (0, 0, -25)
+        tran = (0, 0, -10)
 
         legend = "transl (%.1f, %.1f, %.1f) rot[deg] (%.1f, %.1f, %.1f)" % (tran[0], tran[1], tran[2],
             radToDeg(rot[0]), radToDeg(rot[1]), radToDeg(rot[2]))
@@ -219,6 +230,9 @@ if __name__ == '__main__':
 
         m = getTransform(rot, tran)
         drawGround(m, RGB_DARKGREEN)
+        mt = getScalingMatrix(0.25, 0.25, 0.25)
+        mt = matMatMult(getRotateXMatrix(-math.pi/2), mt)
+        m = matMatMult(m, mt)
         drawMesh(m, teapot, RGB_WHITE)
 
         pygame.display.flip()
