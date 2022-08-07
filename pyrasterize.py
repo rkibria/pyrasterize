@@ -145,7 +145,7 @@ def perspDiv(vert):
     return (vert[0] / z, vert[1] / z)
 
 if __name__ == '__main__':
-    teapot = loadObjFile("C:/svn/pyrasterize/teapot.obj") # teapot-low.obj
+    teapot = loadObjFile("teapot.obj") # teapot-low.obj
 
     pygame.init()
 
