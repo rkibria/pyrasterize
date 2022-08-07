@@ -1,5 +1,7 @@
 import pygame, math, sys
 
+NEAR_CLIP_PLANE = -0.5
+
 def loadObjFile(fname):
     with open(fname) as f:
         content = f.readlines()
@@ -116,31 +118,27 @@ def projectVerts(m, srcV):
         dstV.append(pvec)
     return dstV
 
-CULL_MODE_NONE = 0
-CULL_MODE_BACK = 1
-CULL_MODE_FRONT = 2
-def cullBackfaces(viewPoint, tris, worldVerts, cullMode):
+def cullBackfaces(viewPoint, tris, worldVerts):
     """
     """
     idcs = []
+    culled = []
     i = -1
     for tri in tris:
         i += 1
         v0 = worldVerts[tri[0]]
         v1 = worldVerts[tri[1]]
         v2 = worldVerts[tri[2]]
-        nearClip = -0.5
-        if v0[2] >= nearClip or v1[2] >= nearClip or v2[2] >= nearClip:
-            continue
-        if(cullMode == CULL_MODE_NONE):
-            idcs.append(i)
+        if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE or v2[2] >= NEAR_CLIP_PLANE:
             continue
         viewPointToTriVec = subVec(v0, viewPoint)
         normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
         isVisible = (dotProduct(viewPointToTriVec, normal) < 0)
-        if (cullMode == CULL_MODE_BACK and isVisible) or (cullMode == CULL_MODE_FRONT and not isVisible):
+        if isVisible:
             idcs.append(i)
-    return idcs
+        else:
+            culled.append(i)
+    return (idcs, culled)
 
 def perspDiv(vert):
     z = -vert[2]
@@ -183,30 +181,30 @@ if __name__ == '__main__':
 
     def drawGround(m, color):
         darkColor = (color[0]/2, color[1]/2, color[2]/2)
+        def gridLine(v0, v1, color):
+            v0 = vecMatMult(v0, m)
+            v1 = vecMatMult(v1, m)
+            if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
+                return
+            p0 = perspDiv(v0)
+            p1 = perspDiv(v1)
+            drawEdge(p0, p1, color)
         numLines = 11
         for i in range(numLines):
             d = 1
             s = (numLines - 1) / 2
             t = -s + i * d
-            p0 = perspDiv(vecMatMult((t, 0, s, 1), m))
-            p1 = perspDiv(vecMatMult((t, 0, -s, 1), m))
-            drawEdge(p0, p1, darkColor)
-            p0 = perspDiv(vecMatMult((s, 0, t, 1), m))
-            p1 = perspDiv(vecMatMult((-s, 0, t, 1), m))
-            drawEdge(p0, p1, darkColor)
-        origin = perspDiv(vecMatMult((0, 0, 0, 1), m))
-        drawEdge(origin, perspDiv(vecMatMult((5, 0, 0, 1), m)), color)
-        drawEdge(origin, perspDiv(vecMatMult((0, 5, 0, 1), m)), color)
-        drawEdge(origin, perspDiv(vecMatMult((0, 0, 5, 1), m)), color)
-        p0 = perspDiv(vecMatMult((5, 0, 1, 1), m))
-        p1 = perspDiv(vecMatMult((5, 0, -1, 1), m))
-        drawEdge(p0, p1, color)
+            gridLine((t, 0, s, 1), (t, 0, -s, 1), darkColor)
+            gridLine((s, 0, t, 1), (-s, 0, t, 1), darkColor)
+        origin = (0, 0, 0, 1)
+        gridLine(origin, (5, 0, 0, 1), color)
+        gridLine(origin, (0, 5, 0, 1), color)
+        gridLine(origin, (0, 0, 5, 1), color)
+        gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
-    def drawMesh(m, mesh, color, cullMode):
-        worldVerts = projectVerts(m, mesh["verts"])
-        drawTriIdcs = cullBackfaces((0, 0, 0), mesh["tris"], worldVerts, cullMode)
+    def drawMesh(drawTriIdcs, worldVerts, tris, color):
         for idx in drawTriIdcs:
-            tri = mesh["tris"][idx]
+            tri = tris[idx]
             p0 = perspDiv(worldVerts[tri[0]])
             p1 = perspDiv(worldVerts[tri[1]])
             p2 = perspDiv(worldVerts[tri[2]])
@@ -246,8 +244,12 @@ if __name__ == '__main__':
         mt = getScalingMatrix(0.25, 0.25, 0.25)
         mt = matMatMult(getRotateXMatrix(-math.pi/2), mt)
         m = matMatMult(m, mt)
-        drawMesh(m, teapot, RGB_RED, CULL_MODE_FRONT)
-        drawMesh(m, teapot, RGB_WHITE, CULL_MODE_BACK)
+
+        worldVerts = projectVerts(m, teapot["verts"])
+        drawIdcs, cullIdcs = cullBackfaces((0, 0, 0), teapot["tris"], worldVerts)
+
+        # drawMesh(cullIdcs, worldVerts, teapot["tris"], RGB_RED)
+        drawMesh(drawIdcs, worldVerts, teapot["tris"], RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
