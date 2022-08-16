@@ -133,7 +133,7 @@ def cullBackfaces(viewPoint, tris, worldVerts):
     """
     Return:
     - tri indices that aren't culled/outside view
-      SORTED BY z of first vert in ascending order
+      SORTED BY z of first vert in ascending order (Painter's Algorithm)
     - normals indexed same as tri's
     """
     idcs = []
@@ -163,6 +163,9 @@ def cullBackfaces(viewPoint, tris, worldVerts):
 def perspDiv(vert):
     z = -vert[2]
     return (vert[0] / z, vert[1] / z)
+
+def degToRad(d):
+    return d * (math.pi / 180)
 
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
@@ -249,14 +252,6 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 done = True
         screen.fill(RGB_BLACK)
-
-        def degToRad(d):
-            return d * (math.pi / 180)
-
-        def radToDeg(r):
-            deg = r / (math.pi / 180)
-            deg = divmod(deg, 360)[1]
-            return deg
 
         angle = degToRad(frame)
         rot = (degToRad(20), angle, 0)
