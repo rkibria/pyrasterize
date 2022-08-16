@@ -31,6 +31,13 @@ def subVec(v1, v2):
 def mulVec(a, v):
     return (a * v[0], a * v[1], a * v[2])
 
+def normalizeVec(v):
+    mag = v[0]*v[0] + v[1]*v[1] + v[2]*v[2]
+    if mag == 0:
+        return (0, 0, 0)
+    mag = 1.0 / math.sqrt(mag)
+    return (v[0] * mag, v[1] * mag, v[2] * mag)
+
 def dotProduct(a, b):
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
@@ -224,10 +231,7 @@ if __name__ == '__main__':
                 points.append((int(x1), int(y1)))
             normal = normals[idx]
             lightDir = (0, 0, 1, 0)
-            projLight = vecMatMult(lightDir, projM)[0:3]
-            mag = projLight[0]*projLight[0] + projLight[1]*projLight[1] + projLight[2]*projLight[2]
-            mag = 1.0 / math.sqrt(mag)
-            projLight = (projLight[0]*mag, projLight[1]*mag, projLight[2]*mag)
+            projLight = normalizeVec(vecMatMult(lightDir, projM)[0:3])
             intensity = min(1, max(0, 0.5 + 2 * dotProduct(projLight, normal)))
             modColor = mulVec(intensity, color)
             modColor = (int(modColor[0]), int(modColor[1]), int(modColor[2]))
