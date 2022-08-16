@@ -123,6 +123,9 @@ def projectVerts(m, srcV):
 
 def cullBackfaces(viewPoint, tris, worldVerts):
     """
+    Return:
+    - tri indices that aren't culled SORTED BY z of first vert in ascending order
+    - normals indexed same as tri's
     """
     idcs = []
     normals = []
@@ -140,6 +143,11 @@ def cullBackfaces(viewPoint, tris, worldVerts):
         isVisible = (dotProduct(viewPointToTriVec, normal) < 0)
         if isVisible:
             idcs.append(i)
+
+    def sortByZ(i):
+        return worldVerts[tris[i][0]][2]
+    idcs.sort(key=sortByZ, reverse=False)
+
     return (idcs, normals)
 
 def perspDiv(vert):
@@ -205,27 +213,7 @@ if __name__ == '__main__':
         gridLine(origin, (0, 0, 5, 1), color)
         gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
-    def getTriArea(x1, y1, x2, y2, x3, y3):
-        return abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2.0)
-    
-    def isPointInTri(x1, y1, x2, y2, x3, y3, x, y):
-        A = getTriArea(x1, y1, x2, y2, x3, y3)
-        A1 = getTriArea(x, y, x2, y2, x3, y3)
-        A2 = getTriArea(x1, y1, x, y, x3, y3)
-        A3 = getTriArea(x1, y1, x2, y2, x, y)
-        return (A == A1 + A2 + A3)
-    
-    def shadeTri(pixelArray, color, x1, y1, x2, y2, x3, y3):
-        minX = int(min(x1, x2, x3))
-        minY = int(min(y1, y2, y3))
-        maxX = int(max(x1, x2, x3))
-        maxY = int(max(y1, y2, y3))
-        for y in range(minY, maxY + 1):
-            for x in range(minX, maxX + 1):
-                if isPointInTri(x1, y1, x2, y2, x3, y3, x, y):
-                    pixelArray[x, y] = color
-
-    def drawMesh(pixelArray, drawTriIdcs, worldVerts, tris, normals, color, projM):
+    def drawMesh(drawTriIdcs, worldVerts, tris, normals, color, projM):
         for idx in drawTriIdcs:
             tri = tris[idx]
             points = []
@@ -233,18 +221,17 @@ if __name__ == '__main__':
                 p0 = perspDiv(worldVerts[tri[i]])
                 x1 = o_x + p0[0] * o_x
                 y1 = o_y - p0[1] * o_y * (width/height)
-                points.append(int(x1))
-                points.append(int(y1))
+                points.append((int(x1), int(y1)))
             normal = normals[idx]
             lightDir = (0, 0, 1, 0)
             projLight = vecMatMult(lightDir, projM)[0:3]
             mag = projLight[0]*projLight[0] + projLight[1]*projLight[1] + projLight[2]*projLight[2]
             mag = 1.0 / math.sqrt(mag)
             projLight = (projLight[0]*mag, projLight[1]*mag, projLight[2]*mag)
-            intensity = min(1, max(0, 0.25 + dotProduct(projLight, normal)))
+            intensity = min(1, max(0, 0.5 + 2 * dotProduct(projLight, normal)))
             modColor = mulVec(intensity, color)
             modColor = (int(modColor[0]), int(modColor[1]), int(modColor[2]))
-            shadeTri(pixelArray, modColor, *points)
+            pygame.draw.polygon(screen, modColor, points)
 
     font = pygame.font.Font(None, 30)
 
@@ -277,9 +264,7 @@ if __name__ == '__main__':
         worldVerts = projectVerts(m, teapot["verts"])
         drawIdcs,normals = cullBackfaces((0, 0, 0), teapot["tris"], worldVerts)
 
-        pixelArray = pygame.PixelArray(screen)
-        drawMesh(pixelArray, drawIdcs, worldVerts, teapot["tris"], normals, RGB_WHITE, m)
-        pixelArray.close()
+        drawMesh(drawIdcs, worldVerts, teapot["tris"], normals, RGB_WHITE, m)
 
         pygame.display.flip()
         frame += 1
