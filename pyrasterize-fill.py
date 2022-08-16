@@ -184,8 +184,7 @@ if __name__ == '__main__':
     RGB_BLACK = (0, 0, 0)
     RGB_WHITE = (255, 255, 255)
     RGB_DARKGREEN = (0, 128, 0)
-    RGB_RED = (255, 0, 0)
-    RGB_GRAY = (200, 200, 200)
+    RGB_CRIMSON = (220, 20, 60)
 
     screen = pygame.display.set_mode(size)
 
@@ -231,6 +230,14 @@ if __name__ == '__main__':
         gridLine(origin, (0, 0, 5, 1), color)
         gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
+    def correctColor(color):
+        gamma = 0.4
+        color = list(map(lambda x: math.pow(x / 255.0, gamma) * 255.0, color))
+        color = list(map(int, color))
+        color = list(map(lambda x: max(0, x), color))
+        color = list(map(lambda x: min(255, x), color))
+        return color
+
     def drawMesh(drawTriIdcs, worldVerts, tris, normals, color, projM):
         for idx in drawTriIdcs:
             tri = tris[idx]
@@ -243,9 +250,9 @@ if __name__ == '__main__':
             normal = normals[idx]
             lightDir = (0, 0, 1, 0)
             projLight = normalizeVec(vecMatMult(lightDir, projM)[0:3])
-            intensity = min(1, max(0, 0.5 + 2 * dotProduct(projLight, normal)))
+            intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
             modColor = mulVec(intensity, color)
-            modColor = (int(modColor[0]), int(modColor[1]), int(modColor[2]))
+            modColor = correctColor(modColor)
             pygame.draw.polygon(screen, modColor, points)
 
     font = pygame.font.Font(None, 30)
@@ -271,7 +278,7 @@ if __name__ == '__main__':
         worldVerts = projectVerts(m, teapot["verts"])
         drawIdcs,normals = cullBackfaces((0, 0, 0), teapot["tris"], worldVerts)
 
-        drawMesh(drawIdcs, worldVerts, teapot["tris"], normals, RGB_WHITE, m)
+        drawMesh(drawIdcs, worldVerts, teapot["tris"], normals, RGB_CRIMSON, m)
 
         pygame.display.flip()
         frame += 1
