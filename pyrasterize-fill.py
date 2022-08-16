@@ -133,7 +133,7 @@ def cullBackfaces(viewPoint, tris, worldVerts):
     """
     Return:
     - tri indices that aren't culled/outside view
-      SORTED BY z of first vert in ascending order (Painter's Algorithm)
+      SORTED BY z of first vert in ascending order
     - normals indexed same as tri's
     """
     idcs = []
@@ -154,8 +154,13 @@ def cullBackfaces(viewPoint, tris, worldVerts):
         if isVisible:
             idcs.append(i)
 
+    # Painter's Algorithm
     def sortByZ(i):
-        return worldVerts[tris[i][0]][2]
+        tri = tris[i]
+        z0 = worldVerts[tri[0]][2]
+        z1 = worldVerts[tri[1]][2]
+        z2 = worldVerts[tri[2]][2]
+        return (z0 + z1 + z2) / 3
     idcs.sort(key=sortByZ, reverse=False)
 
     return (idcs, normals)
