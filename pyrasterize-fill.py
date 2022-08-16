@@ -1,6 +1,7 @@
 import pygame, math, sys
 
 NEAR_CLIP_PLANE = -0.5
+FAR_CLIP_PLANE = -100
 
 def loadObjFile(fname):
     with open(fname) as f:
@@ -131,7 +132,8 @@ def projectVerts(m, srcV):
 def cullBackfaces(viewPoint, tris, worldVerts):
     """
     Return:
-    - tri indices that aren't culled SORTED BY z of first vert in ascending order
+    - tri indices that aren't culled/outside view
+      SORTED BY z of first vert in ascending order
     - normals indexed same as tri's
     """
     idcs = []
@@ -144,7 +146,8 @@ def cullBackfaces(viewPoint, tris, worldVerts):
         v2 = worldVerts[tri[2]]
         normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
         normals.append(normal)
-        if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE or v2[2] >= NEAR_CLIP_PLANE:
+        if (v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE or v2[2] >= NEAR_CLIP_PLANE
+            or v0[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE):
             continue
         viewPointToTriVec = subVec(v0, viewPoint)
         isVisible = (dotProduct(viewPointToTriVec, normal) < 0)
