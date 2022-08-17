@@ -232,7 +232,7 @@ if __name__ == '__main__':
         gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
     def correctColor(color):
-        gamma = 0.4
+        gamma = 0.3
         color = list(map(lambda x: math.pow(x / 255.0, gamma) * 255.0, color))
         color = list(map(int, color))
         color = list(map(lambda x: max(0, x), color))
