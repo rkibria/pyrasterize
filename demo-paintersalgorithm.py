@@ -273,6 +273,7 @@ if __name__ == '__main__':
     frame = 0
     tran = (0, -2.5, -7.5)
     numTrisToDraw = 0
+    waits = 0
     while not done:
         clock.tick(30)
         for event in pygame.event.get():
@@ -280,7 +281,7 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        angle = degToRad(frame * 30)
+        angle = degToRad(frame * 40)
         rot = (degToRad(20), angle, 0)
 
         m = getTransform(rot, tran)
@@ -304,5 +305,10 @@ if __name__ == '__main__':
         pygame.display.flip()
 
         if numTrisToDraw == len(drawIdcs):
-            frame += 1
-            numTrisToDraw = 0
+            if waits == 0:
+                waits = 15
+            else:
+                waits -= 1
+                if waits == 0:
+                    frame += 1
+                    numTrisToDraw = 0
