@@ -185,6 +185,7 @@ if __name__ == '__main__':
     RGB_GRAY = (100, 100, 100)
     RGB_DARKGREEN = (0, 128, 0)
     RGB_CRIMSON = (220, 20, 60)
+    RGB_WHITE = (255, 255, 255)
 
     screen = pygame.display.set_mode(size)
 
@@ -270,6 +271,11 @@ if __name__ == '__main__':
 
     font = pygame.font.Font(None, 30)
 
+    legend = "The PAINTER'S ALGORITHM hides invisible parts of an object"
+    title1 = font.render(legend, True, RGB_WHITE)
+    legend = "by drawing polygons ordered in reverse order of depth."
+    title2 = font.render(legend, True, RGB_WHITE)
+
     frame = 0
     tran = (0, -2.5, -7.5)
     numTrisToDraw = 0
@@ -280,6 +286,9 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 done = True
         screen.fill(RGB_BLACK)
+
+        screen.blit(title1, (30, 20))
+        screen.blit(title2, (30, 50))
 
         angle = degToRad(frame * 40)
         rot = (degToRad(20), angle, 0)
