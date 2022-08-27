@@ -48,70 +48,57 @@ def crossProduct(a, b):
         a[0]*b[1] - a[1]*b[0]]
 
 def matMatMult(m1, m2):
-    """
-    Rows and columns correspond to as written in source
-    """
     newM = [0] * 16
     for r in range(4):
         for c in range(4):
             for i in range(4):
-                # multiply values in r-th row, c-th column
                 v1 = m1[4 * r + i]
                 v2 = m2[4 * i + c]
                 newM[4 * r + c] += v1 * v2
     return newM
 
 def vecMatMult(v, m):
-        return [m[ 0] * v[0] + m[ 1] * v[1] + m[ 2] * v[2] + m[ 3] * v[3],
-                m[ 4] * v[0] + m[ 5] * v[1] + m[ 6] * v[2] + m[ 7] * v[3],
-                m[ 8] * v[0] + m[ 9] * v[1] + m[10] * v[2] + m[11] * v[3],
-                m[12] * v[0] + m[13] * v[1] + m[14] * v[2] + m[15] * v[3],]
+    newV = [0] * 4
+    for r in range(4):
+        for c in range(4):
+            newV[r] += m[4 * r + c] * v[c]
+    return newV
 
 def getTranslationMatrix(dx, dy, dz):
-        return [
-                1.0, 0.0, 0.0, float(dx),
+        return [1.0, 0.0, 0.0, float(dx),
                 0.0, 1.0, 0.0, float(dy),
                 0.0, 0.0, 1.0, float(dz),
-                0.0, 0.0, 0.0, 1.0,
-                ]
+                0.0, 0.0, 0.0, 1.0,]
 
 def getScalingMatrix(sx, sy, sz):
-        return [
-                float(sx), 0.0, 0.0, 0,
-                0.0, float(sy), 0.0, 0,
-                0.0, 0.0, float(sz), 0,
-                0.0, 0.0, 0.0, 1.0,
-                ]
+        return [float(sx), 0.0,       0.0,       0.0,
+                0.0,       float(sy), 0.0,       0.0,
+                0.0,       0.0,       float(sz), 0.0,
+                0.0,       0.0,       0.0,       1.0,]
 
 def getRotateXMatrix(phi):
         cos_phi = math.cos(phi)
         sin_phi = math.sin(phi)
-        return [
-                1.0,    0.0,            0.0,            0.0,
+        return [1.0,    0.0,            0.0,            0.0,
                 0.0,    cos_phi,        -sin_phi,       0.0,
                 0.0,    sin_phi,        cos_phi,        0.0,
-                0.0,    0.0,            0.0,            1.0,
-                ]
+                0.0,    0.0,            0.0,            1.0,]
 
 def getRotateYMatrix(phi):
         cos_phi = math.cos(phi)
         sin_phi = math.sin(phi)
-        return [
-                cos_phi,        0.0,            sin_phi,        0.0,
-                0.0,            1.0,            0.0,            0.0,
-                -sin_phi,       0.0,            cos_phi,        0.0,
-                0.0,            0.0,            0.0,            1.0,
-                ]
+        return [cos_phi,        0.0,    sin_phi,        0.0,
+                0.0,            1.0,    0.0,            0.0,
+                -sin_phi,       0.0,    cos_phi,        0.0,
+                0.0,            0.0,    0.0,            1.0,]
 
 def getRotateZMatrix(phi):
         cos_phi = math.cos(phi)
         sin_phi = math.sin(phi)
-        return [
-                cos_phi,        -sin_phi,       0.0,            0.0,
-                sin_phi,        cos_phi,        0.0,            0.0,
-                0.0,            0.0,            1.0,            0.0,
-                0.0,            0.0,            0.0,            1.0,
-                ]
+        return [cos_phi,        -sin_phi,       0.0,     0.0,
+                sin_phi,        cos_phi,        0.0,     0.0,
+                0.0,            0.0,            1.0,     0.0,
+                0.0,            0.0,            0.0,     1.0,]
 
 def projectVerts(m, srcV):
     """
