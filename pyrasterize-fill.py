@@ -27,49 +27,45 @@ def loadObjFile(fname):
     return {"verts" : vertices, "tris" : triangles}
 
 def subVec(v1, v2):
-    return (v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2])
+    return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]]
 
 def mulVec(a, v):
-    return (a * v[0], a * v[1], a * v[2])
+    return [a * v[0], a * v[1], a * v[2]]
 
-def normalizeVec(v):
+def normVec(v):
     mag = v[0]*v[0] + v[1]*v[1] + v[2]*v[2]
     if mag == 0:
         return (0, 0, 0)
     mag = 1.0 / math.sqrt(mag)
-    return (v[0] * mag, v[1] * mag, v[2] * mag)
+    return [v[0] * mag, v[1] * mag, v[2] * mag]
 
 def dotProduct(a, b):
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
 def crossProduct(a, b):
-    return (a[1]*b[2] - a[2]*b[1],
+    return [a[1]*b[2] - a[2]*b[1],
         a[2]*b[0] - a[0]*b[2],
-        a[0]*b[1] - a[1]*b[0])
+        a[0]*b[1] - a[1]*b[0]]
 
 def matMatMult(m1, m2):
     """
     Rows and columns correspond to as written in source
     """
-    newM = []
+    newM = [0] * 16
     for r in range(4):
         for c in range(4):
-            s = 0
             for i in range(4):
                 # multiply values in r-th row, c-th column
                 v1 = m1[4 * r + i]
                 v2 = m2[4 * i + c]
-                s += v1 * v2
-            newM.append(s)
+                newM[4 * r + c] += v1 * v2
     return newM
 
 def vecMatMult(v, m):
-        return (
-                m[ 0] * v[0] + m[ 1] * v[1] + m[ 2] * v[2] + m[ 3] * v[3],
+        return [m[ 0] * v[0] + m[ 1] * v[1] + m[ 2] * v[2] + m[ 3] * v[3],
                 m[ 4] * v[0] + m[ 5] * v[1] + m[ 6] * v[2] + m[ 7] * v[3],
                 m[ 8] * v[0] + m[ 9] * v[1] + m[10] * v[2] + m[11] * v[3],
-                m[12] * v[0] + m[13] * v[1] + m[14] * v[2] + m[15] * v[3],
-                )
+                m[12] * v[0] + m[13] * v[1] + m[14] * v[2] + m[15] * v[3],]
 
 def getTranslationMatrix(dx, dy, dz):
         return [
@@ -249,7 +245,7 @@ if __name__ == '__main__':
                 points.append((int(x1), int(y1)))
             normal = normals[idx]
             lightDir = (0, 0, 1, 0)
-            projLight = normalizeVec(vecMatMult(lightDir, projM)[0:3])
+            projLight = normVec(vecMatMult(lightDir, projM)[0:3])
             intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
             modColor = mulVec(intensity, color)
             modColor = correctColor(modColor)
