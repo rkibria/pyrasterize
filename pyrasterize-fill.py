@@ -238,7 +238,7 @@ def drawModelList(surface, modelList, cameraM):
     for i in range(len(modelList)):
         modelEntry = modelList[posIdcs[i]]
         pos = modelEntry["pos"]
-        modelM = getScalingMatrix(0.125, 0.125, 0.125)
+        modelM = getScalingMatrix(*modelEntry["scale"])
         modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
         modelM = matMatMult(getTranslationMatrix(*pos), modelM)
         modelM = matMatMult(cameraM, modelM)
@@ -269,11 +269,12 @@ if __name__ == '__main__':
     font = pygame.font.Font(None, 30)
 
     d = 2
+    teaScale = (0.125, 0.125, 0.125)
     modelList = [
-        { "model": teapot, "pos": (-d, 0, -d), "color": (255, 0, 0) },
-        { "model": teapot, "pos": (-d, 0,  d), "color": (0, 255, 0) },
-        { "model": teapot, "pos": (d,  0, -d), "color": (0, 0, 255) },
-        { "model": teapot, "pos": (d,  0,  d), "color": (255, 255, 255) },]
+        { "model": teapot, "pos": (-d, 0, -d), "scale": teaScale, "color": (255, 0, 0) },
+        { "model": teapot, "pos": (-d, 0,  d), "scale": teaScale, "color": (0, 255, 0) },
+        { "model": teapot, "pos": (d,  0, -d), "scale": teaScale, "color": (0, 0, 255) },
+        { "model": teapot, "pos": (d,  0,  d), "scale": teaScale, "color": (255, 255, 255) },]
 
     frame = 0
     while not done:
