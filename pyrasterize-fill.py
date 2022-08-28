@@ -227,7 +227,7 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir):
 # MAIN
 
 if __name__ == '__main__':
-    teapot = loadObjFile("teapot.obj") # teapot-low.obj
+    teapot = loadObjFile("teapot-low.obj") # teapot-low.obj
 
     pygame.init()
 
@@ -250,9 +250,11 @@ if __name__ == '__main__':
     font = pygame.font.Font(None, 30)
 
     d = 2
-    modelPositions = [(-d, 0, -d), (-d, 0, d), 
-        (d, 0, -d), (d, 0, d)]
-    modelColors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 255)]
+    modelList = [
+        { "pos" : (-d, 0, -d), "color" : (255, 0, 0) },
+        { "pos" : (-d, 0,  d), "color" : (0, 255, 0) },
+        { "pos" : (d,  0, -d), "color" : (0, 0, 255) },
+        { "pos" : (d,  0,  d), "color" : (255, 255, 255) },]
 
     frame = 0
     while not done:
@@ -267,18 +269,19 @@ if __name__ == '__main__':
         drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
 
         projPositions = []
-        for i in range(len(modelPositions)):
-            pos = modelPositions[i]
+        for i in range(len(modelList)):
+            pos = modelList[i]["pos"]
             pos4 = (pos[0], pos[1], pos[2], 1)
             projPositions.append(vecMatMult(pos4, cameraM))
-        posIdcs = [*range(len(modelPositions))]
+        posIdcs = [*range(len(modelList))]
         def _sortByZ(i):
             return projPositions[i][2]
         posIdcs.sort(key=_sortByZ, reverse=False)
 
-        for i in range(len(modelPositions)):
-            pos = modelPositions[posIdcs[i]]
-            color = modelColors[posIdcs[i]]
+        for i in range(len(modelList)):
+            modelEntry = modelList[posIdcs[i]]
+            pos = modelEntry["pos"]
+            color = modelEntry["color"]
             modelM = getScalingMatrix(0.125, 0.125, 0.125)
             modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
             modelM = matMatMult(getTranslationMatrix(*pos), modelM)
