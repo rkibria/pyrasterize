@@ -1,8 +1,5 @@
 import pygame, math, sys
 
-NEAR_CLIP_PLANE = -0.5
-FAR_CLIP_PLANE = -100
-
 def loadObjFile(fname):
     with open(fname) as f:
         content = f.readlines()
@@ -100,19 +97,19 @@ def getRotateZMatrix(phi):
                 0.0,            0.0,            1.0,     0.0,
                 0.0,            0.0,            0.0,     1.0,]
 
-def projectVerts(m, srcV):
-    """
-    Takes vec3 verts
-    Returns vec4
-    """
+def projectVerts(m, modelVerts):
+    """Transform the model's vec3's into projected vec4's"""
     dstV = []
-    for vec in srcV:
+    for vec in modelVerts:
         v4 = (vec[0], vec[1], vec[2], 1)
         pvec = vecMatMult(v4, m)
         dstV.append(pvec)
     return dstV
 
-def cullBackfaces(viewPoint, tris, worldVerts):
+NEAR_CLIP_PLANE = -0.5
+FAR_CLIP_PLANE = -100
+
+def getVisibleTris(viewPoint, tris, worldVerts):
     """
     Return:
     - tri indices that aren't culled/outside view
@@ -136,17 +133,17 @@ def cullBackfaces(viewPoint, tris, worldVerts):
         isVisible = (dotProduct(viewPointToTriVec, normal) < 0)
         if isVisible:
             idcs.append(i)
+    return (idcs, normals)
 
-    # Painter's Algorithm
-    def sortByZ(i):
+def sortTrisByZ(idcs, tris, worldVerts):
+    """Painter's Algorithm"""
+    def _sortByZ(i):
         tri = tris[i]
         z0 = worldVerts[tri[0]][2]
         z1 = worldVerts[tri[1]][2]
         z2 = worldVerts[tri[2]][2]
         return (z0 + z1 + z2) / 3
-    idcs.sort(key=sortByZ, reverse=False)
-
-    return (idcs, normals)
+    idcs.sort(key=_sortByZ, reverse=False)
 
 def perspDiv(vert):
     z = -vert[2]
@@ -258,10 +255,14 @@ if __name__ == '__main__':
         mt = matMatMult(getRotateXMatrix(-math.pi/2), mt)
         m = matMatMult(m, mt)
 
-        worldVerts = projectVerts(m, teapot["verts"])
-        drawIdcs,normals = cullBackfaces((0, 0, 0), teapot["tris"], worldVerts)
+        modelVerts = teapot["verts"]
+        worldVerts = projectVerts(m, modelVerts)
 
-        drawMesh(drawIdcs, worldVerts, teapot["tris"], normals, RGB_CRIMSON, m)
+        modelTris = teapot["tris"]
+        drawIdcs,normals = getVisibleTris((0, 0, 0), modelTris, worldVerts)
+        sortTrisByZ(drawIdcs, modelTris, worldVerts)
+
+        drawMesh(drawIdcs, worldVerts, modelTris, normals, RGB_CRIMSON, m)
 
         pygame.display.flip()
         frame += 1
