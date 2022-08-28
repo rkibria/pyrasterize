@@ -178,6 +178,13 @@ def drawCoordGrid(surface, m, color):
     gridLine(origin, (0, 0, 5, 1), color)
     gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
+def getCameraTransform(rot, tran):
+    m = getRotateXMatrix(rot[0])
+    m = matMatMult(getRotateYMatrix(rot[1]), m)
+    m = matMatMult(getRotateZMatrix(rot[2]), m)
+    m = matMatMult(getTranslationMatrix(*tran), m)
+    return m
+
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
 
@@ -198,13 +205,6 @@ if __name__ == '__main__':
 
     done = False
     clock = pygame.time.Clock()
-
-    def getTransform(rot, tran):
-        m = getRotateXMatrix(rot[0])
-        m = matMatMult(getRotateYMatrix(rot[1]), m)
-        m = matMatMult(getRotateZMatrix(rot[2]), m)
-        m = matMatMult(getTranslationMatrix(*tran), m)
-        return m
 
     def correctColor(color):
         gamma = 0.4
@@ -246,7 +246,7 @@ if __name__ == '__main__':
         rot = (degToRad(20), angle, 0)
         tran = (0, -2.5, -7.5)
 
-        m = getTransform(rot, tran)
+        m = getCameraTransform(rot, tran)
         drawCoordGrid(screen, m, RGB_DARKGREEN)
         mt = getScalingMatrix(0.25, 0.25, 0.25)
         mt = matMatMult(getRotateXMatrix(-math.pi/2), mt)
