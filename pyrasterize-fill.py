@@ -224,6 +224,27 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir):
         modColor = gammaCorrect(mulVec(intensity, modelColor))
         pygame.draw.polygon(surface, modColor, points)
 
+def drawModelList(surface, modelList, cameraM):
+    projPositions = []
+    for i in range(len(modelList)):
+        pos = modelList[i]["pos"]
+        pos4 = (pos[0], pos[1], pos[2], 1)
+        projPositions.append(vecMatMult(pos4, cameraM))
+    posIdcs = [*range(len(modelList))]
+    def _sortByZ(i):
+        return projPositions[i][2]
+    posIdcs.sort(key=_sortByZ, reverse=False)
+
+    for i in range(len(modelList)):
+        modelEntry = modelList[posIdcs[i]]
+        pos = modelEntry["pos"]
+        color = modelEntry["color"]
+        modelM = getScalingMatrix(0.125, 0.125, 0.125)
+        modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
+        modelM = matMatMult(getTranslationMatrix(*pos), modelM)
+        modelM = matMatMult(cameraM, modelM)
+        drawModelFilled(surface, teapot, modelM, color, (0, 0, 1))
+
 # MAIN
 
 if __name__ == '__main__':
@@ -267,26 +288,7 @@ if __name__ == '__main__':
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
         drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
-
-        projPositions = []
-        for i in range(len(modelList)):
-            pos = modelList[i]["pos"]
-            pos4 = (pos[0], pos[1], pos[2], 1)
-            projPositions.append(vecMatMult(pos4, cameraM))
-        posIdcs = [*range(len(modelList))]
-        def _sortByZ(i):
-            return projPositions[i][2]
-        posIdcs.sort(key=_sortByZ, reverse=False)
-
-        for i in range(len(modelList)):
-            modelEntry = modelList[posIdcs[i]]
-            pos = modelEntry["pos"]
-            color = modelEntry["color"]
-            modelM = getScalingMatrix(0.125, 0.125, 0.125)
-            modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
-            modelM = matMatMult(getTranslationMatrix(*pos), modelM)
-            modelM = matMatMult(cameraM, modelM)
-            drawModelFilled(screen, teapot, modelM, color, (0, 0, 1))
+        drawModelList(screen, modelList, cameraM)
 
         pygame.display.flip()
         frame += 1
