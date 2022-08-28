@@ -1,27 +1,6 @@
 import pygame, math, sys
 
-def loadObjFile(fname):
-    with open(fname) as f:
-        content = f.readlines()
-    content = [x.strip() for x in content]
-    vertices = []
-    triangles = []
-    for line in content:
-        if line.startswith("v "):
-            tokens = line.split()
-            vertices.append((float(tokens[1]), float(tokens[2]), float(tokens[3])))
-        elif line.startswith("f "):
-            indices = []
-            tokens = line.split()[1:]
-            for faceToken in tokens:
-                indices.append(int(faceToken.split("/")[0]) - 1)
-            if len(indices) == 3:
-                triangles.append((indices[0], indices[1], indices[2]))
-            elif len(indices) == 4:
-                triangles.append((indices[0], indices[1], indices[2]))
-                triangles.append((indices[2], indices[3], indices[0]))
-    print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
-    return {"verts" : vertices, "tris" : triangles}
+# MATHS
 
 def subVec(v1, v2):
     return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]]
@@ -97,6 +76,36 @@ def getRotateZMatrix(phi):
                 0.0,            0.0,            1.0,     0.0,
                 0.0,            0.0,            0.0,     1.0,]
 
+def degToRad(d):
+    return d * (math.pi / 180)
+
+# FILE IO
+
+def loadObjFile(fname):
+    with open(fname) as f:
+        content = f.readlines()
+    content = [x.strip() for x in content]
+    vertices = []
+    triangles = []
+    for line in content:
+        if line.startswith("v "):
+            tokens = line.split()
+            vertices.append((float(tokens[1]), float(tokens[2]), float(tokens[3])))
+        elif line.startswith("f "):
+            indices = []
+            tokens = line.split()[1:]
+            for faceToken in tokens:
+                indices.append(int(faceToken.split("/")[0]) - 1)
+            if len(indices) == 3:
+                triangles.append((indices[0], indices[1], indices[2]))
+            elif len(indices) == 4:
+                triangles.append((indices[0], indices[1], indices[2]))
+                triangles.append((indices[2], indices[3], indices[0]))
+    print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
+    return {"verts" : vertices, "tris" : triangles}
+
+# RENDERING ALGORITHMS
+
 def projectVerts(m, modelVerts):
     """Transform the model's vec3's into projected vec4's"""
     dstV = []
@@ -113,7 +122,6 @@ def getVisibleTris(tris, worldVerts):
     """
     Return:
     - tri indices that aren't culled/outside view
-      SORTED BY z of first vert in ascending order
     - normals indexed same as tri's
     - assumes the camera is at origin
     """
@@ -145,8 +153,21 @@ def sortTrisByZ(idcs, tris, worldVerts):
         return (z0 + z1 + z2) / 3
     idcs.sort(key=_sortByZ, reverse=False)
 
-def degToRad(d):
-    return d * (math.pi / 180)
+def getCameraTransform(rot, tran):
+    m = getRotateXMatrix(rot[0])
+    m = matMatMult(getRotateYMatrix(rot[1]), m)
+    m = matMatMult(getRotateZMatrix(rot[2]), m)
+    m = matMatMult(getTranslationMatrix(*tran), m)
+    return m
+
+def gammaCorrect(color, gamma=0.4):
+    color = list(map(lambda x: math.pow(x / 255.0, gamma) * 255.0, color))
+    color = list(map(int, color))
+    color = list(map(lambda x: max(0, x), color))
+    color = list(map(lambda x: min(255, x), color))
+    return color
+
+# DRAWING
 
 def drawEdge(surface, p0, p1, color):
     x1 = o_x + p0[0] * o_x
@@ -178,20 +199,6 @@ def drawCoordGrid(surface, m, color):
     gridLine(origin, (0, 0, 5, 1), color)
     gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
-def getCameraTransform(rot, tran):
-    m = getRotateXMatrix(rot[0])
-    m = matMatMult(getRotateYMatrix(rot[1]), m)
-    m = matMatMult(getRotateZMatrix(rot[2]), m)
-    m = matMatMult(getTranslationMatrix(*tran), m)
-    return m
-
-def gammaCorrect(color, gamma=0.4):
-    color = list(map(lambda x: math.pow(x / 255.0, gamma) * 255.0, color))
-    color = list(map(int, color))
-    color = list(map(lambda x: max(0, x), color))
-    color = list(map(lambda x: min(255, x), color))
-    return color
-
 def drawModelFilled(surface, model, modelM, modelColor, lightDir):
     modelVerts = model["verts"]
     worldVerts = projectVerts(modelM, modelVerts)
@@ -216,6 +223,8 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir):
         intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
         modColor = gammaCorrect(mulVec(intensity, modelColor))
         pygame.draw.polygon(surface, modColor, points)
+
+# MAIN
 
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
