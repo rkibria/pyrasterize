@@ -148,6 +148,36 @@ def sortTrisByZ(idcs, tris, worldVerts):
 def degToRad(d):
     return d * (math.pi / 180)
 
+def drawEdge(surface, p0, p1, color):
+    x1 = o_x + p0[0] * o_x
+    y1 = o_y - p0[1] * o_y * (width/height)
+    x2 = o_x + p1[0] * o_x
+    y2 = o_y - p1[1] * o_y * (width/height)
+    pygame.draw.aaline(surface, color, (x1, y1), (x2, y2), 1)
+
+def drawCoordGrid(surface, m, color):
+    darkColor = (color[0]/2, color[1]/2, color[2]/2)
+    def gridLine(v0, v1, color):
+        v0 = vecMatMult(v0, m)
+        v1 = vecMatMult(v1, m)
+        if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
+            return
+        p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
+        p1 = (v1[0]/-v1[2], v1[1]/-v1[2])
+        drawEdge(surface, p0, p1, color)
+    numLines = 11
+    for i in range(numLines):
+        d = 1
+        s = (numLines - 1) / 2
+        t = -s + i * d
+        gridLine((t, 0, s, 1), (t, 0, -s, 1), darkColor)
+        gridLine((s, 0, t, 1), (-s, 0, t, 1), darkColor)
+    origin = (0, 0, 0, 1)
+    gridLine(origin, (5, 0, 0, 1), color)
+    gridLine(origin, (0, 5, 0, 1), color)
+    gridLine(origin, (0, 0, 5, 1), color)
+    gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
+
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
 
@@ -169,42 +199,12 @@ if __name__ == '__main__':
     done = False
     clock = pygame.time.Clock()
 
-    def drawEdge(p0, p1, color):
-        x1 = o_x + p0[0] * o_x
-        y1 = o_y - p0[1] * o_y * (width/height)
-        x2 = o_x + p1[0] * o_x
-        y2 = o_y - p1[1] * o_y * (width/height)
-        pygame.draw.aaline(screen, color, (x1, y1), (x2, y2), 1)
-
     def getTransform(rot, tran):
         m = getRotateXMatrix(rot[0])
         m = matMatMult(getRotateYMatrix(rot[1]), m)
         m = matMatMult(getRotateZMatrix(rot[2]), m)
         m = matMatMult(getTranslationMatrix(*tran), m)
         return m
-
-    def drawGround(m, color):
-        darkColor = (color[0]/2, color[1]/2, color[2]/2)
-        def gridLine(v0, v1, color):
-            v0 = vecMatMult(v0, m)
-            v1 = vecMatMult(v1, m)
-            if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
-                return
-            p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
-            p1 = (v1[0]/-v1[2], v1[1]/-v1[2])
-            drawEdge(p0, p1, color)
-        numLines = 11
-        for i in range(numLines):
-            d = 1
-            s = (numLines - 1) / 2
-            t = -s + i * d
-            gridLine((t, 0, s, 1), (t, 0, -s, 1), darkColor)
-            gridLine((s, 0, t, 1), (-s, 0, t, 1), darkColor)
-        origin = (0, 0, 0, 1)
-        gridLine(origin, (5, 0, 0, 1), color)
-        gridLine(origin, (0, 5, 0, 1), color)
-        gridLine(origin, (0, 0, 5, 1), color)
-        gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
     def correctColor(color):
         gamma = 0.4
@@ -247,7 +247,7 @@ if __name__ == '__main__':
         tran = (0, -2.5, -7.5)
 
         m = getTransform(rot, tran)
-        drawGround(m, RGB_DARKGREEN)
+        drawCoordGrid(screen, m, RGB_DARKGREEN)
         mt = getScalingMatrix(0.25, 0.25, 0.25)
         mt = matMatMult(getRotateXMatrix(-math.pi/2), mt)
         m = matMatMult(m, mt)
