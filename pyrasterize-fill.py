@@ -185,6 +185,13 @@ def getCameraTransform(rot, tran):
     m = matMatMult(getTranslationMatrix(*tran), m)
     return m
 
+def gammaCorrect(color, gamma=0.4):
+    color = list(map(lambda x: math.pow(x / 255.0, gamma) * 255.0, color))
+    color = list(map(int, color))
+    color = list(map(lambda x: max(0, x), color))
+    color = list(map(lambda x: min(255, x), color))
+    return color
+
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
 
@@ -206,14 +213,6 @@ if __name__ == '__main__':
     done = False
     clock = pygame.time.Clock()
 
-    def correctColor(color):
-        gamma = 0.4
-        color = list(map(lambda x: math.pow(x / 255.0, gamma) * 255.0, color))
-        color = list(map(int, color))
-        color = list(map(lambda x: max(0, x), color))
-        color = list(map(lambda x: min(255, x), color))
-        return color
-
     def drawMesh(drawTriIdcs, worldVerts, tris, normals, color, projM):
         for idx in drawTriIdcs:
             tri = tris[idx]
@@ -229,7 +228,7 @@ if __name__ == '__main__':
             projLight = normVec(vecMatMult(lightDir, projM)[0:3])
             intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
             modColor = mulVec(intensity, color)
-            modColor = correctColor(modColor)
+            modColor = gammaCorrect(modColor)
             pygame.draw.polygon(screen, modColor, points)
 
     font = pygame.font.Font(None, 30)
