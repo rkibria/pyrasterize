@@ -249,6 +249,11 @@ if __name__ == '__main__':
 
     font = pygame.font.Font(None, 30)
 
+    d = 2
+    modelPositions = [(-d, 0, -d), (-d, 0, d), 
+        (d, 0, -d), (d, 0, d)]
+    modelColors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 255)]
+
     frame = 0
     while not done:
         clock.tick(30)
@@ -261,10 +266,24 @@ if __name__ == '__main__':
         cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
         drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
 
-        modelM = getScalingMatrix(0.25, 0.25, 0.25)
-        modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
-        modelM = matMatMult(cameraM, modelM)
-        drawModelFilled(screen, teapot, modelM, RGB_CRIMSON, (0, 0, 1))
+        projPositions = []
+        for i in range(len(modelPositions)):
+            pos = modelPositions[i]
+            pos4 = (pos[0], pos[1], pos[2], 1)
+            projPositions.append(vecMatMult(pos4, cameraM))
+        posIdcs = [*range(len(modelPositions))]
+        def _sortByZ(i):
+            return projPositions[i][2]
+        posIdcs.sort(key=_sortByZ, reverse=False)
+
+        for i in range(len(modelPositions)):
+            pos = modelPositions[posIdcs[i]]
+            color = modelColors[posIdcs[i]]
+            modelM = getScalingMatrix(0.125, 0.125, 0.125)
+            modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
+            modelM = matMatMult(getTranslationMatrix(*pos), modelM)
+            modelM = matMatMult(cameraM, modelM)
+            drawModelFilled(screen, teapot, modelM, color, (0, 0, 1))
 
         pygame.display.flip()
         frame += 1
