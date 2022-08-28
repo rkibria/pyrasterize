@@ -145,10 +145,6 @@ def sortTrisByZ(idcs, tris, worldVerts):
         return (z0 + z1 + z2) / 3
     idcs.sort(key=_sortByZ, reverse=False)
 
-def perspDiv(vert):
-    z = -vert[2]
-    return (vert[0] / z, vert[1] / z)
-
 def degToRad(d):
     return d * (math.pi / 180)
 
@@ -194,8 +190,8 @@ if __name__ == '__main__':
             v1 = vecMatMult(v1, m)
             if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
                 return
-            p0 = perspDiv(v0)
-            p1 = perspDiv(v1)
+            p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
+            p1 = (v1[0]/-v1[2], v1[1]/-v1[2])
             drawEdge(p0, p1, color)
         numLines = 11
         for i in range(numLines):
@@ -223,7 +219,8 @@ if __name__ == '__main__':
             tri = tris[idx]
             points = []
             for i in range(3):
-                p0 = perspDiv(worldVerts[tri[i]])
+                v0 = worldVerts[tri[i]]
+                p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
                 x1 = o_x + p0[0] * o_x
                 y1 = o_y - p0[1] * o_y * (width/height)
                 points.append((int(x1), int(y1)))
