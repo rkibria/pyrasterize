@@ -192,6 +192,23 @@ def gammaCorrect(color, gamma=0.4):
     color = list(map(lambda x: min(255, x), color))
     return color
 
+def drawFilledMesh(surface, drawTriIdcs, worldVerts, tris, normals, color, projM, lightDir=(0, 0, 1, 0)):
+    for idx in drawTriIdcs:
+        tri = tris[idx]
+        points = []
+        for i in range(3):
+            v0 = worldVerts[tri[i]]
+            p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
+            x1 = o_x + p0[0] * o_x
+            y1 = o_y - p0[1] * o_y * (width/height)
+            points.append((int(x1), int(y1)))
+        normal = normals[idx]
+        projLight = normVec(vecMatMult(lightDir, projM)[0:3])
+        intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
+        modColor = mulVec(intensity, color)
+        modColor = gammaCorrect(modColor)
+        pygame.draw.polygon(surface, modColor, points)
+
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
 
@@ -212,24 +229,6 @@ if __name__ == '__main__':
 
     done = False
     clock = pygame.time.Clock()
-
-    def drawMesh(drawTriIdcs, worldVerts, tris, normals, color, projM):
-        for idx in drawTriIdcs:
-            tri = tris[idx]
-            points = []
-            for i in range(3):
-                v0 = worldVerts[tri[i]]
-                p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
-                x1 = o_x + p0[0] * o_x
-                y1 = o_y - p0[1] * o_y * (width/height)
-                points.append((int(x1), int(y1)))
-            normal = normals[idx]
-            lightDir = (0, 0, 1, 0)
-            projLight = normVec(vecMatMult(lightDir, projM)[0:3])
-            intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
-            modColor = mulVec(intensity, color)
-            modColor = gammaCorrect(modColor)
-            pygame.draw.polygon(screen, modColor, points)
 
     font = pygame.font.Font(None, 30)
 
@@ -258,7 +257,7 @@ if __name__ == '__main__':
         drawIdcs,normals = getVisibleTris((0, 0, 0), modelTris, worldVerts)
         sortTrisByZ(drawIdcs, modelTris, worldVerts)
 
-        drawMesh(drawIdcs, worldVerts, modelTris, normals, RGB_CRIMSON, m)
+        drawFilledMesh(screen, drawIdcs, worldVerts, modelTris, normals, RGB_CRIMSON, m)
 
         pygame.display.flip()
         frame += 1
