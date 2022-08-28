@@ -109,12 +109,13 @@ def projectVerts(m, modelVerts):
 NEAR_CLIP_PLANE = -0.5
 FAR_CLIP_PLANE = -100
 
-def getVisibleTris(viewPoint, tris, worldVerts):
+def getVisibleTris(tris, worldVerts):
     """
     Return:
     - tri indices that aren't culled/outside view
       SORTED BY z of first vert in ascending order
     - normals indexed same as tri's
+    - assumes the camera is at origin
     """
     idcs = []
     normals = []
@@ -129,8 +130,7 @@ def getVisibleTris(viewPoint, tris, worldVerts):
         if (v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE or v2[2] >= NEAR_CLIP_PLANE
             or v0[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE):
             continue
-        viewPointToTriVec = subVec(v0, viewPoint)
-        isVisible = (dotProduct(viewPointToTriVec, normal) < 0)
+        isVisible = (dotProduct(v0, normal) < 0)
         if isVisible:
             idcs.append(i)
     return (idcs, normals)
@@ -192,9 +192,19 @@ def gammaCorrect(color, gamma=0.4):
     color = list(map(lambda x: min(255, x), color))
     return color
 
-def drawFilledMesh(surface, drawTriIdcs, worldVerts, tris, normals, color, projM, lightDir=(0, 0, 1, 0)):
-    for idx in drawTriIdcs:
-        tri = tris[idx]
+def drawModelFilled(surface, model, modelM, modelColor, lightDir):
+    modelVerts = model["verts"]
+    worldVerts = projectVerts(modelM, modelVerts)
+
+    modelTris = model["tris"]
+    drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
+    sortTrisByZ(drawIdcs, modelTris, worldVerts)
+
+    # Direction vector, w must be 0
+    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0)
+    projLight = normVec(vecMatMult(lightDirVec4, modelM)[0:3])
+    for idx in drawIdcs:
+        tri = modelTris[idx]
         points = []
         for i in range(3):
             v0 = worldVerts[tri[i]]
@@ -203,10 +213,8 @@ def drawFilledMesh(surface, drawTriIdcs, worldVerts, tris, normals, color, projM
             y1 = o_y - p0[1] * o_y * (width/height)
             points.append((int(x1), int(y1)))
         normal = normals[idx]
-        projLight = normVec(vecMatMult(lightDir, projM)[0:3])
         intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
-        modColor = mulVec(intensity, color)
-        modColor = gammaCorrect(modColor)
+        modColor = gammaCorrect(mulVec(intensity, modelColor))
         pygame.draw.polygon(surface, modColor, points)
 
 if __name__ == '__main__':
@@ -241,23 +249,13 @@ if __name__ == '__main__':
         screen.fill(RGB_BLACK)
 
         angle = degToRad(frame)
-        rot = (degToRad(20), angle, 0)
-        tran = (0, -2.5, -7.5)
+        cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
+        drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
 
-        m = getCameraTransform(rot, tran)
-        drawCoordGrid(screen, m, RGB_DARKGREEN)
-        mt = getScalingMatrix(0.25, 0.25, 0.25)
-        mt = matMatMult(getRotateXMatrix(-math.pi/2), mt)
-        m = matMatMult(m, mt)
-
-        modelVerts = teapot["verts"]
-        worldVerts = projectVerts(m, modelVerts)
-
-        modelTris = teapot["tris"]
-        drawIdcs,normals = getVisibleTris((0, 0, 0), modelTris, worldVerts)
-        sortTrisByZ(drawIdcs, modelTris, worldVerts)
-
-        drawFilledMesh(screen, drawIdcs, worldVerts, modelTris, normals, RGB_CRIMSON, m)
+        modelM = getScalingMatrix(0.25, 0.25, 0.25)
+        modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
+        modelM = matMatMult(cameraM, modelM)
+        drawModelFilled(screen, teapot, modelM, RGB_CRIMSON, (0, 0, 1))
 
         pygame.display.flip()
         frame += 1
