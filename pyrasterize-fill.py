@@ -238,14 +238,17 @@ def drawModelList(surface, modelList, cameraM):
     for i in range(len(modelList)):
         modelEntry = modelList[posIdcs[i]]
         pos = modelEntry["pos"]
-        color = modelEntry["color"]
         modelM = getScalingMatrix(0.125, 0.125, 0.125)
         modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
         modelM = matMatMult(getTranslationMatrix(*pos), modelM)
         modelM = matMatMult(cameraM, modelM)
-        drawModelFilled(surface, teapot, modelM, color, (0, 0, 1))
+        color = modelEntry["color"]
+        drawModelFilled(surface, modelEntry["model"], modelM, color, (0, 0, 1))
 
 # MAIN
+
+RGB_BLACK = (0, 0, 0)
+RGB_DARKGREEN = (0, 128, 0)
 
 if __name__ == '__main__':
     teapot = loadObjFile("teapot-low.obj") # teapot-low.obj
@@ -255,11 +258,6 @@ if __name__ == '__main__':
     size = width, height = 800, 600
     o_x = width/2
     o_y = height/2
-
-    RGB_BLACK = (0, 0, 0)
-    RGB_WHITE = (255, 255, 255)
-    RGB_DARKGREEN = (0, 128, 0)
-    RGB_CRIMSON = (220, 20, 60)
 
     screen = pygame.display.set_mode(size)
 
@@ -272,10 +270,10 @@ if __name__ == '__main__':
 
     d = 2
     modelList = [
-        { "pos" : (-d, 0, -d), "color" : (255, 0, 0) },
-        { "pos" : (-d, 0,  d), "color" : (0, 255, 0) },
-        { "pos" : (d,  0, -d), "color" : (0, 0, 255) },
-        { "pos" : (d,  0,  d), "color" : (255, 255, 255) },]
+        { "model": teapot, "pos": (-d, 0, -d), "color": (255, 0, 0) },
+        { "model": teapot, "pos": (-d, 0,  d), "color": (0, 255, 0) },
+        { "model": teapot, "pos": (d,  0, -d), "color": (0, 0, 255) },
+        { "model": teapot, "pos": (d,  0,  d), "color": (255, 255, 255) },]
 
     frame = 0
     while not done:
