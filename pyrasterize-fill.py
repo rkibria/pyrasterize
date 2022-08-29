@@ -235,7 +235,7 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir, ambient, diffu
     times.append(time.time() - st) # drawing time
     return times
 
-def drawModelList(surface, modelList, cameraM):
+def drawModelList(surface, modelList, cameraM, lightDir, ambient, diffuse):
     """return times {project, cull, draw}"""
     projPositions = []
     for i in range(len(modelList)):
@@ -250,13 +250,10 @@ def drawModelList(surface, modelList, cameraM):
     times = []
     for i in range(len(modelList)):
         modelEntry = modelList[posIdcs[i]]
-        pos = modelEntry["pos"]
-        modelM = getScalingMatrix(*modelEntry["scale"])
-        modelM = matMatMult(getRotateXMatrix(-math.pi/2), modelM)
-        modelM = matMatMult(getTranslationMatrix(*pos), modelM)
+        modelM = modelEntry["matrix"]
+        modelM = matMatMult(getTranslationMatrix(*modelEntry["pos"]), modelM)
         modelM = matMatMult(cameraM, modelM)
-        color = modelEntry["color"]
-        curTimes = drawModelFilled(surface, modelEntry["model"], modelM, color, (0, 0, 1), 0.3, 0.7)
+        curTimes = drawModelFilled(surface, modelEntry["model"], modelM, modelEntry["color"], lightDir, ambient, diffuse)
         if len(times) == 0:
             times = curTimes
         else:
@@ -287,13 +284,13 @@ if __name__ == '__main__':
 
     font = pygame.font.Font(None, 30)
 
+    scaleRotM = matMatMult(getRotateXMatrix(-math.pi/2), getScalingMatrix(0.125, 0.125, 0.125))
     d = 2
-    teaScale = (0.125, 0.125, 0.125)
     modelList = [
-        { "model": teapot, "pos": (-d, 0, -d), "scale": teaScale, "color": (255, 0, 0) },
-        { "model": teapot, "pos": (-d, 0,  d), "scale": teaScale, "color": (0, 255, 0) },
-        { "model": teapot, "pos": (d,  0, -d), "scale": teaScale, "color": (0, 0, 255) },
-        { "model": teapot, "pos": (d,  0,  d), "scale": teaScale, "color": (255, 255, 255) },]
+        { "model": teapot, "pos": (-d, 0, -d), "matrix": scaleRotM, "color": (255, 0, 0) },
+        { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
+        { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
+        { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
 
     frame = 0
     while not done:
@@ -306,7 +303,7 @@ if __name__ == '__main__':
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
         drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
-        times = drawModelList(screen, modelList, cameraM)
+        times = drawModelList(screen, modelList, cameraM, (0, 0, 1), 0.3, 0.7)
         print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
