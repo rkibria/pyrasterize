@@ -299,6 +299,28 @@ if __name__ == '__main__':
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
         return drawModelList(surface, fourStaticPots, cameraM, (0, 0, 1), 0.3, 0.7)
 
+    def getModelCenterPos(model):
+        avg = [0, 0, 0]
+        for v in model["verts"]:
+            for i in range(3):
+                avg[i] += v[i]
+        for i in range(3):
+            avg[i] /= len(model["verts"])
+        return avg
+    teapotAdjust = mulVec(-1, getModelCenterPos(teapot))
+
+    def drawSingleRotatingPotFixedCamera(surface, frame):
+        angle = degToRad(frame)
+        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -2.5, -7.5))
+        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+        m = matMatMult(getRotateXMatrix(-math.pi/2), getTranslationMatrix(*teapotAdjust))
+        m = matMatMult(getScalingMatrix(0.25, 0.25, 0.25), m)
+        m = matMatMult(getRotateXMatrix(angle), m)
+        m = matMatMult(getRotateYMatrix(angle), m)
+        m = matMatMult(getRotateZMatrix(angle), m)
+        modelList = [{ "model": teapot, "pos": (0, 0, 0), "matrix": m, "color": (255, 0, 0) }]
+        return drawModelList(surface, modelList, cameraM, (0, 0, 1), 0.3, 0.7)
+
     frame = 0
     while not done:
         clock.tick(30)
@@ -307,7 +329,8 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawFourStaticPotsRotatingCamera(screen, frame)
+        # times = drawFourStaticPotsRotatingCamera(screen, frame)
+        times = drawSingleRotatingPotFixedCamera(screen, frame)
         print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
