@@ -221,6 +221,8 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     times.append(time.time() - st) # sorting time
 
     usePrecompColors = "precompColors" in modelInstance
+    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
+    projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
 
     st = time.time()
     for idx in drawIdcs:
@@ -234,8 +236,6 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
             points.append((int(x1), int(y1)))
         if not usePrecompColors:
             # Dynamic lighting
-            lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-            projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
             normal = normVec(normals[idx])
             lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
             intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
@@ -310,8 +310,8 @@ if __name__ == '__main__':
             { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
             { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
             { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
-        for instance in mlist:
-            precomputeColors(instance)
+        precomputeColors(mlist[0])
+        precomputeColors(mlist[1])
         return mlist
     fourStaticPots = getFourStaticPots()
     def drawFourStaticPotsRotatingCamera(surface, frame):
