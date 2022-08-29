@@ -197,9 +197,10 @@ def drawCoordGrid(surface, m, color):
     gridLine(origin, (0, 0, 5, 1), color)
     gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
-def drawModelFilled(surface, model, cameraM, modelM, modelColor, lightDir, ambient, diffuse):
+def drawModelFilled(surface, modelInstance, cameraM, modelM, lightDir, ambient, diffuse):
     """return times {project, cull, draw}"""
     times = []
+    model = modelInstance["model"]
     modelVerts = model["verts"]
     st = time.time()
     worldVerts = projectVerts(modelM, modelVerts)
@@ -230,6 +231,7 @@ def drawModelFilled(surface, model, cameraM, modelM, modelColor, lightDir, ambie
         normal = normVec(normals[idx])
         lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
         intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
+        modelColor = modelInstance["color"]
         lightedColor = [intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2]]
 
         pygame.draw.polygon(surface, lightedColor, points)
@@ -250,11 +252,11 @@ def drawModelList(surface, modelList, cameraM, lightDir, ambient, diffuse):
 
     times = []
     for i in range(len(modelList)):
-        modelEntry = modelList[posIdcs[i]]
-        modelM = modelEntry["matrix"]
-        modelM = matMatMult(getTranslationMatrix(*modelEntry["pos"]), modelM)
+        modelInstance = modelList[posIdcs[i]]
+        modelM = modelInstance["matrix"]
+        modelM = matMatMult(getTranslationMatrix(*modelInstance["pos"]), modelM)
         modelM = matMatMult(cameraM, modelM)
-        curTimes = drawModelFilled(surface, modelEntry["model"], cameraM, modelM, modelEntry["color"], lightDir, ambient, diffuse)
+        curTimes = drawModelFilled(surface, modelInstance, cameraM, modelM, lightDir, ambient, diffuse)
         if len(times) == 0:
             times = curTimes
         else:
@@ -331,8 +333,8 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        # times = drawFourStaticPotsRotatingCamera(screen, frame)
-        times = drawSingleRotatingPotFixedCamera(screen, frame)
+        times = drawFourStaticPotsRotatingCamera(screen, frame)
+        # times = drawSingleRotatingPotFixedCamera(screen, frame)
         print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
