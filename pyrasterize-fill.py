@@ -214,9 +214,6 @@ def drawModelFilled(surface, model, cameraM, modelM, modelColor, lightDir, ambie
     sortTrisByZ(drawIdcs, modelTris, worldVerts)
     times.append(time.time() - st) # sorting time
 
-    # Direction vector, w must be 0
-    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0)
-    projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
     st = time.time()
     for idx in drawIdcs:
         tri = modelTris[idx]
@@ -227,10 +224,14 @@ def drawModelFilled(surface, model, cameraM, modelM, modelColor, lightDir, ambie
             x1 = o_x + p0[0] * o_x
             y1 = o_y - p0[1] * o_y * (width/height)
             points.append((int(x1), int(y1)))
+        # Dynamic lighting
+        lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
+        projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
         normal = normVec(normals[idx])
         lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
         intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
         lightedColor = [intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2]]
+
         pygame.draw.polygon(surface, lightedColor, points)
     times.append(time.time() - st) # drawing time
     return times
