@@ -239,7 +239,7 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
             normal = normVec(normals[idx])
             lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
             intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
-            lightedColor = [intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2]]
+            lightedColor = (intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2])
         else:
             lightedColor = modelColor
 
