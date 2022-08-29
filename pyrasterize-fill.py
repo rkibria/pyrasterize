@@ -241,7 +241,7 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
             intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
             lightedColor = (intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2])
         else:
-            lightedColor = modelColor
+            lightedColor = modelInstance["bakedColors"][idx]
 
         pygame.draw.polygon(surface, lightedColor, points)
     times.append(time.time() - st) # drawing time
@@ -273,14 +273,43 @@ def drawModelList(surface, modelList, cameraM, lighting):
                 times[i] += curTimes[i]
     return times
 
+def precomputeColors(instance, lighting):
+    model = instance["model"]
+    lightDir = lighting["lightDir"]
+    ambient = lighting["ambient"]
+    diffuse = lighting["diffuse"]
+    modelColor = instance["color"]
+    modelM = instance["matrix"]
+
+    instance["precompColors"] = True
+
+    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
+    projLight = normVec(vecMatMult(lightDirVec4, modelM)[0:3])
+
+    worldVerts = projectVerts(modelM, model["verts"])
+    modelTris = model["tris"]
+    bakedColors = []
+    for i in range(len(modelTris)):
+        tri = modelTris[i]
+        v0 = worldVerts[tri[0]]
+        v1 = worldVerts[tri[1]]
+        v2 = worldVerts[tri[2]]
+        sub10 = (v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2])
+        sub20 = (v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2])
+        normal = (sub10[1]*sub20[2] - sub10[2]*sub20[1],
+            sub10[2]*sub20[0] - sub10[0]*sub20[2],
+            sub10[0]*sub20[1] - sub10[1]*sub20[0])
+        normal = normVec(normal)
+        lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
+        intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
+        lightedColor = (int(intensity * modelColor[0]), int(intensity * modelColor[1]), int(intensity * modelColor[2]))
+        bakedColors.append(lightedColor)
+    instance["bakedColors"] = bakedColors
+
 # MAIN
 
 RGB_BLACK = (0, 0, 0)
 RGB_DARKGREEN = (0, 128, 0)
-
-def precomputeColors(instance):
-    model = instance["model"]
-    instance["precompColors"] = True
 
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
@@ -310,8 +339,8 @@ if __name__ == '__main__':
             { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
             { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
             { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
-        precomputeColors(mlist[0])
-        precomputeColors(mlist[1])
+        for instance in mlist:
+            precomputeColors(instance, lighting)
         return mlist
     fourStaticPots = getFourStaticPots()
     def drawFourStaticPotsRotatingCamera(surface, frame):
