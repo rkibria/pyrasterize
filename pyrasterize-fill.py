@@ -1,4 +1,4 @@
-import pygame, math, sys
+import pygame, math, sys, time
 
 # MATHS
 
@@ -200,16 +200,23 @@ def drawCoordGrid(surface, m, color):
     gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
 def drawModelFilled(surface, model, modelM, modelColor, lightDir):
+    """return times {project, cull, draw}"""
+    times = []
     modelVerts = model["verts"]
+    st = time.time()
     worldVerts = projectVerts(modelM, modelVerts)
+    times.append(time.time() - st) # projection time
 
     modelTris = model["tris"]
+    st = time.time()
     drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
     sortTrisByZ(drawIdcs, modelTris, worldVerts)
+    times.append(time.time() - st) # culling time
 
     # Direction vector, w must be 0
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0)
     projLight = normVec(vecMatMult(lightDirVec4, modelM)[0:3])
+    st = time.time()
     for idx in drawIdcs:
         tri = modelTris[idx]
         points = []
@@ -223,8 +230,11 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir):
         intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
         modColor = gammaCorrect(mulVec(intensity, modelColor))
         pygame.draw.polygon(surface, modColor, points)
+    times.append(time.time() - st) # drawing time
+    return times
 
 def drawModelList(surface, modelList, cameraM):
+    """return times {project, cull, draw}"""
     projPositions = []
     for i in range(len(modelList)):
         pos = modelList[i]["pos"]
@@ -235,6 +245,7 @@ def drawModelList(surface, modelList, cameraM):
         return projPositions[i][2]
     posIdcs.sort(key=_sortByZ, reverse=False)
 
+    times = []
     for i in range(len(modelList)):
         modelEntry = modelList[posIdcs[i]]
         pos = modelEntry["pos"]
@@ -243,7 +254,13 @@ def drawModelList(surface, modelList, cameraM):
         modelM = matMatMult(getTranslationMatrix(*pos), modelM)
         modelM = matMatMult(cameraM, modelM)
         color = modelEntry["color"]
-        drawModelFilled(surface, modelEntry["model"], modelM, color, (0, 0, 1))
+        curTimes = drawModelFilled(surface, modelEntry["model"], modelM, color, (0, 0, 1))
+        if len(times) == 0:
+            times = curTimes
+        else:
+            for i in range(len(times)):
+                times[i] += curTimes[i]
+    return times
 
 # MAIN
 
@@ -251,7 +268,7 @@ RGB_BLACK = (0, 0, 0)
 RGB_DARKGREEN = (0, 128, 0)
 
 if __name__ == '__main__':
-    teapot = loadObjFile("teapot-low.obj") # teapot-low.obj
+    teapot = loadObjFile("teapot.obj") # teapot-low.obj
 
     pygame.init()
 
@@ -287,7 +304,8 @@ if __name__ == '__main__':
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
         drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
-        drawModelList(screen, modelList, cameraM)
+        times = drawModelList(screen, modelList, cameraM)
+        print("project/cull/draw: %f, %f, %f sec" % (times[0], times[1], times[2]))
 
         pygame.display.flip()
         frame += 1
