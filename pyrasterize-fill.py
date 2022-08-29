@@ -34,11 +34,15 @@ def matMatMult(m1, m2):
     return newM
 
 def vecMatMult(v, m):
-    newV = [0] * 4
-    for r in range(4):
-        for c in range(4):
-            newV[r] += m[4 * r + c] * v[c]
-    return newV
+    """This form was more than twice as fast as a nested loop"""
+    v0 = v[0]
+    v1 = v[1]
+    v2 = v[2]
+    v3 = v[3]
+    return [m[ 0] * v0 + m[ 1] * v1 + m[ 2] * v2 + m[ 3] * v3,
+            m[ 4] * v0 + m[ 5] * v1 + m[ 6] * v2 + m[ 7] * v3,
+            m[ 8] * v0 + m[ 9] * v1 + m[10] * v2 + m[11] * v3,
+            m[12] * v0 + m[13] * v1 + m[14] * v2 + m[15] * v3]
 
 def getTranslationMatrix(dx, dy, dz):
         return [1.0, 0.0, 0.0, float(dx),
