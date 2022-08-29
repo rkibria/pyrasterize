@@ -105,6 +105,8 @@ def loadObjFile(fname):
             elif len(indices) == 4:
                 triangles.append((indices[0], indices[1], indices[2]))
                 triangles.append((indices[2], indices[3], indices[0]))
+            else:
+                print("? index length " + str(len(indices)))
     print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
     return {"verts" : vertices, "tris" : triangles}
 
@@ -306,13 +308,23 @@ def precomputeColors(instance, lighting):
         bakedColors.append(lightedColor)
     instance["bakedColors"] = bakedColors
 
+def getModelCenterPos(model):
+    avg = [0, 0, 0]
+    for v in model["verts"]:
+        for i in range(3):
+            avg[i] += v[i]
+    for i in range(3):
+        avg[i] /= len(model["verts"])
+    return avg
+
 # MAIN
 
 RGB_BLACK = (0, 0, 0)
 RGB_DARKGREEN = (0, 128, 0)
 
 if __name__ == '__main__':
-    teapot = loadObjFile("teapot.obj") # teapot-low.obj
+    # teapot = loadObjFile("teapot.obj") # teapot-low.obj
+    goldfish = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
 
     pygame.init()
 
@@ -331,46 +343,51 @@ if __name__ == '__main__':
 
     lighting = {"lightDir" : (1, 0, 0), "ambient": 0.3, "diffuse": 0.7}
 
-    def getFourStaticPots():
-        scaleRotM = matMatMult(getRotateXMatrix(-math.pi/2), getScalingMatrix(0.125, 0.125, 0.125))
-        d = 2
-        mlist = [
-            { "model": teapot, "pos": (-d, 0, -d), "matrix": scaleRotM, "color": (255, 0, 0) },
-            { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
-            { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
-            { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
-        for instance in mlist:
-            precomputeColors(instance, lighting)
-        return mlist
-    fourStaticPots = getFourStaticPots()
-    def drawFourStaticPotsRotatingCamera(surface, frame):
-        angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
-        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        return drawModelList(surface, fourStaticPots, cameraM, lighting)
+    # def getFourStaticPots():
+    #     scaleRotM = matMatMult(getRotateXMatrix(-math.pi/2), getScalingMatrix(0.125, 0.125, 0.125))
+    #     d = 2
+    #     mlist = [
+    #         { "model": teapot, "pos": (-d, 0, -d), "matrix": scaleRotM, "color": (255, 0, 0) },
+    #         { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
+    #         { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
+    #         { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
+    #     for instance in mlist:
+    #         precomputeColors(instance, lighting)
+    #     return mlist
+    # fourStaticPots = getFourStaticPots()
+    # def drawFourStaticPotsRotatingCamera(surface, frame):
+    #     angle = degToRad(frame)
+    #     cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
+    #     drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+    #     return drawModelList(surface, fourStaticPots, cameraM, lighting)
+    # teapotAdjust = mulVec(-1, getModelCenterPos(teapot))
 
-    def getModelCenterPos(model):
-        avg = [0, 0, 0]
-        for v in model["verts"]:
-            for i in range(3):
-                avg[i] += v[i]
-        for i in range(3):
-            avg[i] /= len(model["verts"])
-        return avg
-    teapotAdjust = mulVec(-1, getModelCenterPos(teapot))
+    # singleRotatingPot = [{ "model": teapot, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
+    # def drawSingleRotatingPotFixedCamera(surface, frame):
+    #     angle = degToRad(frame)
+    #     cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -2.5, -7.5))
+    #     drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+    #     m = matMatMult(getRotateXMatrix(-math.pi/2), getTranslationMatrix(*teapotAdjust))
+    #     m = matMatMult(getScalingMatrix(0.25, 0.25, 0.25), m)
+    #     m = matMatMult(getRotateXMatrix(angle), m)
+    #     m = matMatMult(getRotateYMatrix(angle), m)
+    #     m = matMatMult(getRotateZMatrix(angle), m)
+    #     singleRotatingPot[0]["matrix"] = m
+    #     return drawModelList(surface, singleRotatingPot, cameraM, lighting)
 
-    singleRotatingPot = [{ "model": teapot, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
-    def drawSingleRotatingPotFixedCamera(surface, frame):
+    rotatingGoldfish = [{ "model": goldfish, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
+    goldfishAdjust = mulVec(-1, getModelCenterPos(goldfish))
+    def drawGoldfish(surface, frame):
         angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -2.5, -7.5))
+        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -0.5, -7.5))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        m = matMatMult(getRotateXMatrix(-math.pi/2), getTranslationMatrix(*teapotAdjust))
-        m = matMatMult(getScalingMatrix(0.25, 0.25, 0.25), m)
+        m = getTranslationMatrix(*goldfishAdjust)
+        m = matMatMult(getScalingMatrix(0.5, 0.5, 0.5), m)
         m = matMatMult(getRotateXMatrix(angle), m)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
-        singleRotatingPot[0]["matrix"] = m
-        return drawModelList(surface, singleRotatingPot, cameraM, lighting)
+        rotatingGoldfish[0]["matrix"] = m
+        return drawModelList(surface, rotatingGoldfish, cameraM, lighting)
 
     frame = 0
     while not done:
@@ -380,9 +397,10 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawFourStaticPotsRotatingCamera(screen, frame)
+        # times = drawFourStaticPotsRotatingCamera(screen, frame)
         # times = drawSingleRotatingPotFixedCamera(screen, frame)
-        print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
+        times = drawGoldfish(screen, frame)
+        # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
         frame += 1
