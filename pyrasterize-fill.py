@@ -165,13 +165,6 @@ def getCameraTransform(rot, tran):
     m = matMatMult(getTranslationMatrix(*tran), m)
     return m
 
-def gammaCorrect(color, gamma=0.4):
-    color = list(map(lambda x: math.pow(x / 255.0, gamma) * 255.0, color))
-    color = list(map(int, color))
-    color = list(map(lambda x: max(0, x), color))
-    color = list(map(lambda x: min(255, x), color))
-    return color
-
 # DRAWING
 
 def drawEdge(surface, p0, p1, color):
@@ -204,7 +197,7 @@ def drawCoordGrid(surface, m, color):
     gridLine(origin, (0, 0, 5, 1), color)
     gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
-def drawModelFilled(surface, model, modelM, modelColor, lightDir):
+def drawModelFilled(surface, model, modelM, modelColor, lightDir, ambient, diffuse):
     """return times {project, cull, draw}"""
     times = []
     modelVerts = model["verts"]
@@ -234,10 +227,11 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir):
             x1 = o_x + p0[0] * o_x
             y1 = o_y - p0[1] * o_y * (width/height)
             points.append((int(x1), int(y1)))
-        normal = normals[idx]
-        intensity = min(1, max(0, 0.1 + 2 * dotProduct(projLight, normal)))
-        modColor = gammaCorrect(mulVec(intensity, modelColor))
-        pygame.draw.polygon(surface, modColor, points)
+        normal = normVec(normals[idx])
+        lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
+        intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
+        lightedColor = [intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2]]
+        pygame.draw.polygon(surface, lightedColor, points)
     times.append(time.time() - st) # drawing time
     return times
 
@@ -262,7 +256,7 @@ def drawModelList(surface, modelList, cameraM):
         modelM = matMatMult(getTranslationMatrix(*pos), modelM)
         modelM = matMatMult(cameraM, modelM)
         color = modelEntry["color"]
-        curTimes = drawModelFilled(surface, modelEntry["model"], modelM, color, (0, 0, 1))
+        curTimes = drawModelFilled(surface, modelEntry["model"], modelM, color, (0, 0, 1), 0.3, 0.7)
         if len(times) == 0:
             times = curTimes
         else:
