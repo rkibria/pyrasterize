@@ -132,12 +132,18 @@ def getVisibleTris(tris, worldVerts):
         v0 = worldVerts[tri[0]]
         v1 = worldVerts[tri[1]]
         v2 = worldVerts[tri[2]]
-        normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
+        # normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
+        sub10 = (v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2])
+        sub20 = (v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2])
+        normal = (sub10[1]*sub20[2] - sub10[2]*sub20[1],
+            sub10[2]*sub20[0] - sub10[0]*sub20[2],
+            sub10[0]*sub20[1] - sub10[1]*sub20[0])
         normals.append(normal)
         if (v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE or v2[2] >= NEAR_CLIP_PLANE
             or v0[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE):
             continue
-        isVisible = (dotProduct(v0, normal) < 0)
+        # isVisible = (dotProduct(v0, normal) < 0)
+        isVisible = ((v0[0]*normal[0] + v0[1]*normal[1] + v0[2]*normal[2]) < 0)
         if isVisible:
             idcs.append(i)
     return (idcs, normals)
