@@ -197,7 +197,7 @@ def drawCoordGrid(surface, m, color):
     gridLine(origin, (0, 0, 5, 1), color)
     gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
 
-def drawModelFilled(surface, model, modelM, modelColor, lightDir, ambient, diffuse):
+def drawModelFilled(surface, model, cameraM, modelM, modelColor, lightDir, ambient, diffuse):
     """return times {project, cull, draw}"""
     times = []
     modelVerts = model["verts"]
@@ -216,7 +216,7 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir, ambient, diffu
 
     # Direction vector, w must be 0
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0)
-    projLight = normVec(vecMatMult(lightDirVec4, modelM)[0:3])
+    projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
     st = time.time()
     for idx in drawIdcs:
         tri = modelTris[idx]
@@ -253,7 +253,7 @@ def drawModelList(surface, modelList, cameraM, lightDir, ambient, diffuse):
         modelM = modelEntry["matrix"]
         modelM = matMatMult(getTranslationMatrix(*modelEntry["pos"]), modelM)
         modelM = matMatMult(cameraM, modelM)
-        curTimes = drawModelFilled(surface, modelEntry["model"], modelM, modelEntry["color"], lightDir, ambient, diffuse)
+        curTimes = drawModelFilled(surface, modelEntry["model"], cameraM, modelM, modelEntry["color"], lightDir, ambient, diffuse)
         if len(times) == 0:
             times = curTimes
         else:
@@ -297,7 +297,7 @@ if __name__ == '__main__':
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        return drawModelList(surface, fourStaticPots, cameraM, (0, 0, 1), 0.3, 0.7)
+        return drawModelList(surface, fourStaticPots, cameraM, (1, 0, 0), 0.3, 0.7)
 
     def getModelCenterPos(model):
         avg = [0, 0, 0]
@@ -319,7 +319,7 @@ if __name__ == '__main__':
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
         modelList = [{ "model": teapot, "pos": (0, 0, 0), "matrix": m, "color": (255, 0, 0) }]
-        return drawModelList(surface, modelList, cameraM, (0, 0, 1), 0.3, 0.7)
+        return drawModelList(surface, modelList, cameraM, normVec((1, 0, 0)), 0.3, 0.7)
 
     frame = 0
     while not done:
@@ -329,8 +329,8 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        # times = drawFourStaticPotsRotatingCamera(screen, frame)
-        times = drawSingleRotatingPotFixedCamera(screen, frame)
+        times = drawFourStaticPotsRotatingCamera(screen, frame)
+        # times = drawSingleRotatingPotFixedCamera(screen, frame)
         print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
