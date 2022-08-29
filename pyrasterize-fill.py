@@ -310,6 +310,7 @@ if __name__ == '__main__':
         return avg
     teapotAdjust = mulVec(-1, getModelCenterPos(teapot))
 
+    singleRotatingPot = [{ "model": teapot, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
     def drawSingleRotatingPotFixedCamera(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -2.5, -7.5))
@@ -319,8 +320,8 @@ if __name__ == '__main__':
         m = matMatMult(getRotateXMatrix(angle), m)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
-        modelList = [{ "model": teapot, "pos": (0, 0, 0), "matrix": m, "color": (255, 0, 0) }]
-        return drawModelList(surface, modelList, cameraM, normVec((1, 0, 0)), 0.3, 0.7)
+        singleRotatingPot[0]["matrix"] = m
+        return drawModelList(surface, singleRotatingPot, cameraM, normVec((1, 0, 0)), 0.3, 0.7)
 
     frame = 0
     while not done:
@@ -330,8 +331,8 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawFourStaticPotsRotatingCamera(screen, frame)
-        # times = drawSingleRotatingPotFixedCamera(screen, frame)
+        # times = drawFourStaticPotsRotatingCamera(screen, frame)
+        times = drawSingleRotatingPotFixedCamera(screen, frame)
         print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
