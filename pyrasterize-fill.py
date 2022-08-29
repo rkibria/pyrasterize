@@ -202,8 +202,10 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     lightDir = lighting["lightDir"]
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
-    times = []
     model = modelInstance["model"]
+    modelColor = modelInstance["color"]
+
+    times = []
     modelVerts = model["verts"]
     st = time.time()
     worldVerts = projectVerts(modelM, modelVerts)
@@ -218,6 +220,8 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     sortTrisByZ(drawIdcs, modelTris, worldVerts)
     times.append(time.time() - st) # sorting time
 
+    usePrecompColors = "precompColors" in modelInstance
+
     st = time.time()
     for idx in drawIdcs:
         tri = modelTris[idx]
@@ -228,14 +232,16 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
             x1 = o_x + p0[0] * o_x
             y1 = o_y - p0[1] * o_y * (width/height)
             points.append((int(x1), int(y1)))
-        # Dynamic lighting
-        lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-        projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
-        normal = normVec(normals[idx])
-        lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
-        intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
-        modelColor = modelInstance["color"]
-        lightedColor = [intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2]]
+        if not usePrecompColors:
+            # Dynamic lighting
+            lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
+            projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
+            normal = normVec(normals[idx])
+            lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
+            intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
+            lightedColor = [intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2]]
+        else:
+            lightedColor = modelColor
 
         pygame.draw.polygon(surface, lightedColor, points)
     times.append(time.time() - st) # drawing time
@@ -272,6 +278,10 @@ def drawModelList(surface, modelList, cameraM, lighting):
 RGB_BLACK = (0, 0, 0)
 RGB_DARKGREEN = (0, 128, 0)
 
+def precomputeColors(instance):
+    model = instance["model"]
+    instance["precompColors"] = True
+
 if __name__ == '__main__':
     teapot = loadObjFile("teapot.obj") # teapot-low.obj
 
@@ -295,11 +305,14 @@ if __name__ == '__main__':
     def getFourStaticPots():
         scaleRotM = matMatMult(getRotateXMatrix(-math.pi/2), getScalingMatrix(0.125, 0.125, 0.125))
         d = 2
-        return [
+        mlist = [
             { "model": teapot, "pos": (-d, 0, -d), "matrix": scaleRotM, "color": (255, 0, 0) },
             { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
             { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
             { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
+        for instance in mlist:
+            precomputeColors(instance)
+        return mlist
     fourStaticPots = getFourStaticPots()
     def drawFourStaticPotsRotatingCamera(surface, frame):
         angle = degToRad(frame)
@@ -338,8 +351,8 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        # times = drawFourStaticPotsRotatingCamera(screen, frame)
-        times = drawSingleRotatingPotFixedCamera(screen, frame)
+        times = drawFourStaticPotsRotatingCamera(screen, frame)
+        # times = drawSingleRotatingPotFixedCamera(screen, frame)
         print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
