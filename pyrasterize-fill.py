@@ -108,12 +108,7 @@ def loadObjFile(fname):
 
 def projectVerts(m, modelVerts):
     """Transform the model's vec3's into projected vec4's"""
-    dstV = []
-    for vec in modelVerts:
-        v4 = (vec[0], vec[1], vec[2], 1)
-        pvec = vecMatMult(v4, m)
-        dstV.append(pvec)
-    return dstV
+    return list(map(lambda v: vecMatMult((v[0], v[1], v[2], 1), m), modelVerts))
 
 NEAR_CLIP_PLANE = -0.5
 FAR_CLIP_PLANE = -100
