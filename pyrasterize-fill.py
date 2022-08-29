@@ -284,13 +284,20 @@ if __name__ == '__main__':
 
     font = pygame.font.Font(None, 30)
 
-    scaleRotM = matMatMult(getRotateXMatrix(-math.pi/2), getScalingMatrix(0.125, 0.125, 0.125))
-    d = 2
-    modelList = [
-        { "model": teapot, "pos": (-d, 0, -d), "matrix": scaleRotM, "color": (255, 0, 0) },
-        { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
-        { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
-        { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
+    def getFourStaticPots():
+        scaleRotM = matMatMult(getRotateXMatrix(-math.pi/2), getScalingMatrix(0.125, 0.125, 0.125))
+        d = 2
+        return [
+            { "model": teapot, "pos": (-d, 0, -d), "matrix": scaleRotM, "color": (255, 0, 0) },
+            { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
+            { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
+            { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
+    fourStaticPots = getFourStaticPots()
+    def drawFourStaticPotsRotatingCamera(surface, frame):
+        angle = degToRad(frame)
+        cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
+        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+        return drawModelList(surface, fourStaticPots, cameraM, (0, 0, 1), 0.3, 0.7)
 
     frame = 0
     while not done:
@@ -300,10 +307,7 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
-        drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
-        times = drawModelList(screen, modelList, cameraM, (0, 0, 1), 0.3, 0.7)
+        times = drawFourStaticPotsRotatingCamera(screen, frame)
         print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
