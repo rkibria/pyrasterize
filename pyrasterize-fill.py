@@ -209,8 +209,11 @@ def drawModelFilled(surface, model, modelM, modelColor, lightDir):
     modelTris = model["tris"]
     st = time.time()
     drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
-    sortTrisByZ(drawIdcs, modelTris, worldVerts)
     times.append(time.time() - st) # culling time
+
+    st = time.time()
+    sortTrisByZ(drawIdcs, modelTris, worldVerts)
+    times.append(time.time() - st) # sorting time
 
     # Direction vector, w must be 0
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0)
@@ -304,7 +307,7 @@ if __name__ == '__main__':
         cameraM = getCameraTransform((degToRad(20), angle, 0), (0, -2.5, -7.5))
         drawCoordGrid(screen, cameraM, RGB_DARKGREEN)
         times = drawModelList(screen, modelList, cameraM)
-        print("project/cull/draw: %f, %f, %f sec" % (times[0], times[1], times[2]))
+        print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
         frame += 1
