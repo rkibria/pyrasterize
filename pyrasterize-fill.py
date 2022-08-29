@@ -144,8 +144,7 @@ def getVisibleTris(tris, worldVerts):
             sub10[0]*sub20[1] - sub10[1]*sub20[0])
         normals.append(normal)
         # isVisible = (dotProduct(v0, normal) < 0)
-        isVisible = ((v0[0]*normal[0] + v0[1]*normal[1] + v0[2]*normal[2]) < 0)
-        if isVisible:
+        if ((v0[0]*normal[0] + v0[1]*normal[1] + v0[2]*normal[2]) < 0):
             idcs.append(i)
     return (idcs, normals)
 
