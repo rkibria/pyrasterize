@@ -133,6 +133,8 @@ def loadObjFile(fname):
     content = [x.strip() for x in content]
     vertices = []
     triangles = []
+    colors = []
+    curColor = (128, 128, 128)
     for line in content:
         if line.startswith("v "):
             tokens = line.split()
@@ -144,13 +146,15 @@ def loadObjFile(fname):
                 indices.append(int(faceToken.split("/")[0]) - 1)
             if len(indices) == 3:
                 triangles.append((indices[0], indices[1], indices[2]))
+                colors.append(curColor)
             elif len(indices) >= 4:
                 for i in range(len(indices) - 2):
                     triangles.append((indices[0], indices[i+1], indices[i+2]))
+                    colors.append(curColor)
             else:
                 print("? indices " + str(indices))
     print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
-    return {"verts" : vertices, "tris" : triangles}
+    return {"verts": vertices, "tris": triangles, "colors": colors}
 
 # RENDERING ALGORITHMS
 
@@ -404,8 +408,8 @@ if __name__ == '__main__':
 
     lighting = {"lightDir" : (1, 0, 0), "ambient": 0.1, "diffuse": 0.9}
 
-    mesh = loadObjFile("teapot.obj") # teapot-low.obj
-    # mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
+    # mesh = loadObjFile("teapot.obj") # teapot-low.obj
+    mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
 
     meshSg = { "mesh_1" : MakeModelInstance(mesh) }
     meshCenterVec = mulVec(-1, getModelCenterPos(mesh))
@@ -445,8 +449,8 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        # times = drawMesh(screen, frame)
-        times = drawCube(screen, frame)
+        times = drawMesh(screen, frame)
+        # times = drawCube(screen, frame)
         # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
