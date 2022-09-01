@@ -247,10 +247,10 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
     model = modelInstance["model"]
-    modelColor = modelInstance["color"]
 
     times = []
     modelVerts = model["verts"]
+    modelColors = model["colors"]
     st = time.time()
     worldVerts = projectVerts(modelM, modelVerts)
     times.append(time.time() - st) # projection time
@@ -282,9 +282,10 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
         if not usePrecompColors:
             # Dynamic lighting
             normal = normVec(normals[idx])
+            color = modelColors[idx]
             lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
             intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
-            lightedColor = (intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2])
+            lightedColor = (intensity * color[0], intensity * color[1], intensity * color[2])
         else:
             lightedColor = modelInstance["bakedColors"][idx]
 
@@ -420,8 +421,12 @@ if __name__ == '__main__':
         return drawSceneGraph(surface, meshSg, cameraM, lighting)
 
     cubesSg = { "cube_1": MakeModelInstance(MODEL_CUBE) }
-    cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
-    cubesSg["cube_1"]["children"]["subcube_1"]["transformM"] = getTranslationMatrix(2, 0, 0)
+    # cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
+    # cubesSg["cube_1"]["children"]["subcube_1"]["transformM"] = getTranslationMatrix(2, 0, 0)
+    cubeMesh = cubesSg["cube_1"]["model"]
+    cubeMesh["colors"] = []
+    for i in range(len(cubeMesh["tris"])):
+        cubeMesh["colors"].append(((100*i)%256, (33*i)%256, (111*i)%256))
     def drawCube(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
@@ -440,8 +445,8 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawMesh(screen, frame)
-        # times = drawCube(screen, frame)
+        # times = drawMesh(screen, frame)
+        times = drawCube(screen, frame)
         # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
