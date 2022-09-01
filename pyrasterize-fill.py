@@ -118,9 +118,8 @@ MODEL_CUBE = {
         ]
     }
 
-def MakeModelInstance(model, pos=[0,0,0], matrix=GetUnitMatrix(), color=[255, 255, 255]):
-    return { "model": model, "pos": pos, "matrix": matrix, "color": color }
-
+def MakeModelInstance(model, pos=[0,0,0,0], matrix=GetUnitMatrix(), color=[255, 255, 255]):
+    return { "model": model, "pos": pos, "matrix": matrix, "color": color, "children": {} }
 
 # FILE IO
 
@@ -288,31 +287,69 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     times.append(time.time() - st) # drawing time
     return times
 
-def drawModelList(surface, modelList, cameraM, lighting):
-    """return times {project, cull, draw}"""
-    projPositions = []
-    for i in range(len(modelList)):
-        pos = modelList[i]["pos"]
-        pos4 = (pos[0], pos[1], pos[2], 1)
-        projPositions.append(vecMatMult(pos4, cameraM))
-    posIdcs = [*range(len(modelList))]
-    def _sortByZ(i):
-        return projPositions[i][2]
-    posIdcs.sort(key=_sortByZ, reverse=False)
+# def drawModelList(surface, modelList, cameraM, lighting):
+#     """return times {project, cull, draw}"""
+#     projPositions = []
+#     for i in range(len(modelList)):
+#         pos = modelList[i]["pos"]
+#         pos4 = (pos[0], pos[1], pos[2], 1)
+#         projPositions.append(vecMatMult(pos4, cameraM))
+#     posIdcs = [*range(len(modelList))]
+#     def _sortByZ(i):
+#         return projPositions[i][2]
+#     posIdcs.sort(key=_sortByZ, reverse=False)
 
-    times = []
-    for i in range(len(modelList)):
-        modelInstance = modelList[posIdcs[i]]
-        modelM = modelInstance["matrix"]
-        modelM = matMatMult(getTranslationMatrix(*modelInstance["pos"]), modelM)
-        modelM = matMatMult(cameraM, modelM)
-        curTimes = drawModelFilled(surface, modelInstance, cameraM, modelM, lighting)
-        if len(times) == 0:
-            times = curTimes
-        else:
-            for i in range(len(times)):
-                times[i] += curTimes[i]
-    return times
+#     times = []
+#     for i in range(len(modelList)):
+#         modelInstance = modelList[posIdcs[i]]
+#         modelM = modelInstance["matrix"]
+#         modelM = matMatMult(getTranslationMatrix(*modelInstance["pos"]), modelM)
+#         modelM = matMatMult(cameraM, modelM)
+#         curTimes = drawModelFilled(surface, modelInstance, cameraM, modelM, lighting)
+#         if len(times) == 0:
+#             times = curTimes
+#         else:
+#             for i in range(len(times)):
+#                 times[i] += curTimes[i]
+#     return times
+
+def drawSceneGraph(surface, sg, cameraM, lighting):
+    """return times {project, cull, draw}"""
+    projPositions = [] # instance/position pairs
+    def findPositions(subgraph, parentM):
+        """adds instance/position to projPositions"""
+        for _,instance in subgraph.items():
+            curM = matMatMult(instance["matrix"], parentM)
+            curPos = vecMatMult(instance["pos"], curM)
+            projPositions.append((instance, curPos))
+            for child in instance["children"]:
+                findPositions(child, curM)
+    # Recursively determine all instance positions in the graph
+    findPositions(sg, GetUnitMatrix())
+    print(projPositions)
+    # for i in range(len(modelList)):
+    #     pos = modelList[i]["pos"]
+    #     pos4 = (pos[0], pos[1], pos[2], 1)
+    #     projPositions.append(vecMatMult(pos4, cameraM))
+
+    # posIdcs = [*range(len(modelList))]
+    # def _sortByZ(i):
+    #     return projPositions[i][2]
+    # posIdcs.sort(key=_sortByZ, reverse=False)
+
+    # times = []
+    # for i in range(len(modelList)):
+    #     modelInstance = modelList[posIdcs[i]]
+    #     modelM = modelInstance["matrix"]
+    #     modelM = matMatMult(getTranslationMatrix(*modelInstance["pos"]), modelM)
+    #     modelM = matMatMult(cameraM, modelM)
+    #     curTimes = drawModelFilled(surface, modelInstance, cameraM, modelM, lighting)
+    #     if len(times) == 0:
+    #         times = curTimes
+    #     else:
+    #         for i in range(len(times)):
+    #             times[i] += curTimes[i]
+    # return times
 
 def precomputeColors(instance, lighting):
     model = instance["model"]
@@ -362,8 +399,8 @@ RGB_BLACK = (0, 0, 0)
 RGB_DARKGREEN = (0, 128, 0)
 
 if __name__ == '__main__':
-    teapot = loadObjFile("teapot.obj") # teapot-low.obj
-    teapotAdjust = mulVec(-1, getModelCenterPos(teapot))
+    # teapot = loadObjFile("teapot.obj") # teapot-low.obj
+    # teapotAdjust = mulVec(-1, getModelCenterPos(teapot))
 
     # goldfish = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
 
@@ -402,18 +439,18 @@ if __name__ == '__main__':
     #     drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
     #     return drawModelList(surface, fourStaticPots, cameraM, lighting)
 
-    singleRotatingPot = [{ "model": teapot, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
-    def drawSingleRotatingPotFixedCamera(surface, frame):
-        angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -2.5, -7.5))
-        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        m = matMatMult(getRotateXMatrix(-math.pi/2), getTranslationMatrix(*teapotAdjust))
-        m = matMatMult(getScalingMatrix(0.25, 0.25, 0.25), m)
-        m = matMatMult(getRotateXMatrix(angle), m)
-        m = matMatMult(getRotateYMatrix(angle), m)
-        m = matMatMult(getRotateZMatrix(angle), m)
-        singleRotatingPot[0]["matrix"] = m
-        return drawModelList(surface, singleRotatingPot, cameraM, lighting)
+    # singleRotatingPot = [{ "model": teapot, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
+    # def drawSingleRotatingPotFixedCamera(surface, frame):
+    #     angle = degToRad(frame)
+    #     cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -2.5, -7.5))
+    #     drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+    #     m = matMatMult(getRotateXMatrix(-math.pi/2), getTranslationMatrix(*teapotAdjust))
+    #     m = matMatMult(getScalingMatrix(0.25, 0.25, 0.25), m)
+    #     m = matMatMult(getRotateXMatrix(angle), m)
+    #     m = matMatMult(getRotateYMatrix(angle), m)
+    #     m = matMatMult(getRotateZMatrix(angle), m)
+    #     singleRotatingPot[0]["matrix"] = m
+    #     return drawModelList(surface, singleRotatingPot, cameraM, lighting)
 
     # rotatingGoldfish = [{ "model": goldfish, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
     # goldfishAdjust = mulVec(-1, getModelCenterPos(goldfish))
@@ -429,7 +466,10 @@ if __name__ == '__main__':
     #     rotatingGoldfish[0]["matrix"] = m
     #     return drawModelList(surface, rotatingGoldfish, cameraM, lighting)
 
-    singleCube = [MakeModelInstance(MODEL_CUBE)]
+    def getSingleCubeSceneGraph():
+        return { "cube": MakeModelInstance(MODEL_CUBE) }
+
+    snglCubeSg = getSingleCubeSceneGraph()
     def drawCube(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
@@ -437,8 +477,8 @@ if __name__ == '__main__':
         m = getRotateXMatrix(angle)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
-        singleCube[0]["matrix"] = m
-        return drawModelList(surface, singleCube, cameraM, lighting)
+        snglCubeSg["cube"]["matrix"] = m
+        return drawSceneGraph(surface, snglCubeSg, cameraM, lighting)
 
     frame = 0
     while not done:
