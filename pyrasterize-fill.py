@@ -272,11 +272,12 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     for idx in drawIdcs:
         tri = modelTris[idx]
         points = []
+        aspectRatio = width/height
         for i in range(3):
             v0 = worldVerts[tri[i]]
             p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
             x1 = o_x + p0[0] * o_x
-            y1 = o_y - p0[1] * o_y * (width/height)
+            y1 = o_y - p0[1] * o_y * aspectRatio
             points.append((int(x1), int(y1)))
         if not usePrecompColors:
             # Dynamic lighting
