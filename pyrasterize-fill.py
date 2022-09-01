@@ -301,8 +301,8 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
             instance["_projM"] = projM
             curPos = vecMatMult((0, 0, 0, 1), projM)
             projPositions.append((instance, curPos))
-            for child in instance["children"]:
-                findPositions(child, curM) 
+            if instance["children"]:
+                findPositions(instance["children"], curM)
     findPositions(sg, GetUnitMatrix())
 
     def _sortByZ(p):
@@ -434,10 +434,11 @@ if __name__ == '__main__':
     #     rotatingGoldfish[0]["matrix"] = m
     #     return drawModelList(surface, rotatingGoldfish, cameraM, lighting)
 
-    def getSingleCubeSceneGraph():
-        return { "cube": MakeModelInstance(MODEL_CUBE) }
-
-    snglCubeSg = getSingleCubeSceneGraph()
+    cubesSg = { "cube_1": MakeModelInstance(MODEL_CUBE),
+        # "cube_2": MakeModelInstance(MODEL_CUBE)
+        }
+    cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
+    cubesSg["cube_1"]["children"]["subcube_1"]["pos"] = [1,0,0]
     def drawCube(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
@@ -445,8 +446,8 @@ if __name__ == '__main__':
         m = getRotateXMatrix(angle)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
-        snglCubeSg["cube"]["matrix"] = m
-        return drawSceneGraph(surface, snglCubeSg, cameraM, lighting)
+        cubesSg["cube_1"]["matrix"] = m
+        return drawSceneGraph(surface, cubesSg, cameraM, lighting)
 
     frame = 0
     while not done:
