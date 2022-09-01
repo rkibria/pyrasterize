@@ -287,6 +287,16 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     times.append(time.time() - st) # drawing time
     return times
 
+# - Every instance has its own matrix that is applied before the position matrix
+#   (e.g. for changing the size/shape/scaling/rotation)
+# - After changing shape the position matrix is applied to bring the instance to
+#   its position in the world
+# - Child instances are positioned relative to their parent, e.g. if the parent
+#   is at (1,2,3) and the child's position is (1,0,-1), the absolute position
+#   of the child should be (2,2,2).
+#  -> must pass parent position through to children
+#  -> the camera matrix is used only for the z sorting
+
 def drawSceneGraph(surface, sg, cameraM, lighting):
     """return times {project, cull, draw}"""
     # Get the z's of the center positions (0,0,0) of all instances
@@ -295,15 +305,21 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
     def findPositions(subgraph, parentM):
         """adds instance/center position to projPositions"""
         for _,instance in subgraph.items():
-            curM = matMatMult(instance["matrix"], parentM)
-            curM = matMatMult(getTranslationMatrix(*instance["pos"]), curM)
-            projM = matMatMult(cameraM, curM)
+            transM = getTranslationMatrix(*instance["pos"])
+
+            projM = matMatMult(transM, instance["matrix"])
+            projM = matMatMult(parentM, projM)
+            projM = matMatMult(cameraM, projM)
+
             instance["_projM"] = projM
             curPos = vecMatMult((0, 0, 0, 1), projM)
             projPositions.append((instance, curPos))
+
+            passM = matMatMult(parentM, transM)
+
             if instance["children"]:
-                findPositions(instance["children"], curM)
-    findPositions(sg, GetUnitMatrix())
+                findPositions(instance["children"], passM)
+    findPositions(sg, cameraM)
 
     def _sortByZ(p):
         return p[1][2]
@@ -438,7 +454,12 @@ if __name__ == '__main__':
         # "cube_2": MakeModelInstance(MODEL_CUBE)
         }
     cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
-    cubesSg["cube_1"]["children"]["subcube_1"]["pos"] = [1,0,0]
+    cubesSg["cube_1"]["children"]["subcube_1"]["pos"] = [2,0,0]
+    # angle = degToRad(30)
+    # m = getRotateZMatrix(angle)
+    # m = matMatMult(getRotateYMatrix(angle), m)
+    # m = matMatMult(getRotateZMatrix(angle), m)
+    # cubesSg["cube_1"]["matrix"] = m
     def drawCube(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
@@ -447,6 +468,7 @@ if __name__ == '__main__':
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
         cubesSg["cube_1"]["matrix"] = m
+        cubesSg["cube_1"]["pos"][1] = math.sin(angle)
         return drawSceneGraph(surface, cubesSg, cameraM, lighting)
 
     frame = 0
