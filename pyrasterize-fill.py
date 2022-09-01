@@ -139,6 +139,14 @@ def loadObjFile(fname):
         if line.startswith("v "):
             tokens = line.split()
             vertices.append((float(tokens[1]), float(tokens[2]), float(tokens[3])))
+        elif line.startswith("usemtl "):
+            tokens = line.split()[1:]
+            mtl = tokens[0]
+            if len(mtl) == 6:
+                r = int(mtl[0:2], 16)
+                g = int(mtl[2:4], 16)
+                b = int(mtl[4:6], 16)
+                curColor = (r, g, b)
         elif line.startswith("f "):
             indices = []
             tokens = line.split()[1:]
