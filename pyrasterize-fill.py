@@ -118,7 +118,7 @@ MODEL_CUBE = {
         ]
     }
 
-def MakeModelInstance(model, pos=[0,0,0,0], matrix=GetUnitMatrix(), color=[255, 255, 255]):
+def MakeModelInstance(model, pos=[0,0,0], matrix=GetUnitMatrix(), color=[255, 255, 255]):
     return { "model": model, "pos": pos, "matrix": matrix, "color": color, "children": {} }
 
 # FILE IO
@@ -287,69 +287,37 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
     times.append(time.time() - st) # drawing time
     return times
 
-# def drawModelList(surface, modelList, cameraM, lighting):
-#     """return times {project, cull, draw}"""
-#     projPositions = []
-#     for i in range(len(modelList)):
-#         pos = modelList[i]["pos"]
-#         pos4 = (pos[0], pos[1], pos[2], 1)
-#         projPositions.append(vecMatMult(pos4, cameraM))
-#     posIdcs = [*range(len(modelList))]
-#     def _sortByZ(i):
-#         return projPositions[i][2]
-#     posIdcs.sort(key=_sortByZ, reverse=False)
-
-#     times = []
-#     for i in range(len(modelList)):
-#         modelInstance = modelList[posIdcs[i]]
-#         modelM = modelInstance["matrix"]
-#         modelM = matMatMult(getTranslationMatrix(*modelInstance["pos"]), modelM)
-#         modelM = matMatMult(cameraM, modelM)
-#         curTimes = drawModelFilled(surface, modelInstance, cameraM, modelM, lighting)
-#         if len(times) == 0:
-#             times = curTimes
-#         else:
-#             for i in range(len(times)):
-#                 times[i] += curTimes[i]
-#     return times
-
 def drawSceneGraph(surface, sg, cameraM, lighting):
     """return times {project, cull, draw}"""
-    projPositions = [] # instance/position pairs
+    # Get the z's of the center positions (0,0,0) of all instances
+    # so we can sort them for painter's algorithm
+    projPositions = [] # instance/center position pairs
     def findPositions(subgraph, parentM):
-        """adds instance/position to projPositions"""
+        """adds instance/center position to projPositions"""
         for _,instance in subgraph.items():
             curM = matMatMult(instance["matrix"], parentM)
-            curPos = vecMatMult(instance["pos"], curM)
+            curM = matMatMult(getTranslationMatrix(*instance["pos"]), curM)
+            projM = matMatMult(cameraM, curM)
+            instance["_projM"] = projM
+            curPos = vecMatMult((0, 0, 0, 1), projM)
             projPositions.append((instance, curPos))
             for child in instance["children"]:
-                findPositions(child, curM)
-    # Recursively determine all instance positions in the graph
+                findPositions(child, curM) 
     findPositions(sg, GetUnitMatrix())
-    print(projPositions)
-    # for i in range(len(modelList)):
-    #     pos = modelList[i]["pos"]
-    #     pos4 = (pos[0], pos[1], pos[2], 1)
-    #     projPositions.append(vecMatMult(pos4, cameraM))
 
-    # posIdcs = [*range(len(modelList))]
-    # def _sortByZ(i):
-    #     return projPositions[i][2]
-    # posIdcs.sort(key=_sortByZ, reverse=False)
+    def _sortByZ(p):
+        return p[1][2]
+    projPositions.sort(key=_sortByZ, reverse=False)
 
-    # times = []
-    # for i in range(len(modelList)):
-    #     modelInstance = modelList[posIdcs[i]]
-    #     modelM = modelInstance["matrix"]
-    #     modelM = matMatMult(getTranslationMatrix(*modelInstance["pos"]), modelM)
-    #     modelM = matMatMult(cameraM, modelM)
-    #     curTimes = drawModelFilled(surface, modelInstance, cameraM, modelM, lighting)
-    #     if len(times) == 0:
-    #         times = curTimes
-    #     else:
-    #         for i in range(len(times)):
-    #             times[i] += curTimes[i]
-    # return times
+    times = []
+    for instance,_ in projPositions:
+        curTimes = drawModelFilled(surface, instance, cameraM, instance["_projM"], lighting)
+        if len(times) == 0:
+            times = curTimes
+        else:
+            for i in range(len(times)):
+                times[i] += curTimes[i]
+    return times
 
 def precomputeColors(instance, lighting):
     model = instance["model"]
