@@ -144,11 +144,11 @@ def loadObjFile(fname):
                 indices.append(int(faceToken.split("/")[0]) - 1)
             if len(indices) == 3:
                 triangles.append((indices[0], indices[1], indices[2]))
-            elif len(indices) == 4:
-                triangles.append((indices[0], indices[1], indices[2]))
-                triangles.append((indices[2], indices[3], indices[0]))
+            elif len(indices) >= 4:
+                for i in range(len(indices) - 2):
+                    triangles.append((indices[0], indices[i+1], indices[i+2]))
             else:
-                print("? index length " + str(len(indices)))
+                print("? indices " + str(indices))
     print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
     return {"verts" : vertices, "tris" : triangles}
 
@@ -281,7 +281,7 @@ def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
         if not usePrecompColors:
             # Dynamic lighting
             normal = normVec(normals[idx])
-            lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
+            lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
             intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
             lightedColor = (intensity * modelColor[0], intensity * modelColor[1], intensity * modelColor[2])
         else:
@@ -364,7 +364,7 @@ def precomputeColors(instance, lighting):
             sub10[2]*sub20[0] - sub10[0]*sub20[2],
             sub10[0]*sub20[1] - sub10[1]*sub20[0])
         normal = normVec(normal)
-        lightNormalDotProduct = projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2]
+        lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
         intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
         lightedColor = (int(intensity * modelColor[0]), int(intensity * modelColor[1]), int(intensity * modelColor[2]))
         bakedColors.append(lightedColor)
@@ -385,9 +385,6 @@ RGB_BLACK = (0, 0, 0)
 RGB_DARKGREEN = (0, 128, 0)
 
 if __name__ == '__main__':
-    # teapot = loadObjFile("teapot.obj") # teapot-low.obj
-    # teapotAdjust = mulVec(-1, getModelCenterPos(teapot))
-
     pygame.init()
 
     size = width, height = 800, 600
@@ -403,21 +400,23 @@ if __name__ == '__main__':
 
     font = pygame.font.Font(None, 30)
 
-    lighting = {"lightDir" : (1, 0, 0), "ambient": 0.3, "diffuse": 0.7}
+    lighting = {"lightDir" : (1, 0, 0), "ambient": 0.1, "diffuse": 0.9}
 
-    goldfish = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
-    goldfishSg = { "goldfish_1" : MakeModelInstance(goldfish) }
-    goldfishCenterVec = mulVec(-1, getModelCenterPos(goldfish))
-    goldfishSg["goldfish_1"]["preprocessM"] = getTranslationMatrix(*goldfishCenterVec)
-    def drawGoldfish(surface, frame):
+    mesh = loadObjFile("teapot.obj") # teapot-low.obj
+    # mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
+
+    meshSg = { "mesh_1" : MakeModelInstance(mesh) }
+    meshCenterVec = mulVec(-1, getModelCenterPos(mesh))
+    meshSg["mesh_1"]["preprocessM"] = getTranslationMatrix(*meshCenterVec)
+    def drawMesh(surface, frame):
         angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -0.5, -7.5))
+        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -0.5, -17.5))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
         m = getRotateXMatrix(angle)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
-        goldfishSg["goldfish_1"]["transformM"] = m
-        return drawSceneGraph(surface, goldfishSg, cameraM, lighting)
+        meshSg["mesh_1"]["transformM"] = m
+        return drawSceneGraph(surface, meshSg, cameraM, lighting)
 
     cubesSg = { "cube_1": MakeModelInstance(MODEL_CUBE) }
     cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
@@ -440,7 +439,7 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawGoldfish(screen, frame)
+        times = drawMesh(screen, frame)
         # times = drawCube(screen, frame)
         # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
