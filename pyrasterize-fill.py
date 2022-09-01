@@ -118,8 +118,12 @@ MODEL_CUBE = {
         ]
     }
 
-def MakeModelInstance(model, pos=[0,0,0], matrix=GetUnitMatrix(), color=[255, 255, 255]):
-    return { "model": model, "pos": pos, "matrix": matrix, "color": color, "children": {} }
+def MakeModelInstance(model, preprocessM=GetUnitMatrix(), transformM=GetUnitMatrix(), color=[255, 255, 255]):
+    return { "model": model,
+        "preprocessM": preprocessM,
+        "transformM": transformM,
+        "color": color,
+        "children": {} }
 
 # FILE IO
 
@@ -305,9 +309,7 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
     def findPositions(subgraph, parentM):
         """adds instance/center position to projPositions"""
         for _,instance in subgraph.items():
-            transM = getTranslationMatrix(*instance["pos"])
-
-            projM = matMatMult(transM, instance["matrix"])
+            projM = matMatMult(instance["transformM"], instance["preprocessM"])
             projM = matMatMult(parentM, projM)
             projM = matMatMult(cameraM, projM)
 
@@ -315,7 +317,7 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
             curPos = vecMatMult((0, 0, 0, 1), projM)
             projPositions.append((instance, curPos))
 
-            passM = matMatMult(parentM, transM)
+            passM = matMatMult(parentM, instance["transformM"])
 
             if instance["children"]:
                 findPositions(instance["children"], passM)
@@ -341,7 +343,7 @@ def precomputeColors(instance, lighting):
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
     modelColor = instance["color"]
-    modelM = instance["matrix"]
+    modelM = instance["preprocessM"]
 
     instance["precompColors"] = True
 
@@ -409,10 +411,10 @@ if __name__ == '__main__':
     #     scaleRotM = matMatMult(getRotateXMatrix(-math.pi/2), getScalingMatrix(0.125, 0.125, 0.125))
     #     d = 2
     #     mlist = [
-    #         { "model": teapot, "pos": (-d, 0, -d), "matrix": scaleRotM, "color": (255, 0, 0) },
-    #         { "model": teapot, "pos": (-d, 0,  d), "matrix": scaleRotM, "color": (0, 255, 0) },
-    #         { "model": teapot, "pos": (d,  0, -d), "matrix": scaleRotM, "color": (0, 0, 255) },
-    #         { "model": teapot, "pos": (d,  0,  d), "matrix": scaleRotM, "color": (255, 255, 255) },]
+    #         { "model": teapot, "pos": (-d, 0, -d), "preprocessM": scaleRotM, "color": (255, 0, 0) },
+    #         { "model": teapot, "pos": (-d, 0,  d), "preprocessM": scaleRotM, "color": (0, 255, 0) },
+    #         { "model": teapot, "pos": (d,  0, -d), "preprocessM": scaleRotM, "color": (0, 0, 255) },
+    #         { "model": teapot, "pos": (d,  0,  d), "preprocessM": scaleRotM, "color": (255, 255, 255) },]
     #     for instance in mlist:
     #         precomputeColors(instance, lighting)
     #     return mlist
@@ -423,7 +425,7 @@ if __name__ == '__main__':
     #     drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
     #     return drawModelList(surface, fourStaticPots, cameraM, lighting)
 
-    # singleRotatingPot = [{ "model": teapot, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
+    # singleRotatingPot = [{ "model": teapot, "pos": (0, 0, 0), "preprocessM": None, "color": (255, 0, 0) }]
     # def drawSingleRotatingPotFixedCamera(surface, frame):
     #     angle = degToRad(frame)
     #     cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -2.5, -7.5))
@@ -433,10 +435,10 @@ if __name__ == '__main__':
     #     m = matMatMult(getRotateXMatrix(angle), m)
     #     m = matMatMult(getRotateYMatrix(angle), m)
     #     m = matMatMult(getRotateZMatrix(angle), m)
-    #     singleRotatingPot[0]["matrix"] = m
+    #     singleRotatingPot[0]["preprocessM"] = m
     #     return drawModelList(surface, singleRotatingPot, cameraM, lighting)
 
-    # rotatingGoldfish = [{ "model": goldfish, "pos": (0, 0, 0), "matrix": None, "color": (255, 0, 0) }]
+    # rotatingGoldfish = [{ "model": goldfish, "pos": (0, 0, 0), "preprocessM": None, "color": (255, 0, 0) }]
     # goldfishAdjust = mulVec(-1, getModelCenterPos(goldfish))
     # def drawGoldfish(surface, frame):
     #     angle = degToRad(frame)
@@ -447,19 +449,19 @@ if __name__ == '__main__':
     #     m = matMatMult(getRotateXMatrix(angle), m)
     #     m = matMatMult(getRotateYMatrix(angle), m)
     #     m = matMatMult(getRotateZMatrix(angle), m)
-    #     rotatingGoldfish[0]["matrix"] = m
+    #     rotatingGoldfish[0]["preprocessM"] = m
     #     return drawModelList(surface, rotatingGoldfish, cameraM, lighting)
 
     cubesSg = { "cube_1": MakeModelInstance(MODEL_CUBE),
         # "cube_2": MakeModelInstance(MODEL_CUBE)
         }
     cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
-    cubesSg["cube_1"]["children"]["subcube_1"]["pos"] = [2,0,0]
+    cubesSg["cube_1"]["children"]["subcube_1"]["transformM"] = getTranslationMatrix(2, 0, 0)
     # angle = degToRad(30)
     # m = getRotateZMatrix(angle)
     # m = matMatMult(getRotateYMatrix(angle), m)
     # m = matMatMult(getRotateZMatrix(angle), m)
-    # cubesSg["cube_1"]["matrix"] = m
+    # cubesSg["cube_1"]["preprocessM"] = m
     def drawCube(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
@@ -467,8 +469,8 @@ if __name__ == '__main__':
         m = getRotateXMatrix(angle)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
-        cubesSg["cube_1"]["matrix"] = m
-        cubesSg["cube_1"]["pos"][1] = math.sin(angle)
+        # cubesSg["cube_1"]["preprocessM"] = m
+        cubesSg["cube_1"]["transformM"] = m
         return drawSceneGraph(surface, cubesSg, cameraM, lighting)
 
     frame = 0
