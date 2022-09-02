@@ -417,7 +417,7 @@ if __name__ == '__main__':
 
     font = pygame.font.Font(None, 30)
 
-    lighting = {"lightDir" : (1, 0, 0), "ambient": 0.1, "diffuse": 0.9}
+    lighting = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
 
     mesh = loadObjFile("teapot.obj") # teapot-low.obj
     # mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
@@ -452,24 +452,34 @@ if __name__ == '__main__':
         cubesSg["cube_1"]["transformM"] = m
         return drawSceneGraph(surface, cubesSg, cameraM, lighting)
 
-    spriteSg = { "body": MakeModelInstance(GetCubeMesh()) }
+    #
     bodyWidth = 0.75
+    spriteSg = { "body": MakeModelInstance(GetCubeMesh()) }
     spriteSg["body"]["preprocessM"] = GetScalingMatrix(bodyWidth, 1, 0.5)
     bodyChildren = spriteSg["body"]["children"]
     #
-    bodyChildren["head"] = MakeModelInstance(GetCubeMesh((242,212,215)))
     headSize = 0.4
+    bodyChildren["head"] = MakeModelInstance(GetCubeMesh((242,212,215)))
     bodyChildren["head"]["transformM"] = getTranslationMatrix(0, 1 - headSize, 0)
     bodyChildren["head"]["preprocessM"] = GetScalingMatrix(headSize, headSize, headSize)
     #
     legWidth = 0.25
-    bodyChildren["leftLeg"] = MakeModelInstance(GetCubeMesh())
     stanceWidth = 1.2
+    bodyChildren["leftLeg"] = MakeModelInstance(GetCubeMesh())
     bodyChildren["leftLeg"]["transformM"] = getTranslationMatrix(legWidth/2*stanceWidth, -1, 0)
     bodyChildren["leftLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
     bodyChildren["rightLeg"] = MakeModelInstance(GetCubeMesh())
     bodyChildren["rightLeg"]["transformM"] = getTranslationMatrix(-legWidth/2*stanceWidth, -1, 0)
     bodyChildren["rightLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
+    #
+    armWidth = 0.2
+    armLength = 0.9
+    bodyChildren["leftArm"] = MakeModelInstance(GetCubeMesh())
+    bodyChildren["leftArm"]["transformM"] = getTranslationMatrix(-bodyWidth/2-armWidth/2, 0, 0)
+    bodyChildren["leftArm"]["preprocessM"] = GetScalingMatrix(armWidth, armLength, armWidth)
+    bodyChildren["rightArm"] = MakeModelInstance(GetCubeMesh())
+    bodyChildren["rightArm"]["transformM"] = getTranslationMatrix(bodyWidth/2+armWidth/2, 0, 0)
+    bodyChildren["rightArm"]["preprocessM"] = GetScalingMatrix(armWidth, armLength, armWidth)
 
     def drawSprite(surface, frame):
         angle = degToRad(frame)
