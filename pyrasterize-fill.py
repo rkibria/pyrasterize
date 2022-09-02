@@ -419,38 +419,20 @@ if __name__ == '__main__':
 
     lighting = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
 
-    mesh = loadObjFile("teapot.obj") # teapot-low.obj
+    # mesh = loadObjFile("teapot.obj") # teapot-low.obj
     # mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
-
-    meshSg = { "mesh_1" : MakeModelInstance(mesh) }
-    meshCenterVec = mulVec(-1, getModelCenterPos(mesh))
-    meshSg["mesh_1"]["preprocessM"] = getTranslationMatrix(*meshCenterVec)
-    def drawMesh(surface, frame):
-        angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -0.5, -17.5))
-        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        m = getRotateXMatrix(angle)
-        m = matMatMult(getRotateYMatrix(angle), m)
-        m = matMatMult(getRotateZMatrix(angle), m)
-        meshSg["mesh_1"]["transformM"] = m
-        return drawSceneGraph(surface, meshSg, cameraM, lighting)
-
-    cubesSg = { "cube_1": MakeModelInstance(GetCubeMesh()) }
-    # cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
-    # cubesSg["cube_1"]["children"]["subcube_1"]["transformM"] = getTranslationMatrix(2, 0, 0)
-    # cubeMesh = cubesSg["cube_1"]["model"]
-    # cubeMesh["colors"] = []
-    # for i in range(len(cubeMesh["tris"])):
-    #     cubeMesh["colors"].append(((100*i)%256, (33*i)%256, (111*i)%256))
-    def drawCube(surface, frame):
-        angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
-        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        m = getRotateXMatrix(angle)
-        m = matMatMult(getRotateYMatrix(angle), m)
-        m = matMatMult(getRotateZMatrix(angle), m)
-        cubesSg["cube_1"]["transformM"] = m
-        return drawSceneGraph(surface, cubesSg, cameraM, lighting)
+    # meshSg = { "mesh_1" : MakeModelInstance(mesh) }
+    # meshCenterVec = mulVec(-1, getModelCenterPos(mesh))
+    # meshSg["mesh_1"]["preprocessM"] = getTranslationMatrix(*meshCenterVec)
+    # def drawMesh(surface, frame):
+    #     angle = degToRad(frame)
+    #     cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -0.5, -17.5))
+    #     drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+    #     m = getRotateXMatrix(angle)
+    #     m = matMatMult(getRotateYMatrix(angle), m)
+    #     m = matMatMult(getRotateZMatrix(angle), m)
+    #     meshSg["mesh_1"]["transformM"] = m
+    #     return drawSceneGraph(surface, meshSg, cameraM, lighting)
 
     def MakeSpriteInstance():
         bodyWidth = 0.75
