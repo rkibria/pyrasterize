@@ -56,7 +56,7 @@ def getTranslationMatrix(dx, dy, dz):
                 0.0, 0.0, 1.0, float(dz),
                 0.0, 0.0, 0.0, 1.0,]
 
-def getScalingMatrix(sx, sy, sz):
+def GetScalingMatrix(sx, sy, sz):
         return [float(sx), 0.0,       0.0,       0.0,
                 0.0,       float(sy), 0.0,       0.0,
                 0.0,       0.0,       float(sz), 0.0,
@@ -452,7 +452,14 @@ if __name__ == '__main__':
         cubesSg["cube_1"]["transformM"] = m
         return drawSceneGraph(surface, cubesSg, cameraM, lighting)
 
-    spriteSg = { "sprite_1": MakeModelInstance(GetCubeMesh()) }
+    spriteSg = { "body": MakeModelInstance(GetCubeMesh()) }
+    spriteSg["body"]["preprocessM"] = GetScalingMatrix(0.75, 1, 0.5)
+    bodyChildren = spriteSg["body"]["children"]
+    bodyChildren["head"] = MakeModelInstance(GetCubeMesh((242,212,215)))
+    headSize = 0.4
+    bodyChildren["head"]["transformM"] = getTranslationMatrix(0, 1 - headSize, 0)
+    bodyChildren["head"]["preprocessM"] = GetScalingMatrix(headSize, headSize, headSize)
+
     def drawSprite(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
@@ -460,7 +467,7 @@ if __name__ == '__main__':
         m = getRotateXMatrix(angle)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
-        spriteSg["sprite_1"]["transformM"] = m
+        spriteSg["body"]["transformM"] = m
         return drawSceneGraph(surface, spriteSg, cameraM, lighting)
 
     frame = 0
@@ -471,7 +478,7 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawMesh(screen, frame)
+        times = drawSprite(screen, frame)
         # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
