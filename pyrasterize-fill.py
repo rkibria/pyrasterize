@@ -453,12 +453,23 @@ if __name__ == '__main__':
         return drawSceneGraph(surface, cubesSg, cameraM, lighting)
 
     spriteSg = { "body": MakeModelInstance(GetCubeMesh()) }
-    spriteSg["body"]["preprocessM"] = GetScalingMatrix(0.75, 1, 0.5)
+    bodyWidth = 0.75
+    spriteSg["body"]["preprocessM"] = GetScalingMatrix(bodyWidth, 1, 0.5)
     bodyChildren = spriteSg["body"]["children"]
+    #
     bodyChildren["head"] = MakeModelInstance(GetCubeMesh((242,212,215)))
     headSize = 0.4
     bodyChildren["head"]["transformM"] = getTranslationMatrix(0, 1 - headSize, 0)
     bodyChildren["head"]["preprocessM"] = GetScalingMatrix(headSize, headSize, headSize)
+    #
+    legWidth = 0.25
+    bodyChildren["leftLeg"] = MakeModelInstance(GetCubeMesh())
+    stanceWidth = 1.2
+    bodyChildren["leftLeg"]["transformM"] = getTranslationMatrix(legWidth/2*stanceWidth, -1, 0)
+    bodyChildren["leftLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
+    bodyChildren["rightLeg"] = MakeModelInstance(GetCubeMesh())
+    bodyChildren["rightLeg"]["transformM"] = getTranslationMatrix(-legWidth/2*stanceWidth, -1, 0)
+    bodyChildren["rightLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
 
     def drawSprite(surface, frame):
         angle = degToRad(frame)
