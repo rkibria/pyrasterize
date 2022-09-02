@@ -91,38 +91,39 @@ def degToRad(d):
 
 # MODELS
 
-MODEL_CUBE = {
-    "verts" : [
-        ( 0.5,  0.5, 0.5),  # front top right     0
-        ( 0.5, -0.5, 0.5),  # front bottom right  1
-        (-0.5, -0.5, 0.5),  # front bottom left   2
-        (-0.5,  0.5, 0.5),  # front top left      3
-        ( 0.5,  0.5, -0.5), # back top right      4
-        ( 0.5, -0.5, -0.5), # back bottom right   5
-        (-0.5, -0.5, -0.5), # back bottom left    6
-        (-0.5,  0.5, -0.5)  # back top left       7
-        ],
-    "tris" : [ # CCW winding order
-        (0, 3, 1), # front face
-        (2, 1, 3), #
-        (3, 7, 2), # left face
-        (6, 2, 7), #
-        (4, 0, 5), # right face
-        (1, 5, 0), #
-        (4, 7, 0), # top face
-        (3, 0, 7), #
-        (1, 2, 5), # bottom face
-        (6, 5, 2), #
-        (7, 4, 6), # back face
-        (5, 6, 4)  #
-        ]
-    }
+def GetCubeMesh(color=(200,200,200)):
+    return {
+        "verts" : [
+            ( 0.5,  0.5, 0.5),  # front top right     0
+            ( 0.5, -0.5, 0.5),  # front bottom right  1
+            (-0.5, -0.5, 0.5),  # front bottom left   2
+            (-0.5,  0.5, 0.5),  # front top left      3
+            ( 0.5,  0.5, -0.5), # back top right      4
+            ( 0.5, -0.5, -0.5), # back bottom right   5
+            (-0.5, -0.5, -0.5), # back bottom left    6
+            (-0.5,  0.5, -0.5)  # back top left       7
+            ],
+        "tris" : [ # CCW winding order
+            (0, 3, 1), # front face
+            (2, 1, 3), #
+            (3, 7, 2), # left face
+            (6, 2, 7), #
+            (4, 0, 5), # right face
+            (1, 5, 0), #
+            (4, 7, 0), # top face
+            (3, 0, 7), #
+            (1, 2, 5), # bottom face
+            (6, 5, 2), #
+            (7, 4, 6), # back face
+            (5, 6, 4)  #
+            ],
+        "colors": [[color[0], color[1], color[2]]] * 12
+        }
 
-def MakeModelInstance(model, preprocessM=GetUnitMatrix(), transformM=GetUnitMatrix(), color=[255, 255, 255]):
+def MakeModelInstance(model, preprocessM=GetUnitMatrix(), transformM=GetUnitMatrix()):
     return { "model": model,
         "preprocessM": preprocessM,
         "transformM": transformM,
-        "color": color,
         "children": {} }
 
 # FILE IO
@@ -432,13 +433,13 @@ if __name__ == '__main__':
         meshSg["mesh_1"]["transformM"] = m
         return drawSceneGraph(surface, meshSg, cameraM, lighting)
 
-    cubesSg = { "cube_1": MakeModelInstance(MODEL_CUBE) }
+    cubesSg = { "cube_1": MakeModelInstance(GetCubeMesh()) }
     # cubesSg["cube_1"]["children"]["subcube_1"] = MakeModelInstance(MODEL_CUBE)
     # cubesSg["cube_1"]["children"]["subcube_1"]["transformM"] = getTranslationMatrix(2, 0, 0)
-    cubeMesh = cubesSg["cube_1"]["model"]
-    cubeMesh["colors"] = []
-    for i in range(len(cubeMesh["tris"])):
-        cubeMesh["colors"].append(((100*i)%256, (33*i)%256, (111*i)%256))
+    # cubeMesh = cubesSg["cube_1"]["model"]
+    # cubeMesh["colors"] = []
+    # for i in range(len(cubeMesh["tris"])):
+    #     cubeMesh["colors"].append(((100*i)%256, (33*i)%256, (111*i)%256))
     def drawCube(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
@@ -449,6 +450,17 @@ if __name__ == '__main__':
         cubesSg["cube_1"]["transformM"] = m
         return drawSceneGraph(surface, cubesSg, cameraM, lighting)
 
+    spriteSg = { "sprite_1": MakeModelInstance(GetCubeMesh()) }
+    def drawSprite(surface, frame):
+        angle = degToRad(frame)
+        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
+        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+        m = getRotateXMatrix(angle)
+        m = matMatMult(getRotateYMatrix(angle), m)
+        m = matMatMult(getRotateZMatrix(angle), m)
+        spriteSg["sprite_1"]["transformM"] = m
+        return drawSceneGraph(surface, spriteSg, cameraM, lighting)
+
     frame = 0
     while not done:
         clock.tick(30)
@@ -457,8 +469,7 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawMesh(screen, frame)
-        # times = drawCube(screen, frame)
+        times = drawSprite(screen, frame)
         # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
