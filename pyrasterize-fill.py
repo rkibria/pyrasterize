@@ -91,7 +91,9 @@ def degToRad(d):
 
 # MODELS
 
-def GetCubeMesh(color=(200,200,200)):
+DEFAULT_COLOR = (200,200,200)
+
+def GetCubeMesh(color=DEFAULT_COLOR):
     return {
         "verts" : [
             ( 0.5,  0.5, 0.5),  # front top right     0
@@ -135,7 +137,7 @@ def loadObjFile(fname):
     vertices = []
     triangles = []
     colors = []
-    curColor = (128, 128, 128)
+    curColor = DEFAULT_COLOR
     for line in content:
         if line.startswith("v "):
             tokens = line.split()
@@ -417,8 +419,8 @@ if __name__ == '__main__':
 
     lighting = {"lightDir" : (1, 0, 0), "ambient": 0.1, "diffuse": 0.9}
 
-    # mesh = loadObjFile("teapot.obj") # teapot-low.obj
-    mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
+    mesh = loadObjFile("teapot.obj") # teapot-low.obj
+    # mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
 
     meshSg = { "mesh_1" : MakeModelInstance(mesh) }
     meshCenterVec = mulVec(-1, getModelCenterPos(mesh))
@@ -469,7 +471,7 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawSprite(screen, frame)
+        times = drawMesh(screen, frame)
         # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
 
         pygame.display.flip()
