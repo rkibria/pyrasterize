@@ -122,6 +122,19 @@ def GetCubeMesh(color=DEFAULT_COLOR):
         "colors": [[color[0], color[1], color[2]]] * 12
         }
 
+def Get2DRectangleMesh(w, h, dx, dy, color1, color2=None):
+    mesh = { "verts": [], "tris": [], "colors": []}
+
+    startX = -w/2.0
+    stepX = w/(dx+1)
+    startY = -h/2.0
+    stepY = h/(dy+1)
+    for ix in range(dx+1):
+        for iy in range(dy+1):
+            mesh["verts"].append((startX + stepX * ix, startY + stepY * iy))
+
+    return mesh
+
 def MakeModelInstance(model, preprocessM=GetUnitMatrix(), transformM=GetUnitMatrix()):
     return { "model": model,
         "preprocessM": preprocessM,
