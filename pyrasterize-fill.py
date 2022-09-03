@@ -50,7 +50,7 @@ def GetUnitMatrix():
                 0.0, 0.0, 1.0, 0.0,
                 0.0, 0.0, 0.0, 1.0,]
 
-def getTranslationMatrix(dx, dy, dz):
+def GetTranslationMatrix(dx, dy, dz):
         return [1.0, 0.0, 0.0, float(dx),
                 0.0, 1.0, 0.0, float(dy),
                 0.0, 0.0, 1.0, float(dz),
@@ -221,7 +221,7 @@ def getCameraTransform(rot, tran):
     m = getRotateXMatrix(rot[0])
     m = matMatMult(getRotateYMatrix(rot[1]), m)
     m = matMatMult(getRotateZMatrix(rot[2]), m)
-    m = matMatMult(getTranslationMatrix(*tran), m)
+    m = matMatMult(GetTranslationMatrix(*tran), m)
     return m
 
 # DRAWING
@@ -442,39 +442,48 @@ if __name__ == '__main__':
         #
         headSize = 0.4
         bodyChildren["head"] = MakeModelInstance(GetCubeMesh((242,212,215)))
-        bodyChildren["head"]["transformM"] = getTranslationMatrix(0, 1 - headSize, 0)
+        bodyChildren["head"]["transformM"] = GetTranslationMatrix(0, 1 - headSize, 0)
         bodyChildren["head"]["preprocessM"] = GetScalingMatrix(headSize, headSize, headSize)
         #
         legWidth = 0.25
         stanceWidth = 1.2
         bodyChildren["leftLeg"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["leftLeg"]["transformM"] = getTranslationMatrix(legWidth/2*stanceWidth, -1, 0)
+        bodyChildren["leftLeg"]["transformM"] = GetTranslationMatrix(legWidth/2*stanceWidth, -1, 0)
         bodyChildren["leftLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
         bodyChildren["rightLeg"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["rightLeg"]["transformM"] = getTranslationMatrix(-legWidth/2*stanceWidth, -1, 0)
+        bodyChildren["rightLeg"]["transformM"] = GetTranslationMatrix(-legWidth/2*stanceWidth, -1, 0)
         bodyChildren["rightLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
         #
         armWidth = 0.2
         armLength = 0.9
         bodyChildren["leftArm"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["leftArm"]["transformM"] = getTranslationMatrix(-bodyWidth/2-armWidth/2, 0, 0)
+        bodyChildren["leftArm"]["transformM"] = GetTranslationMatrix(-bodyWidth/2-armWidth/2, 0, 0)
         bodyChildren["leftArm"]["preprocessM"] = GetScalingMatrix(armWidth, armLength, armWidth)
         bodyChildren["rightArm"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["rightArm"]["transformM"] = getTranslationMatrix(bodyWidth/2+armWidth/2, 0, 0)
+        bodyChildren["rightArm"]["transformM"] = GetTranslationMatrix(bodyWidth/2+armWidth/2, 0, 0)
         bodyChildren["rightArm"]["preprocessM"] = GetScalingMatrix(armWidth, armLength, armWidth)
         #
         return spriteInstance
 
-    spriteSg = { "sprite_1": MakeSpriteInstance() }
+    sceneGraph = {}
+    for i in range(10):
+        for j in range(10):
+            x = i - 5
+            y = j - 5
+            name = "platform_" + str(x) + "_" + str(y)
+            sceneGraph[name] = MakeModelInstance(GetCubeMesh())
+            m = GetScalingMatrix(0.5, 0.2, 0.5)
+            sceneGraph[name]["preprocessM"] = matMatMult(GetTranslationMatrix(x*0.5, 0, y*0.5), m)
+    sceneGraph["platform_0_0"]["children"]["sprite_1"] = MakeSpriteInstance()
+
     def drawSprite(surface, frame):
         angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -3))
+        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -6))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        m = getRotateXMatrix(angle)
-        m = matMatMult(getRotateYMatrix(angle), m)
-        m = matMatMult(getRotateZMatrix(angle), m)
-        spriteSg["sprite_1"]["transformM"] = m
-        return drawSceneGraph(surface, spriteSg, cameraM, lighting)
+        y = math.sin(angle)
+        # print(y)
+        sceneGraph["platform_0_0"]["children"]["sprite_1"]["transformM"] = GetTranslationMatrix(y, 1.5, y)
+        return drawSceneGraph(surface, sceneGraph, cameraM, lighting)
 
     frame = 0
     while not done:
