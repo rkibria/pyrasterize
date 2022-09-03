@@ -62,7 +62,7 @@ def GetScalingMatrix(sx, sy, sz):
                 0.0,       0.0,       float(sz), 0.0,
                 0.0,       0.0,       0.0,       1.0,]
 
-def getRotateXMatrix(phi):
+def GetRotateXMatrix(phi):
         cos_phi = math.cos(phi)
         sin_phi = math.sin(phi)
         return [1.0,    0.0,            0.0,            0.0,
@@ -122,17 +122,22 @@ def GetCubeMesh(color=DEFAULT_COLOR):
         "colors": [[color[0], color[1], color[2]]] * 12
         }
 
-def Get2DRectangleMesh(w, h, dx, dy, color1, color2=None):
+def Make2DRectangleMesh(w, h, dx, dy, color=DEFAULT_COLOR):
     mesh = { "verts": [], "tris": [], "colors": []}
-
     startX = -w/2.0
     stepX = w/(dx+1)
     startY = -h/2.0
     stepY = h/(dy+1)
-    for ix in range(dx+1):
-        for iy in range(dy+1):
-            mesh["verts"].append((startX + stepX * ix, startY + stepY * iy))
-
+    for iy in range(dy+1):
+        for ix in range(dx+1):
+            mesh["verts"].append((startX + stepX * ix, startY + stepY * iy, 0))
+    for iy in range(dy):
+        for ix in range(dx):
+            ul = ix + iy * (dx+1)
+            mesh["tris"].append((ul, ul + 1, ul + 1 + (dx+1)))
+            mesh["tris"].append((ul, ul + 1 + (dx+1), ul + (dx+1)))
+            mesh["colors"].append((255,0,0))
+            mesh["colors"].append((0,255,0))
     return mesh
 
 def MakeModelInstance(model, preprocessM=GetUnitMatrix(), transformM=GetUnitMatrix()):
@@ -231,7 +236,7 @@ def sortTrisByZ(idcs, tris, worldVerts):
     idcs.sort(key=_sortByZ, reverse=False)
 
 def getCameraTransform(rot, tran):
-    m = getRotateXMatrix(rot[0])
+    m = GetRotateXMatrix(rot[0])
     m = matMatMult(getRotateYMatrix(rot[1]), m)
     m = matMatMult(getRotateZMatrix(rot[2]), m)
     m = matMatMult(GetTranslationMatrix(*tran), m)
@@ -478,24 +483,17 @@ if __name__ == '__main__':
         #
         return spriteInstance
 
-    sceneGraph = {}
-    for i in range(10):
-        for j in range(10):
-            x = i - 5
-            y = j - 5
-            name = "platform_" + str(x) + "_" + str(y)
-            sceneGraph[name] = MakeModelInstance(GetCubeMesh())
-            m = GetScalingMatrix(0.5, 0.2, 0.5)
-            sceneGraph[name]["preprocessM"] = matMatMult(GetTranslationMatrix(x*0.5, 0, y*0.5), m)
-    sceneGraph["platform_0_0"]["children"]["sprite_1"] = MakeSpriteInstance()
+    sceneGraph = { "ground": MakeModelInstance(Make2DRectangleMesh(10, 10, 20, 20, (0,0,128)),
+        GetRotateXMatrix(degToRad(-90))) }
+    sceneGraph["ground"]["children"]["sprite_1"] = MakeSpriteInstance()
 
     def drawSprite(surface, frame):
         angle = degToRad(frame)
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -6))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-        y = math.sin(angle)
+        y = math.sin(angle)*5
         # print(y)
-        sceneGraph["platform_0_0"]["children"]["sprite_1"]["transformM"] = GetTranslationMatrix(y, 1.5, y)
+        sceneGraph["ground"]["children"]["sprite_1"]["transformM"] = GetTranslationMatrix(y, 1.5, y)
         return drawSceneGraph(surface, sceneGraph, cameraM, lighting)
 
     frame = 0
