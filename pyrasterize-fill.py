@@ -146,10 +146,16 @@ def get_rect_mesh(r_size, r_divs, colors=(DEFAULT_COLOR, DEFAULT_COLOR)):
             mesh["colors"].append(color)
     return mesh
 
-def MakeModelInstance(model, preprocessM=get_unit_m4(), transformM=get_unit_m4()):
+def get_model_instance(model, preproc_m4=None, xform_m4=None):
+    """Return model instance
+    These are the key values in a scene graph {name_1: instance_1, ...} dictionary"""
+    if preproc_m4 is None:
+        preproc_m4 = get_unit_m4()
+    if xform_m4 is None:
+        xform_m4 = get_unit_m4()
     return { "model": model,
-        "preprocessM": preprocessM,
-        "transformM": transformM,
+        "preproc_m4": preproc_m4,
+        "xform_m4": xform_m4,
         "children": {} }
 
 # FILE IO
@@ -246,7 +252,7 @@ def precomputeColors(instance, lighting):
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
     modelColor = instance["color"]
-    modelM = instance["preprocessM"]
+    modelM = instance["preproc_m4"]
 
     instance["precompColors"] = True
 
@@ -349,12 +355,12 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
     sceneTriangles = []
     def traverseSg(subgraph, parentM):
         for _,instance in subgraph.items():
-            projM = mat4_mat4_mul(instance["transformM"], instance["preprocessM"])
+            projM = mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
             projM = mat4_mat4_mul(parentM, projM)
             projM = mat4_mat4_mul(cameraM, projM)
             getInstanceTris(sceneTriangles, instance, cameraM, projM, lighting)
 
-            passM = mat4_mat4_mul(parentM, instance["transformM"])
+            passM = mat4_mat4_mul(parentM, instance["xform_m4"])
             if instance["children"]:
                 traverseSg(instance["children"], passM)
     traverseSg(sg, get_unit_m4())
@@ -400,7 +406,7 @@ if __name__ == '__main__':
     # mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
     # meshSg = { "mesh_1" : MakeModelInstance(mesh) }
     # meshCenterVec = mulVec(-1, getModelCenterPos(mesh))
-    # meshSg["mesh_1"]["preprocessM"] = getTranslationMatrix(*meshCenterVec)
+    # meshSg["mesh_1"]["preproc_m4"] = getTranslationMatrix(*meshCenterVec)
     # def drawMesh(surface, frame):
     #     angle = degToRad(frame)
     #     cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -0.5, -17.5))
@@ -408,41 +414,41 @@ if __name__ == '__main__':
     #     m = getRotateXMatrix(angle)
     #     m = matMatMult(getRotateYMatrix(angle), m)
     #     m = matMatMult(getRotateZMatrix(angle), m)
-    #     meshSg["mesh_1"]["transformM"] = m
+    #     meshSg["mesh_1"]["xform_m4"] = m
     #     return drawSceneGraph(surface, meshSg, cameraM, lighting)
 
     def MakeSpriteInstance():
         bodyWidth = 0.75
-        spriteInstance = MakeModelInstance(get_cube_mesh())
-        spriteInstance["preprocessM"] = get_scal_m4(bodyWidth, 1, 0.5)
+        spriteInstance = get_model_instance(get_cube_mesh())
+        spriteInstance["preproc_m4"] = get_scal_m4(bodyWidth, 1, 0.5)
         bodyChildren = spriteInstance["children"]
         #
         headSize = 0.4
-        bodyChildren["head"] = MakeModelInstance(get_cube_mesh((242,212,215)))
-        bodyChildren["head"]["transformM"] = get_transl_m4(0, 1 - headSize, 0)
-        bodyChildren["head"]["preprocessM"] = get_scal_m4(headSize, headSize, headSize)
+        bodyChildren["head"] = get_model_instance(get_cube_mesh((242,212,215)))
+        bodyChildren["head"]["xform_m4"] = get_transl_m4(0, 1 - headSize, 0)
+        bodyChildren["head"]["preproc_m4"] = get_scal_m4(headSize, headSize, headSize)
         #
         legWidth = 0.25
         stanceWidth = 1.2
-        bodyChildren["leftLeg"] = MakeModelInstance(get_cube_mesh())
-        bodyChildren["leftLeg"]["transformM"] = get_transl_m4(legWidth/2*stanceWidth, -1, 0)
-        bodyChildren["leftLeg"]["preprocessM"] = get_scal_m4(legWidth, 1, legWidth)
-        bodyChildren["rightLeg"] = MakeModelInstance(get_cube_mesh())
-        bodyChildren["rightLeg"]["transformM"] = get_transl_m4(-legWidth/2*stanceWidth, -1, 0)
-        bodyChildren["rightLeg"]["preprocessM"] = get_scal_m4(legWidth, 1, legWidth)
+        bodyChildren["leftLeg"] = get_model_instance(get_cube_mesh())
+        bodyChildren["leftLeg"]["xform_m4"] = get_transl_m4(legWidth/2*stanceWidth, -1, 0)
+        bodyChildren["leftLeg"]["preproc_m4"] = get_scal_m4(legWidth, 1, legWidth)
+        bodyChildren["rightLeg"] = get_model_instance(get_cube_mesh())
+        bodyChildren["rightLeg"]["xform_m4"] = get_transl_m4(-legWidth/2*stanceWidth, -1, 0)
+        bodyChildren["rightLeg"]["preproc_m4"] = get_scal_m4(legWidth, 1, legWidth)
         #
         armWidth = 0.2
         armLength = 0.9
-        bodyChildren["leftArm"] = MakeModelInstance(get_cube_mesh())
-        bodyChildren["leftArm"]["transformM"] = get_transl_m4(-bodyWidth/2-armWidth/2, 0, 0)
-        bodyChildren["leftArm"]["preprocessM"] = get_scal_m4(armWidth, armLength, armWidth)
-        bodyChildren["rightArm"] = MakeModelInstance(get_cube_mesh())
-        bodyChildren["rightArm"]["transformM"] = get_transl_m4(bodyWidth/2+armWidth/2, 0, 0)
-        bodyChildren["rightArm"]["preprocessM"] = get_scal_m4(armWidth, armLength, armWidth)
+        bodyChildren["leftArm"] = get_model_instance(get_cube_mesh())
+        bodyChildren["leftArm"]["xform_m4"] = get_transl_m4(-bodyWidth/2-armWidth/2, 0, 0)
+        bodyChildren["leftArm"]["preproc_m4"] = get_scal_m4(armWidth, armLength, armWidth)
+        bodyChildren["rightArm"] = get_model_instance(get_cube_mesh())
+        bodyChildren["rightArm"]["xform_m4"] = get_transl_m4(bodyWidth/2+armWidth/2, 0, 0)
+        bodyChildren["rightArm"]["preproc_m4"] = get_scal_m4(armWidth, armLength, armWidth)
         #
         return spriteInstance
 
-    sceneGraph = { "ground": MakeModelInstance(get_rect_mesh((10, 10), (10, 10), ((200,0,0), (0,200,0))),
+    sceneGraph = { "ground": get_model_instance(get_rect_mesh((10, 10), (10, 10), ((200,0,0), (0,200,0))),
         get_rot_x_m4(deg_to_rad(-90))) }
     sceneGraph["ground"]["children"]["sprite_1"] = MakeSpriteInstance()
 
@@ -451,7 +457,7 @@ if __name__ == '__main__':
         cameraM = getCameraTransform((deg_to_rad(20), 0, 0), (0, 0, -10))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
         y = math.sin(angle)*5
-        sceneGraph["ground"]["children"]["sprite_1"]["transformM"] = get_transl_m4(y, 1.6, y)
+        sceneGraph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(y, 1.6, y)
         return drawSceneGraph(surface, sceneGraph, cameraM, lighting)
 
     frame = 0
