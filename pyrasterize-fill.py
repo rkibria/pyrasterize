@@ -122,21 +122,23 @@ def get_cube_mesh(color=DEFAULT_COLOR):
         "colors": [[color[0], color[1], color[2]]] * 12
         }
 
-def Make2DRectangleMesh(w, h, dx, dy, color1=DEFAULT_COLOR, color2=DEFAULT_COLOR):
+def get_rect_mesh(r_w, r_h, d_x, d_y, color1=DEFAULT_COLOR, color2=DEFAULT_COLOR):
+    """Return 2D rectangle mesh of given size and subdivision
+    with checkerboard coloring"""
     mesh = { "verts": [], "tris": [], "colors": []}
-    startX = -w/2.0
-    stepX = w/dx
-    startY = -h/2.0
-    stepY = h/dy
-    for iy in range(dy+1):
-        for ix in range(dx+1):
-            mesh["verts"].append((startX + stepX * ix, startY + stepY * iy, 0))
-    for iy in range(dy):
-        for ix in range(dx):
-            ul = ix + iy * (dx+1)
-            mesh["tris"].append((ul, ul + 1, ul + 1 + (dx+1)))
-            mesh["tris"].append((ul, ul + 1 + (dx+1), ul + (dx+1)))
-            color = color1 if (ix+iy) % 2 == 0 else color2
+    start_x = -r_w/2.0
+    step_x = r_w/d_x
+    start_y = -r_h/2.0
+    step_y = r_h/d_y
+    for i_y in range(d_y+1):
+        for i_x in range(d_x+1):
+            mesh["verts"].append((start_x + step_x * i_x, start_y + step_y * i_y, 0))
+    for i_y in range(d_y):
+        for i_x in range(d_x):
+            u_l = i_x + i_y * (d_x+1)
+            mesh["tris"].append((u_l, u_l + 1, u_l + 1 + (d_x+1)))
+            mesh["tris"].append((u_l, u_l + 1 + (d_x+1), u_l + (d_x+1)))
+            color = color1 if (i_x+i_y) % 2 == 0 else color2
             mesh["colors"].append(color)
             mesh["colors"].append(color)
     return mesh
@@ -437,7 +439,7 @@ if __name__ == '__main__':
         #
         return spriteInstance
 
-    sceneGraph = { "ground": MakeModelInstance(Make2DRectangleMesh(10, 10, 10, 10, (200,0,0), (0,200,0)),
+    sceneGraph = { "ground": MakeModelInstance(get_rect_mesh(10, 10, 10, 10, (200,0,0), (0,200,0)),
         get_rot_x_m4(deg_to_rad(-90))) }
     sceneGraph["ground"]["children"]["sprite_1"] = MakeSpriteInstance()
 
