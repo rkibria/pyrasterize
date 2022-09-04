@@ -198,7 +198,17 @@ def get_model_from_obj_file(fname):
     print(f"--- loaded {fname}: {len(mesh['verts'])} vertices, {len(mesh['tris'])} triangles")
     return mesh
 
-# RENDERING ALGORITHMS
+def get_model_center_pos(model):
+    """Get vec3 of center position of a model"""
+    avg = [0, 0, 0]
+    for v_3 in model["verts"]:
+        for i in range(3):
+            avg[i] += v_3[i]
+    for i in range(3):
+        avg[i] /= len(model["verts"])
+    return avg
+
+# SCENE GRAPH RENDERING
 
 def get_visible_tris(tri_list, world_vec4_list, near_clip_plane=-0.5, far_clip_plane=-100):
     """Returns ([indices of visible triangles],[normals of all triangles])"""
@@ -225,34 +235,6 @@ def get_visible_tris(tri_list, world_vec4_list, near_clip_plane=-0.5, far_clip_p
         if (v_0[0]*normal[0] + v_0[1]*normal[1] + v_0[2]*normal[2]) < 0:
             idcs.append(i)
     return (idcs, normals)
-
-# DRAWING
-
-def draw_coord_grid(surface, m_4, color):
-    """Draw coordinate grid at origin"""
-    dark_color = (color[0]/2, color[1]/2, color[2]/2)
-    def grid_line(v_0, v_1, color):
-        v_0 = vec4_mat4_mul(v_0, m_4)
-        v_1 = vec4_mat4_mul(v_1, m_4)
-        p_0 = (v_0[0]/-v_0[2], v_0[1]/-v_0[2]) # perspective divide
-        p_1 = (v_1[0]/-v_1[2], v_1[1]/-v_1[2])
-        x_1 = o_x + p_0[0] * o_x
-        y_1 = o_y - p_0[1] * o_y * (width/height)
-        x_2 = o_x + p_1[0] * o_x
-        y_2 = o_y - p_1[1] * o_y * (width/height)
-        pygame.draw.aaline(surface, color, (x_1, y_1), (x_2, y_2), 1)
-    num_lines = 11
-    for i in range(num_lines):
-        line_d = 1
-        line_start = (num_lines - 1) / 2
-        line_end = -line_start + i * line_d
-        grid_line((line_end, 0, line_start, 1), (line_end, 0, -line_start, 1), dark_color)
-        grid_line((line_start, 0, line_end, 1), (-line_start, 0, line_end, 1), dark_color)
-    origin = (0, 0, 0, 1)
-    grid_line(origin, (5, 0, 0, 1), color)
-    grid_line(origin, (0, 5, 0, 1), color)
-    grid_line(origin, (0, 0, 5, 1), color)
-    grid_line((5, 0, 1, 1), (5, 0, -1, 1), color)
 
 def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
     """return times {project, cull, draw}"""
@@ -315,14 +297,33 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
     for _,points,color in sceneTriangles:
         pygame.draw.polygon(surface, color, points)
 
-def getModelCenterPos(model):
-    avg = [0, 0, 0]
-    for v in model["verts"]:
-        for i in range(3):
-            avg[i] += v[i]
-    for i in range(3):
-        avg[i] /= len(model["verts"])
-    return avg
+# OTHER DRAWING
+
+def draw_coord_grid(surface, m_4, color):
+    """Draw coordinate grid at origin"""
+    dark_color = (color[0]/2, color[1]/2, color[2]/2)
+    def grid_line(v_0, v_1, color):
+        v_0 = vec4_mat4_mul(v_0, m_4)
+        v_1 = vec4_mat4_mul(v_1, m_4)
+        p_0 = (v_0[0]/-v_0[2], v_0[1]/-v_0[2]) # perspective divide
+        p_1 = (v_1[0]/-v_1[2], v_1[1]/-v_1[2])
+        x_1 = o_x + p_0[0] * o_x
+        y_1 = o_y - p_0[1] * o_y * (width/height)
+        x_2 = o_x + p_1[0] * o_x
+        y_2 = o_y - p_1[1] * o_y * (width/height)
+        pygame.draw.aaline(surface, color, (x_1, y_1), (x_2, y_2), 1)
+    num_lines = 11
+    for i in range(num_lines):
+        line_d = 1
+        line_start = (num_lines - 1) / 2
+        line_end = -line_start + i * line_d
+        grid_line((line_end, 0, line_start, 1), (line_end, 0, -line_start, 1), dark_color)
+        grid_line((line_start, 0, line_end, 1), (-line_start, 0, line_end, 1), dark_color)
+    origin = (0, 0, 0, 1)
+    grid_line(origin, (5, 0, 0, 1), color)
+    grid_line(origin, (0, 5, 0, 1), color)
+    grid_line(origin, (0, 0, 5, 1), color)
+    grid_line((5, 0, 1, 1), (5, 0, -1, 1), color)
 
 # MAIN
 
