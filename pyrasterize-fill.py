@@ -228,30 +228,26 @@ def get_visible_tris(tri_list, world_vec4_list, near_clip_plane=-0.5, far_clip_p
 
 # DRAWING
 
-def draw_edge(surface, p_0, p_1, color):
-    """Draw line in screen coordinates"""
-    x_1 = o_x + p_0[0] * o_x
-    y_1 = o_y - p_0[1] * o_y * (width/height)
-    x_2 = o_x + p_1[0] * o_x
-    y_2 = o_y - p_1[1] * o_y * (width/height)
-    pygame.draw.aaline(surface, color, (x_1, y_1), (x_2, y_2), 1)
-
 def draw_coord_grid(surface, m_4, color):
     """Draw coordinate grid at origin"""
     dark_color = (color[0]/2, color[1]/2, color[2]/2)
-    def grid_line(v0, v1, color):
-        v0 = vec4_mat4_mul(v0, m_4)
-        v1 = vec4_mat4_mul(v1, m_4)
-        p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
-        p1 = (v1[0]/-v1[2], v1[1]/-v1[2])
-        draw_edge(surface, p0, p1, color)
-    numLines = 11
-    for i in range(numLines):
-        d = 1
-        s = (numLines - 1) / 2
-        t = -s + i * d
-        grid_line((t, 0, s, 1), (t, 0, -s, 1), dark_color)
-        grid_line((s, 0, t, 1), (-s, 0, t, 1), dark_color)
+    def grid_line(v_0, v_1, color):
+        v_0 = vec4_mat4_mul(v_0, m_4)
+        v_1 = vec4_mat4_mul(v_1, m_4)
+        p_0 = (v_0[0]/-v_0[2], v_0[1]/-v_0[2]) # perspective divide
+        p_1 = (v_1[0]/-v_1[2], v_1[1]/-v_1[2])
+        x_1 = o_x + p_0[0] * o_x
+        y_1 = o_y - p_0[1] * o_y * (width/height)
+        x_2 = o_x + p_1[0] * o_x
+        y_2 = o_y - p_1[1] * o_y * (width/height)
+        pygame.draw.aaline(surface, color, (x_1, y_1), (x_2, y_2), 1)
+    num_lines = 11
+    for i in range(num_lines):
+        line_d = 1
+        line_start = (num_lines - 1) / 2
+        line_end = -line_start + i * line_d
+        grid_line((line_end, 0, line_start, 1), (line_end, 0, -line_start, 1), dark_color)
+        grid_line((line_start, 0, line_end, 1), (-line_start, 0, line_end, 1), dark_color)
     origin = (0, 0, 0, 1)
     grid_line(origin, (5, 0, 0, 1), color)
     grid_line(origin, (0, 5, 0, 1), color)
