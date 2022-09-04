@@ -125,9 +125,9 @@ def GetCubeMesh(color=DEFAULT_COLOR):
 def Make2DRectangleMesh(w, h, dx, dy, color=DEFAULT_COLOR):
     mesh = { "verts": [], "tris": [], "colors": []}
     startX = -w/2.0
-    stepX = w/(dx+1)
+    stepX = w/dx
     startY = -h/2.0
-    stepY = h/(dy+1)
+    stepY = h/dy
     for iy in range(dy+1):
         for ix in range(dx+1):
             mesh["verts"].append((startX + stepX * ix, startY + stepY * iy, 0))
@@ -225,16 +225,6 @@ def getVisibleTris(tris, worldVerts):
             idcs.append(i)
     return (idcs, normals)
 
-def sortTrisByZ(idcs, tris, worldVerts):
-    """Painter's Algorithm"""
-    def _sortByZ(i):
-        tri = tris[i]
-        z0 = worldVerts[tri[0]][2]
-        z1 = worldVerts[tri[1]][2]
-        z2 = worldVerts[tri[2]][2]
-        return (z0 + z1 + z2) / 3
-    idcs.sort(key=_sortByZ, reverse=False)
-
 def getCameraTransform(rot, tran):
     m = GetRotateXMatrix(rot[0])
     m = matMatMult(getRotateYMatrix(rot[1]), m)
@@ -243,134 +233,6 @@ def getCameraTransform(rot, tran):
     return m
 
 # DRAWING
-
-def drawEdge(surface, p0, p1, color):
-    x1 = o_x + p0[0] * o_x
-    y1 = o_y - p0[1] * o_y * (width/height)
-    x2 = o_x + p1[0] * o_x
-    y2 = o_y - p1[1] * o_y * (width/height)
-    pygame.draw.aaline(surface, color, (x1, y1), (x2, y2), 1)
-
-def drawCoordGrid(surface, m, color):
-    darkColor = (color[0]/2, color[1]/2, color[2]/2)
-    def gridLine(v0, v1, color):
-        v0 = vecMatMult(v0, m)
-        v1 = vecMatMult(v1, m)
-        if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
-            return
-        p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
-        p1 = (v1[0]/-v1[2], v1[1]/-v1[2])
-        drawEdge(surface, p0, p1, color)
-    numLines = 11
-    for i in range(numLines):
-        d = 1
-        s = (numLines - 1) / 2
-        t = -s + i * d
-        gridLine((t, 0, s, 1), (t, 0, -s, 1), darkColor)
-        gridLine((s, 0, t, 1), (-s, 0, t, 1), darkColor)
-    origin = (0, 0, 0, 1)
-    gridLine(origin, (5, 0, 0, 1), color)
-    gridLine(origin, (0, 5, 0, 1), color)
-    gridLine(origin, (0, 0, 5, 1), color)
-    gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
-
-def drawModelFilled(surface, modelInstance, cameraM, modelM, lighting):
-    """return times {project, cull, draw}"""
-    lightDir = lighting["lightDir"]
-    ambient = lighting["ambient"]
-    diffuse = lighting["diffuse"]
-    model = modelInstance["model"]
-
-    times = []
-    modelVerts = model["verts"]
-    modelColors = model["colors"]
-    st = time.time()
-    worldVerts = projectVerts(modelM, modelVerts)
-    times.append(time.time() - st) # projection time
-
-    modelTris = model["tris"]
-    st = time.time()
-    drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
-    times.append(time.time() - st) # culling time
-
-    st = time.time()
-    sortTrisByZ(drawIdcs, modelTris, worldVerts)
-    times.append(time.time() - st) # sorting time
-
-    usePrecompColors = "precompColors" in modelInstance
-    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-    projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
-
-    st = time.time()
-    for idx in drawIdcs:
-        tri = modelTris[idx]
-        points = []
-        aspectRatio = width/height
-        for i in range(3):
-            v0 = worldVerts[tri[i]]
-            p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
-            x1 = o_x + p0[0] * o_x
-            y1 = o_y - p0[1] * o_y * aspectRatio
-            points.append((int(x1), int(y1)))
-        if not usePrecompColors:
-            # Dynamic lighting
-            normal = normVec(normals[idx])
-            color = modelColors[idx]
-            lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
-            intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
-            lightedColor = (intensity * color[0], intensity * color[1], intensity * color[2])
-        else:
-            lightedColor = modelInstance["bakedColors"][idx]
-
-        pygame.draw.polygon(surface, lightedColor, points)
-    times.append(time.time() - st) # drawing time
-    return times
-
-# - Every instance has its own matrix that is applied before the position matrix
-#   (e.g. for changing the size/shape/scaling/rotation)
-# - After changing shape the position matrix is applied to bring the instance to
-#   its position in the world
-# - Child instances are positioned relative to their parent, e.g. if the parent
-#   is at (1,2,3) and the child's position is (1,0,-1), the absolute position
-#   of the child should be (2,2,2).
-#  -> must pass parent position through to children
-#  -> the camera matrix is used only for the z sorting
-
-def drawSceneGraph(surface, sg, cameraM, lighting):
-    """return times {project, cull, draw}"""
-    # Get the z's of the center positions (0,0,0) of all instances
-    # so we can sort them for painter's algorithm
-    projPositions = [] # instance/center position pairs
-    def findPositions(subgraph, parentM):
-        """adds instance/center position to projPositions"""
-        for _,instance in subgraph.items():
-            projM = matMatMult(instance["transformM"], instance["preprocessM"])
-            projM = matMatMult(parentM, projM)
-            projM = matMatMult(cameraM, projM)
-
-            instance["_projM"] = projM
-            curPos = vecMatMult((0, 0, 0, 1), projM)
-            projPositions.append((instance, curPos))
-
-            passM = matMatMult(parentM, instance["transformM"])
-
-            if instance["children"]:
-                findPositions(instance["children"], passM)
-    findPositions(sg, cameraM)
-
-    def _sortByZ(p):
-        return p[1][2]
-    projPositions.sort(key=_sortByZ, reverse=False)
-
-    times = []
-    for instance,_ in projPositions:
-        curTimes = drawModelFilled(surface, instance, cameraM, instance["_projM"], lighting)
-        if len(times) == 0:
-            times = curTimes
-        else:
-            for i in range(len(times)):
-                times[i] += curTimes[i]
-    return times
 
 def precomputeColors(instance, lighting):
     model = instance["model"]
@@ -404,6 +266,100 @@ def precomputeColors(instance, lighting):
         lightedColor = (int(intensity * modelColor[0]), int(intensity * modelColor[1]), int(intensity * modelColor[2]))
         bakedColors.append(lightedColor)
     instance["bakedColors"] = bakedColors
+
+def drawEdge(surface, p0, p1, color):
+    x1 = o_x + p0[0] * o_x
+    y1 = o_y - p0[1] * o_y * (width/height)
+    x2 = o_x + p1[0] * o_x
+    y2 = o_y - p1[1] * o_y * (width/height)
+    pygame.draw.aaline(surface, color, (x1, y1), (x2, y2), 1)
+
+def drawCoordGrid(surface, m, color):
+    darkColor = (color[0]/2, color[1]/2, color[2]/2)
+    def gridLine(v0, v1, color):
+        v0 = vecMatMult(v0, m)
+        v1 = vecMatMult(v1, m)
+        if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
+            return
+        p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
+        p1 = (v1[0]/-v1[2], v1[1]/-v1[2])
+        drawEdge(surface, p0, p1, color)
+    numLines = 11
+    for i in range(numLines):
+        d = 1
+        s = (numLines - 1) / 2
+        t = -s + i * d
+        gridLine((t, 0, s, 1), (t, 0, -s, 1), darkColor)
+        gridLine((s, 0, t, 1), (-s, 0, t, 1), darkColor)
+    origin = (0, 0, 0, 1)
+    gridLine(origin, (5, 0, 0, 1), color)
+    gridLine(origin, (0, 5, 0, 1), color)
+    gridLine(origin, (0, 0, 5, 1), color)
+    gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
+
+def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
+    """return times {project, cull, draw}"""
+    ambient = lighting["ambient"]
+    diffuse = lighting["diffuse"]
+    model = modelInstance["model"]
+
+    modelVerts = model["verts"]
+    modelColors = model["colors"]
+    worldVerts = projectVerts(modelM, modelVerts)
+
+    modelTris = model["tris"]
+    drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
+
+    usePrecompColors = "precompColors" in modelInstance
+    lightDir = lighting["lightDir"]
+    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
+    projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
+
+    for idx in drawIdcs:
+        tri = modelTris[idx]
+        z0 = worldVerts[tri[0]][2]
+        z1 = worldVerts[tri[1]][2]
+        z2 = worldVerts[tri[2]][2]
+        triZ = (z0 + z1 + z2) / 3
+        points = []
+        aspectRatio = width/height
+        for i in range(3):
+            v0 = worldVerts[tri[i]]
+            p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
+            x1 = o_x + p0[0] * o_x
+            y1 = o_y - p0[1] * o_y * aspectRatio
+            points.append((int(x1), int(y1)))
+        if not usePrecompColors:
+            # Dynamic lighting
+            normal = normVec(normals[idx])
+            color = modelColors[idx]
+            lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
+            intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
+            lightedColor = (intensity * color[0], intensity * color[1], intensity * color[2])
+        else:
+            lightedColor = modelInstance["bakedColors"][idx]
+        sceneTriangles.append((triZ, points, lightedColor))
+
+def drawSceneGraph(surface, sg, cameraM, lighting):
+    sceneTriangles = []
+    def traverseSg(subgraph, parentM):
+        for _,instance in subgraph.items():
+            projM = matMatMult(instance["transformM"], instance["preprocessM"])
+            projM = matMatMult(parentM, projM)
+            projM = matMatMult(cameraM, projM)
+            getInstanceTris(sceneTriangles, instance, cameraM, projM, lighting)
+
+            passM = matMatMult(parentM, instance["transformM"])
+            if instance["children"]:
+                traverseSg(instance["children"], passM)
+    traverseSg(sg, GetUnitMatrix())
+
+    def _sortByZ(p):
+        return p[0]
+    sceneTriangles.sort(key=_sortByZ, reverse=False)
+
+    for _,points,color in sceneTriangles:
+        pygame.draw.polygon(surface, color, points)
 
 def getModelCenterPos(model):
     avg = [0, 0, 0]
@@ -483,17 +439,16 @@ if __name__ == '__main__':
         #
         return spriteInstance
 
-    sceneGraph = { "ground": MakeModelInstance(Make2DRectangleMesh(10, 10, 20, 20, (0,0,128)),
+    sceneGraph = { "ground": MakeModelInstance(Make2DRectangleMesh(10, 10, 10, 10, (0,0,128)),
         GetRotateXMatrix(degToRad(-90))) }
     sceneGraph["ground"]["children"]["sprite_1"] = MakeSpriteInstance()
 
     def drawSprite(surface, frame):
         angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -6))
+        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -10))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
         y = math.sin(angle)*5
-        # print(y)
-        sceneGraph["ground"]["children"]["sprite_1"]["transformM"] = GetTranslationMatrix(y, 1.5, y)
+        sceneGraph["ground"]["children"]["sprite_1"]["transformM"] = GetTranslationMatrix(y, 1.6, y)
         return drawSceneGraph(surface, sceneGraph, cameraM, lighting)
 
     frame = 0
@@ -504,8 +459,7 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        times = drawSprite(screen, frame)
-        # print("project %f, cull %f, sort %f, draw %f" % (times[0], times[1], times[2], times[3]))
+        drawSprite(screen, frame)
 
         pygame.display.flip()
         frame += 1
