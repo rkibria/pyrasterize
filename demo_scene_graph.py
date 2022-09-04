@@ -393,9 +393,8 @@ def create_scene_graph():
     scene_graph["fishRoot"]["children"]["fish_2"] = get_model_instance(fish_model,
         mat4_mat4_mul(get_transl_m4(-11,0,0),
             mat4_mat4_mul(get_scal_m4(0.5, 0.5, 0.5),
-                mat4_mat4_mul(get_rot_y_m4(deg_to_rad(180)), get_transl_m4(*get_model_centering_offset(fish_model))
-                )))
-                )
+                mat4_mat4_mul(get_rot_y_m4(deg_to_rad(180)),
+                    get_transl_m4(*get_model_centering_offset(fish_model))))))
 
     return scene_graph
 
