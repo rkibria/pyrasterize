@@ -70,7 +70,7 @@ def GetRotateXMatrix(phi):
                 0.0,    sin_phi,        cos_phi,        0.0,
                 0.0,    0.0,            0.0,            1.0,]
 
-def getRotateYMatrix(phi):
+def GetRotateYMatrix(phi):
         cos_phi = math.cos(phi)
         sin_phi = math.sin(phi)
         return [cos_phi,        0.0,    sin_phi,        0.0,
@@ -228,7 +228,7 @@ def getVisibleTris(tris, worldVerts):
 
 def getCameraTransform(rot, tran):
     m = GetRotateXMatrix(rot[0])
-    m = matMatMult(getRotateYMatrix(rot[1]), m)
+    m = matMatMult(GetRotateYMatrix(rot[1]), m)
     m = matMatMult(getRotateZMatrix(rot[2]), m)
     m = matMatMult(GetTranslationMatrix(*tran), m)
     return m
