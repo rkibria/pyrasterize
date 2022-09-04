@@ -89,11 +89,15 @@ def deg_to_rad(degrees):
     return degrees * (math.pi / 180)
 
 # MODELS
+# Models are dictionaries describing a mesh. Keys:
+#  'verts': vertices (float vec3s for point positions in local coordinates)
+#   'tris': triangles (int vec3s indexing the 3 vertices in 'verts' of triangle)
+# 'colors': triangle colors (float vec3s of triangle RGB color)
 
 DEFAULT_COLOR = (200, 200, 200)
 
 def get_cube_mesh(color=DEFAULT_COLOR):
-    """Return a unit cube mesh"""
+    """Return a unit cube mesh model"""
     return {
         "verts" : [
             ( 0.5,  0.5, 0.5),  # front top right     0
@@ -160,42 +164,39 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None):
 
 # FILE IO
 
-def loadObjFile(fname):
-    with open(fname) as f:
-        content = f.readlines()
+def get_model_from_obj_file(fname):
+    """Return model loaded from a Wavefront .obj file"""
+    with open(fname, encoding="utf-8") as file:
+        content = file.readlines()
     content = [x.strip() for x in content]
-    vertices = []
-    triangles = []
-    colors = []
-    curColor = DEFAULT_COLOR
+
+    mesh = {"verts": [], "tris": [], "colors": []}
+    cur_color = DEFAULT_COLOR
     for line in content:
         if line.startswith("v "):
             tokens = line.split()
-            vertices.append((float(tokens[1]), float(tokens[2]), float(tokens[3])))
+            mesh["verts"].append((float(tokens[1]), float(tokens[2]), float(tokens[3])))
         elif line.startswith("usemtl "):
             tokens = line.split()[1:]
             mtl = tokens[0]
             if len(mtl) == 6:
-                r = int(mtl[0:2], 16)
-                g = int(mtl[2:4], 16)
-                b = int(mtl[4:6], 16)
-                curColor = (r, g, b)
+                cur_color = (int(mtl[0:2], 16), int(mtl[2:4], 16), int(mtl[4:6], 16))
         elif line.startswith("f "):
             indices = []
             tokens = line.split()[1:]
-            for faceToken in tokens:
-                indices.append(int(faceToken.split("/")[0]) - 1)
+            for face_token in tokens:
+                indices.append(int(face_token.split("/")[0]) - 1)
             if len(indices) == 3:
-                triangles.append((indices[0], indices[1], indices[2]))
-                colors.append(curColor)
+                mesh["tris"].append((indices[0], indices[1], indices[2]))
+                mesh["colors"].append(cur_color)
             elif len(indices) >= 4:
                 for i in range(len(indices) - 2):
-                    triangles.append((indices[0], indices[i+1], indices[i+2]))
-                    colors.append(curColor)
+                    mesh["tris"].append((indices[0], indices[i+1], indices[i+2]))
+                    mesh["colors"].append(cur_color)
             else:
                 print("? indices " + str(indices))
-    print("--- loaded %s: %d vertices, %d triangles" % (fname, len(vertices), len(triangles)))
-    return {"verts": vertices, "tris": triangles, "colors": colors}
+    print(f"--- loaded {fname}: {len(mesh['verts'])} vertices, {len(mesh['tris'])} triangles")
+    return mesh
 
 # RENDERING ALGORITHMS
 
