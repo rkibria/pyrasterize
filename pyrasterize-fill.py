@@ -266,6 +266,8 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
     def get_instance_tris(instance, model_m):
         """Get lighted triangles from this instance"""
         model = instance["model"]
+        if not model:
+            return
 
         world_verts = list(map(lambda v: vec4_mat4_mul((v[0], v[1], v[2], 1), model_m),
             model["verts"]))
@@ -353,10 +355,11 @@ def create_scene_graph():
         instance["target"] = [1, 0]
         return instance
 
-    scene_graph = { "ground": get_model_instance(get_rect_mesh((10, 10), (10, 10),
-        ((200,0,0), (0,200,0))),
-        get_rot_x_m4(deg_to_rad(-90))) }
-    scene_graph["ground"]["children"]["sprite_1"] = get_sprite_instance()
+    scene_graph = { "cubeRoot": get_model_instance(None) }
+    scene_graph["cubeRoot"]["children"]["faceFront"] = get_model_instance(get_rect_mesh((10, 10),
+        (10, 10), ((200,0,0), (0,200,0))),
+        get_rot_x_m4(deg_to_rad(-90)))
+    scene_graph["cubeRoot"]["children"]["faceFront"]["children"]["sprite"] = get_sprite_instance()
     return scene_graph
 
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
@@ -369,7 +372,7 @@ def draw_scene_graph(surface, frame, scene_graph):
     camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -10), camera_m)
 
-    instance = scene_graph["ground"]["children"]["sprite_1"]
+    instance = scene_graph["cubeRoot"]["children"]["faceFront"]["children"]["sprite"]
     pos = instance["pos"]
     target = instance["target"]
     phi = math.atan2(target[1] - pos[1], target[0] - pos[0])
@@ -383,11 +386,12 @@ def draw_scene_graph(surface, frame, scene_graph):
         target[1] = random.uniform(-4, 4)
     mat = get_rot_y_m4(-phi - math.pi/2)
     mat = mat4_mat4_mul(get_transl_m4(pos[0], 1.6, pos[1]), mat)
-    scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = mat
+    instance["xform_m4"] = mat
 
     for name,side in [("leftLeg", 0), ("rightLeg", 1)]:
-        leg = scene_graph["ground"]["children"]["sprite_1"]["children"][name]
-        leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20 * math.sin(deg_to_rad((side*180) + (frame*10) % 360))))
+        leg = instance["children"][name]
+        leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20
+            * math.sin(deg_to_rad((side*180) + (frame*10) % 360))))
 
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
 
