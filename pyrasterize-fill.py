@@ -200,10 +200,6 @@ def get_model_from_obj_file(fname):
 
 # RENDERING ALGORITHMS
 
-def projectVerts(m, modelVerts):
-    """Transform the model's vec3's into projected vec4's"""
-    return list(map(lambda v: vec4_mat4_mul((v[0], v[1], v[2], 1), m), modelVerts))
-
 NEAR_CLIP_PLANE = -0.5
 FAR_CLIP_PLANE = -100
 
@@ -247,39 +243,6 @@ def getCameraTransform(rot, tran):
 
 # DRAWING
 
-def precomputeColors(instance, lighting):
-    model = instance["model"]
-    lightDir = lighting["lightDir"]
-    ambient = lighting["ambient"]
-    diffuse = lighting["diffuse"]
-    modelColor = instance["color"]
-    modelM = instance["preproc_m4"]
-
-    instance["precompColors"] = True
-
-    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-    projLight = norm_vec3(vec4_mat4_mul(lightDirVec4, modelM)[0:3])
-
-    worldVerts = projectVerts(modelM, model["verts"])
-    modelTris = model["tris"]
-    bakedColors = []
-    for i in range(len(modelTris)):
-        tri = modelTris[i]
-        v0 = worldVerts[tri[0]]
-        v1 = worldVerts[tri[1]]
-        v2 = worldVerts[tri[2]]
-        sub10 = (v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2])
-        sub20 = (v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2])
-        normal = (sub10[1]*sub20[2] - sub10[2]*sub20[1],
-            sub10[2]*sub20[0] - sub10[0]*sub20[2],
-            sub10[0]*sub20[1] - sub10[1]*sub20[0])
-        normal = norm_vec3(normal)
-        lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
-        intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
-        lightedColor = (int(intensity * modelColor[0]), int(intensity * modelColor[1]), int(intensity * modelColor[2]))
-        bakedColors.append(lightedColor)
-    instance["bakedColors"] = bakedColors
-
 def drawEdge(surface, p0, p1, color):
     x1 = o_x + p0[0] * o_x
     y1 = o_y - p0[1] * o_y * (width/height)
@@ -318,7 +281,7 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
 
     modelVerts = model["verts"]
     modelColors = model["colors"]
-    worldVerts = projectVerts(modelM, modelVerts)
+    worldVerts = list(map(lambda v: vec4_mat4_mul((v[0], v[1], v[2], 1), modelM), modelVerts))
 
     modelTris = model["tris"]
     drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
