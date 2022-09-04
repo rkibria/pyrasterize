@@ -311,7 +311,7 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
     modelTris = model["tris"]
     drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
 
-    usePrecompColors = "precompColors" in modelInstance
+    useDynamicLighting = not ("precompColors" in modelInstance)
     lightDir = lighting["lightDir"]
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
     projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
@@ -330,8 +330,7 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
             x1 = o_x + p0[0] * o_x
             y1 = o_y - p0[1] * o_y * aspectRatio
             points.append((int(x1), int(y1)))
-        if not usePrecompColors:
-            # Dynamic lighting
+        if useDynamicLighting:
             normal = normVec(normals[idx])
             color = modelColors[idx]
             lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
@@ -355,9 +354,7 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
                 traverseSg(instance["children"], passM)
     traverseSg(sg, GetUnitMatrix())
 
-    def _sortByZ(p):
-        return p[0]
-    sceneTriangles.sort(key=_sortByZ, reverse=False)
+    sceneTriangles.sort(key=lambda x: x[0], reverse=False)
 
     for _,points,color in sceneTriangles:
         pygame.draw.polygon(surface, color, points)
