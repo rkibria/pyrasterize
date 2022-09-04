@@ -92,7 +92,8 @@ def deg_to_rad(degrees):
 
 DEFAULT_COLOR = (200, 200, 200)
 
-def GetCubeMesh(color=DEFAULT_COLOR):
+def get_cube_mesh(color=DEFAULT_COLOR):
+    """Return a unit cube mesh"""
     return {
         "verts" : [
             ( 0.5,  0.5, 0.5),  # front top right     0
@@ -407,30 +408,30 @@ if __name__ == '__main__':
 
     def MakeSpriteInstance():
         bodyWidth = 0.75
-        spriteInstance = MakeModelInstance(GetCubeMesh())
+        spriteInstance = MakeModelInstance(get_cube_mesh())
         spriteInstance["preprocessM"] = get_scal_m4(bodyWidth, 1, 0.5)
         bodyChildren = spriteInstance["children"]
         #
         headSize = 0.4
-        bodyChildren["head"] = MakeModelInstance(GetCubeMesh((242,212,215)))
+        bodyChildren["head"] = MakeModelInstance(get_cube_mesh((242,212,215)))
         bodyChildren["head"]["transformM"] = get_transl_m4(0, 1 - headSize, 0)
         bodyChildren["head"]["preprocessM"] = get_scal_m4(headSize, headSize, headSize)
         #
         legWidth = 0.25
         stanceWidth = 1.2
-        bodyChildren["leftLeg"] = MakeModelInstance(GetCubeMesh())
+        bodyChildren["leftLeg"] = MakeModelInstance(get_cube_mesh())
         bodyChildren["leftLeg"]["transformM"] = get_transl_m4(legWidth/2*stanceWidth, -1, 0)
         bodyChildren["leftLeg"]["preprocessM"] = get_scal_m4(legWidth, 1, legWidth)
-        bodyChildren["rightLeg"] = MakeModelInstance(GetCubeMesh())
+        bodyChildren["rightLeg"] = MakeModelInstance(get_cube_mesh())
         bodyChildren["rightLeg"]["transformM"] = get_transl_m4(-legWidth/2*stanceWidth, -1, 0)
         bodyChildren["rightLeg"]["preprocessM"] = get_scal_m4(legWidth, 1, legWidth)
         #
         armWidth = 0.2
         armLength = 0.9
-        bodyChildren["leftArm"] = MakeModelInstance(GetCubeMesh())
+        bodyChildren["leftArm"] = MakeModelInstance(get_cube_mesh())
         bodyChildren["leftArm"]["transformM"] = get_transl_m4(-bodyWidth/2-armWidth/2, 0, 0)
         bodyChildren["leftArm"]["preprocessM"] = get_scal_m4(armWidth, armLength, armWidth)
-        bodyChildren["rightArm"] = MakeModelInstance(GetCubeMesh())
+        bodyChildren["rightArm"] = MakeModelInstance(get_cube_mesh())
         bodyChildren["rightArm"]["transformM"] = get_transl_m4(bodyWidth/2+armWidth/2, 0, 0)
         bodyChildren["rightArm"]["preprocessM"] = get_scal_m4(armWidth, armLength, armWidth)
         #
