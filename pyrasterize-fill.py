@@ -248,64 +248,73 @@ def get_visible_tris(tri_list, world_vec4_list, clip_planes=(-0.5,-100)):
             idcs.append(i)
     return (idcs, normals)
 
-def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
-    """return times {project, cull, draw}"""
+def render_scene_graph(surface, scene_graph, camera_m, lighting):
+    """Render the scene graph"""
+
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
-    model = modelInstance["model"]
 
-    modelVerts = model["verts"]
-    modelColors = model["colors"]
-    worldVerts = list(map(lambda v: vec4_mat4_mul((v[0], v[1], v[2], 1), modelM), modelVerts))
+    def get_proj_light_dir():
+        light_dir_vec3 = lighting["lightDir"]
+        light_dir_vec4 = (light_dir_vec3[0], light_dir_vec3[1], light_dir_vec3[2], 0)
+        return norm_vec3(vec4_mat4_mul(light_dir_vec4, camera_m)[0:3])
 
-    modelTris = model["tris"]
-    drawIdcs,normals = get_visible_tris(modelTris, worldVerts)
+    proj_light_dir = get_proj_light_dir()
 
-    useDynamicLighting = not ("precompColors" in modelInstance)
-    lightDir = lighting["lightDir"]
-    lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-    projLight = norm_vec3(vec4_mat4_mul(lightDirVec4, cameraM)[0:3])
+    scene_triangles = []
 
-    for idx in drawIdcs:
-        tri = modelTris[idx]
-        z0 = worldVerts[tri[0]][2]
-        z1 = worldVerts[tri[1]][2]
-        z2 = worldVerts[tri[2]][2]
-        triZ = (z0 + z1 + z2) / 3
-        points = []
-        for i in range(3):
-            v0 = worldVerts[tri[i]]
-            p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
-            x1 = SCR_ORIGIN_X + p0[0] * SCR_ORIGIN_X
-            y1 = SCR_ORIGIN_Y - p0[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
-            points.append((int(x1), int(y1)))
-        if useDynamicLighting:
-            normal = norm_vec3(normals[idx])
-            color = modelColors[idx]
-            lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
-            intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
-            lightedColor = (intensity * color[0], intensity * color[1], intensity * color[2])
-        else:
-            lightedColor = modelInstance["bakedColors"][idx]
-        sceneTriangles.append((triZ, points, lightedColor))
+    def get_instance_tris(instance, model_m):
+        """Get lighted triangles from this instance"""
+        model = instance["model"]
 
-def drawSceneGraph(surface, sg, cameraM, lighting):
-    sceneTriangles = []
-    def traverseSg(subgraph, parentM):
+        world_verts = list(map(lambda v: vec4_mat4_mul((v[0], v[1], v[2], 1), model_m),
+            model["verts"]))
+
+        model_tris = model["tris"]
+        idcs,normals = get_visible_tris(model_tris, world_verts)
+
+        use_dyn_light = not "precompColors" in instance
+        model_colors = model["colors"]
+
+        for idx in idcs:
+            tri = model_tris[idx]
+            points = []
+            for i in range(3):
+                v_3 = world_verts[tri[i]]
+                v_2 = (v_3[0] / -v_3[2], v_3[1] / -v_3[2]) # perspective divide
+                scr_x = SCR_ORIGIN_X + v_2[0] * SCR_ORIGIN_X
+                scr_y = SCR_ORIGIN_Y - v_2[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
+                points.append((int(scr_x), int(scr_y)))
+            if use_dyn_light:
+                normal = norm_vec3(normals[idx])
+                color = model_colors[idx]
+                dot_prd = max(0, proj_light_dir[0] * normal[0]
+                    + proj_light_dir[1] * normal[1]
+                    + proj_light_dir[2] * normal[2])
+                intensity = min(1, max(0, ambient + diffuse * dot_prd))
+                lighted_color = (intensity * color[0], intensity * color[1], intensity * color[2])
+            else:
+                lighted_color = instance["bakedColors"][idx]
+            scene_triangles.append((
+                (world_verts[tri[0]][2] + world_verts[tri[1]][2] + world_verts[tri[2]][2]) / 3,
+                points,
+                lighted_color))
+
+    def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
-            projM = mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
-            projM = mat4_mat4_mul(parentM, projM)
-            projM = mat4_mat4_mul(cameraM, projM)
-            getInstanceTris(sceneTriangles, instance, cameraM, projM, lighting)
+            proj_m = mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
+            proj_m = mat4_mat4_mul(parent_m, proj_m)
+            proj_m = mat4_mat4_mul(camera_m, proj_m)
 
-            passM = mat4_mat4_mul(parentM, instance["xform_m4"])
+            get_instance_tris(instance, proj_m)
+
+            pass_m = mat4_mat4_mul(parent_m, instance["xform_m4"])
             if instance["children"]:
-                traverseSg(instance["children"], passM)
-    traverseSg(sg, get_unit_m4())
+                traverse_scene_graph(instance["children"], pass_m)
 
-    sceneTriangles.sort(key=lambda x: x[0], reverse=False)
-
-    for _,points,color in sceneTriangles:
+    traverse_scene_graph(scene_graph, get_unit_m4())
+    scene_triangles.sort(key=lambda x: x[0], reverse=False)
+    for _,points,color in scene_triangles:
         pygame.draw.polygon(surface, color, points)
 
 # OTHER DRAWING
@@ -338,7 +347,8 @@ def draw_coord_grid(surface, m_4, color):
 
 # MAIN
 
-if __name__ == '__main__':
+def main_function():
+    """Main"""
     pygame.init()
 
     screen = pygame.display.set_mode(SCR_SIZE)
@@ -347,8 +357,6 @@ if __name__ == '__main__':
 
     done = False
     clock = pygame.time.Clock()
-
-    font = pygame.font.Font(None, 30)
 
     lighting = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
 
@@ -398,7 +406,7 @@ if __name__ == '__main__':
         draw_coord_grid(surface, camera_m, RGB_DARKGREEN)
         y = math.sin(angle)*5
         sceneGraph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(y, 1.6, y)
-        return drawSceneGraph(surface, sceneGraph, camera_m, lighting)
+        return render_scene_graph(surface, sceneGraph, camera_m, lighting)
 
     frame = 0
     while not done:
@@ -412,3 +420,6 @@ if __name__ == '__main__':
 
         pygame.display.flip()
         frame += 1
+
+if __name__ == '__main__':
+    main_function()
