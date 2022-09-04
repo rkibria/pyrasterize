@@ -208,14 +208,15 @@ def get_model_from_obj_file(fname):
     print(f"--- loaded {fname}: {len(mesh['verts'])} vertices, {len(mesh['tris'])} triangles")
     return mesh
 
-def get_model_center_pos(model):
-    """Get vec3 of center position of a model"""
+def get_model_centering_offset(model):
+    """Get vec3 to center position (with translate matrix) of the model"""
     avg = [0, 0, 0]
     for v_3 in model["verts"]:
         for i in range(3):
             avg[i] += v_3[i]
     for i in range(3):
         avg[i] /= len(model["verts"])
+        avg[i] *= -1
     return avg
 
 # SCENE GRAPH RENDERING
@@ -383,6 +384,19 @@ def create_scene_graph():
         face = scene_graph["cubeRoot"]["children"][face_name]
         face["children"]["sprite"] = get_sprite_instance()
 
+    fish_model = get_model_from_obj_file("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
+    scene_graph["fishRoot"] = get_model_instance(None)
+    scene_graph["fishRoot"]["children"]["fish_1"] = get_model_instance(fish_model,
+        mat4_mat4_mul(get_transl_m4(11,0,0),
+            mat4_mat4_mul(get_scal_m4(0.5, 0.5, 0.5),
+                get_transl_m4(*get_model_centering_offset(fish_model)))))
+    scene_graph["fishRoot"]["children"]["fish_2"] = get_model_instance(fish_model,
+        mat4_mat4_mul(get_transl_m4(-11,0,0),
+            mat4_mat4_mul(get_scal_m4(0.5, 0.5, 0.5),
+                mat4_mat4_mul(get_rot_y_m4(deg_to_rad(180)), get_transl_m4(*get_model_centering_offset(fish_model))
+                )))
+                )
+
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
@@ -390,7 +404,7 @@ def draw_scene_graph(surface, frame, scene_graph):
     camera_m = get_rot_x_m4(deg_to_rad(20))
     camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
-    camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -15), camera_m)
+    camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -17), camera_m)
 
     for face_name,_,_ in CUBE_FACES:
         instance = scene_graph["cubeRoot"]["children"][face_name]["children"]["sprite"]
@@ -419,6 +433,8 @@ def draw_scene_graph(surface, frame, scene_graph):
     cube_m = mat4_mat4_mul(get_rot_y_m4(angle * 0.6), cube_m)
     cube_m = mat4_mat4_mul(get_rot_z_m4(angle * 0.4), cube_m)
     scene_graph["cubeRoot"]["xform_m4"] = cube_m
+
+    scene_graph["fishRoot"]["xform_m4"] = get_rot_y_m4(-angle)
 
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
 
