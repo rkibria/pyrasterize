@@ -89,15 +89,15 @@ def deg_to_rad(degrees):
     return degrees * (math.pi / 180)
 
 # MODELS
-# Models are dictionaries describing a mesh. Keys:
-#  'verts': vertices (float vec3s for point positions in local coordinates)
-#   'tris': triangles (int vec3s indexing the 3 vertices in 'verts' of triangle)
-# 'colors': triangle colors (float vec3s of triangle RGB color)
 
 DEFAULT_COLOR = (200, 200, 200)
 
 def get_cube_mesh(color=DEFAULT_COLOR):
-    """Return a unit cube mesh model"""
+    """Return a unit cube mesh model dictionary:
+    'verts': vertices (float vec3s for point positions in local coordinates)
+    'tris': triangles (int vec3s indexing the 3 vertices in 'verts' of triangle)
+    'colors': triangle colors (float vec3s of triangle RGB color)
+    """
     return {
         "verts" : [
             ( 0.5,  0.5, 0.5),  # front top right     0
