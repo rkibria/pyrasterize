@@ -122,7 +122,7 @@ def GetCubeMesh(color=DEFAULT_COLOR):
         "colors": [[color[0], color[1], color[2]]] * 12
         }
 
-def Make2DRectangleMesh(w, h, dx, dy, color=DEFAULT_COLOR):
+def Make2DRectangleMesh(w, h, dx, dy, color1=DEFAULT_COLOR, color2=DEFAULT_COLOR):
     mesh = { "verts": [], "tris": [], "colors": []}
     startX = -w/2.0
     stepX = w/dx
@@ -136,8 +136,9 @@ def Make2DRectangleMesh(w, h, dx, dy, color=DEFAULT_COLOR):
             ul = ix + iy * (dx+1)
             mesh["tris"].append((ul, ul + 1, ul + 1 + (dx+1)))
             mesh["tris"].append((ul, ul + 1 + (dx+1), ul + (dx+1)))
-            mesh["colors"].append((255,0,0))
-            mesh["colors"].append((0,255,0))
+            color = color1 if (ix+iy) % 2 == 0 else color2
+            mesh["colors"].append(color)
+            mesh["colors"].append(color)
     return mesh
 
 def MakeModelInstance(model, preprocessM=GetUnitMatrix(), transformM=GetUnitMatrix()):
@@ -439,7 +440,7 @@ if __name__ == '__main__':
         #
         return spriteInstance
 
-    sceneGraph = { "ground": MakeModelInstance(Make2DRectangleMesh(10, 10, 10, 10, (0,0,128)),
+    sceneGraph = { "ground": MakeModelInstance(Make2DRectangleMesh(10, 10, 10, 10, (200,0,0), (0,200,0)),
         GetRotateXMatrix(degToRad(-90))) }
     sceneGraph["ground"]["children"]["sprite_1"] = MakeSpriteInstance()
 
