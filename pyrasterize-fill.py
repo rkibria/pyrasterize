@@ -3,6 +3,7 @@ Filled polygons with simple lighting rasterizer demo using pygame
 """
 
 import math
+import random
 import pygame
 
 # CONSTANTS
@@ -320,6 +321,7 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
 
 def create_scene_graph():
     """Return scene graph to draw"""
+
     def get_sprite_instance():
         body_width = 0.75
         instance = get_model_instance(get_cube_mesh())
@@ -349,7 +351,10 @@ def create_scene_graph():
         children["rightArm"]["xform_m4"] = get_transl_m4(body_width/2+arm_w/2, 0, 0)
         children["rightArm"]["preproc_m4"] = get_scal_m4(arm_w, arm_len, arm_w)
         #
+        instance["pos"] = [0,0]
+        instance["target"] = [1, 0]
         return instance
+
     scene_graph = { "ground": get_model_instance(get_rect_mesh((10, 10), (10, 10),
         ((200,0,0), (0,200,0))),
         get_rot_x_m4(deg_to_rad(-90))) }
@@ -357,18 +362,28 @@ def create_scene_graph():
     return scene_graph
 
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
+SPRITE_SPEED = 0.1
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
-    angle = deg_to_rad(frame)
-
     camera_m = get_rot_x_m4(deg_to_rad(20))
     camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -10), camera_m)
 
-    dist = math.sin(angle) * 5
-    scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(dist, 1.6, dist)
+    instance = scene_graph["ground"]["children"]["sprite_1"]
+    pos = instance["pos"]
+    target = instance["target"]
+    phi = math.atan2(target[1] - pos[1], target[0] - pos[0])
+    d_p = (SPRITE_SPEED * math.cos(phi), SPRITE_SPEED * math.sin(phi))
+    pos[0] += d_p[0]
+    pos[1] += d_p[1]
+    if abs(target[0] - pos[0]) + abs(target[1] - pos[1]) < 0.1:
+        pos[0] = target[0]
+        pos[1] = target[1]
+        target[0] = random.uniform(-4, 4)
+        target[1] = random.uniform(-4, 4)
+    scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(pos[0], 1.6, pos[1])
 
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
 
