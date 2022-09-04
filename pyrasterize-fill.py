@@ -7,7 +7,7 @@ import pygame
 
 # MATHS
 
-def norm_vec(v_3):
+def norm_vec3(v_3):
     """Return normalized vec3"""
     mag = v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]
     if mag == 0:
@@ -15,25 +15,26 @@ def norm_vec(v_3):
     mag = 1.0 / math.sqrt(mag)
     return [v_3[0] * mag, v_3[1] * mag, v_3[2] * mag]
 
-def mat_mat_mul(m_1, m_2):
-    """Return matrix m1 multiplied by m2"""
+def mat4_mat4_mul(m4_1, m4_2):
+    """Return multiplication of 4x4 matrices"""
     result = [0] * 16
-    for r in range(4):
-        for c in range(4):
+    for row in range(4):
+        for col in range(4):
             for i in range(4):
-                result[4 * r + c] += m_1[4 * r + i] * m_2[4 * i + c]
+                result[4 * row + col] += m4_1[4 * row + i] * m4_2[4 * i + col]
     return result
 
-def VecMatMul(v, m):
-    """This form was more than twice as fast as a nested loop"""
-    v0 = v[0]
-    v1 = v[1]
-    v2 = v[2]
-    v3 = v[3]
-    return [m[ 0] * v0 + m[ 1] * v1 + m[ 2] * v2 + m[ 3] * v3,
-            m[ 4] * v0 + m[ 5] * v1 + m[ 6] * v2 + m[ 7] * v3,
-            m[ 8] * v0 + m[ 9] * v1 + m[10] * v2 + m[11] * v3,
-            m[12] * v0 + m[13] * v1 + m[14] * v2 + m[15] * v3]
+def vec4_mat4_mul(v_4, m_4):
+    """Return vec4 multiplied by 4x4 matrix
+    This form was more than twice as fast as a nested loop"""
+    v_4_0 = v_4[0]
+    v_4_1 = v_4[1]
+    v_4_2 = v_4[2]
+    v_4_3 = v_4[3]
+    return [m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2 + m_4[ 3] * v_4_3,
+            m_4[ 4] * v_4_0 + m_4[ 5] * v_4_1 + m_4[ 6] * v_4_2 + m_4[ 7] * v_4_3,
+            m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2 + m_4[11] * v_4_3,
+            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15] * v_4_3]
 
 def GetUnitMatrix():
         return [1.0, 0.0, 0.0, 0.0,
@@ -181,7 +182,7 @@ def loadObjFile(fname):
 
 def projectVerts(m, modelVerts):
     """Transform the model's vec3's into projected vec4's"""
-    return list(map(lambda v: VecMatMul((v[0], v[1], v[2], 1), m), modelVerts))
+    return list(map(lambda v: vec4_mat4_mul((v[0], v[1], v[2], 1), m), modelVerts))
 
 NEAR_CLIP_PLANE = -0.5
 FAR_CLIP_PLANE = -100
@@ -219,9 +220,9 @@ def getVisibleTris(tris, worldVerts):
 
 def getCameraTransform(rot, tran):
     m = GetRotateXMatrix(rot[0])
-    m = mat_mat_mul(GetRotateYMatrix(rot[1]), m)
-    m = mat_mat_mul(GetRotateZMatrix(rot[2]), m)
-    m = mat_mat_mul(GetTranslationMatrix(*tran), m)
+    m = mat4_mat4_mul(GetRotateYMatrix(rot[1]), m)
+    m = mat4_mat4_mul(GetRotateZMatrix(rot[2]), m)
+    m = mat4_mat4_mul(GetTranslationMatrix(*tran), m)
     return m
 
 # DRAWING
@@ -237,7 +238,7 @@ def precomputeColors(instance, lighting):
     instance["precompColors"] = True
 
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-    projLight = norm_vec(VecMatMul(lightDirVec4, modelM)[0:3])
+    projLight = norm_vec3(vec4_mat4_mul(lightDirVec4, modelM)[0:3])
 
     worldVerts = projectVerts(modelM, model["verts"])
     modelTris = model["tris"]
@@ -252,7 +253,7 @@ def precomputeColors(instance, lighting):
         normal = (sub10[1]*sub20[2] - sub10[2]*sub20[1],
             sub10[2]*sub20[0] - sub10[0]*sub20[2],
             sub10[0]*sub20[1] - sub10[1]*sub20[0])
-        normal = norm_vec(normal)
+        normal = norm_vec3(normal)
         lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
         intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
         lightedColor = (int(intensity * modelColor[0]), int(intensity * modelColor[1]), int(intensity * modelColor[2]))
@@ -269,8 +270,8 @@ def drawEdge(surface, p0, p1, color):
 def drawCoordGrid(surface, m, color):
     darkColor = (color[0]/2, color[1]/2, color[2]/2)
     def gridLine(v0, v1, color):
-        v0 = VecMatMul(v0, m)
-        v1 = VecMatMul(v1, m)
+        v0 = vec4_mat4_mul(v0, m)
+        v1 = vec4_mat4_mul(v1, m)
         if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
             return
         p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
@@ -305,7 +306,7 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
     useDynamicLighting = not ("precompColors" in modelInstance)
     lightDir = lighting["lightDir"]
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-    projLight = norm_vec(VecMatMul(lightDirVec4, cameraM)[0:3])
+    projLight = norm_vec3(vec4_mat4_mul(lightDirVec4, cameraM)[0:3])
 
     for idx in drawIdcs:
         tri = modelTris[idx]
@@ -322,7 +323,7 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
             y1 = o_y - p0[1] * o_y * aspectRatio
             points.append((int(x1), int(y1)))
         if useDynamicLighting:
-            normal = norm_vec(normals[idx])
+            normal = norm_vec3(normals[idx])
             color = modelColors[idx]
             lightNormalDotProduct = max(0, projLight[0]*normal[0]+projLight[1]*normal[1]+projLight[2]*normal[2])
             intensity = min(1, max(0, ambient + diffuse * lightNormalDotProduct))
@@ -335,12 +336,12 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
     sceneTriangles = []
     def traverseSg(subgraph, parentM):
         for _,instance in subgraph.items():
-            projM = mat_mat_mul(instance["transformM"], instance["preprocessM"])
-            projM = mat_mat_mul(parentM, projM)
-            projM = mat_mat_mul(cameraM, projM)
+            projM = mat4_mat4_mul(instance["transformM"], instance["preprocessM"])
+            projM = mat4_mat4_mul(parentM, projM)
+            projM = mat4_mat4_mul(cameraM, projM)
             getInstanceTris(sceneTriangles, instance, cameraM, projM, lighting)
 
-            passM = mat_mat_mul(parentM, instance["transformM"])
+            passM = mat4_mat4_mul(parentM, instance["transformM"])
             if instance["children"]:
                 traverseSg(instance["children"], passM)
     traverseSg(sg, GetUnitMatrix())
