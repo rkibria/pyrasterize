@@ -326,8 +326,12 @@ SPRITE_SPEED = 0.1
 CUBE_COLOR_1 = (200, 0, 0)
 CUBE_COLOR_2 = (0, 0, 200)
 CUBE_FACES = [
-    ("faceTop",   (0,5,0), (0,0,0)),
-    ("faceFront", (0,0,5), (deg_to_rad(90),0,0)),
+    ("faceTop",    (0,5,0),  (0,0,0)),
+    ("faceBottom", (0,-5,0), (deg_to_rad(-180),0,0)),
+    ("faceFront",  (0,0,5),  (deg_to_rad(90),0,0)),
+    ("faceBack",   (0,0,-5), (deg_to_rad(-90),0,0)),
+    ("faceLeft",   (-5,0,0), (0,0,deg_to_rad(90))),
+    ("faceRight",  (5,0,0),  (0,0,deg_to_rad(-90))),
     ]
 
 def create_scene_graph():
@@ -348,7 +352,8 @@ def create_scene_graph():
         stance_w = 1.2
         for name,side in [("leftLeg", -1), ("rightLeg", 1)]:
             children[name] = get_model_instance(get_cube_mesh())
-            m_leg = mat4_mat4_mul(get_transl_m4(side * leg_w / 2 * stance_w, -1, 0), get_scal_m4(leg_w, 1, leg_w))
+            m_leg = mat4_mat4_mul(get_transl_m4(side * leg_w / 2 * stance_w, -1, 0),
+                get_scal_m4(leg_w, 1, leg_w))
             children[name]["preproc_m4"] = m_leg
         #
         arm_w = 0.2
@@ -411,8 +416,8 @@ def draw_scene_graph(surface, frame, scene_graph):
 
     angle = 0.4 * deg_to_rad(frame)
     cube_m = get_rot_x_m4(angle)
-    cube_m = mat4_mat4_mul(get_rot_y_m4(angle * 1.1), cube_m)
-    cube_m = mat4_mat4_mul(get_rot_z_m4(angle * 0.9), cube_m)
+    cube_m = mat4_mat4_mul(get_rot_y_m4(angle * 0.6), cube_m)
+    cube_m = mat4_mat4_mul(get_rot_z_m4(angle * 0.4), cube_m)
     scene_graph["cubeRoot"]["xform_m4"] = cube_m
 
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
