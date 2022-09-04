@@ -138,9 +138,9 @@ def get_rect_mesh(r_size, r_divs, colors=(DEFAULT_COLOR, DEFAULT_COLOR)):
 
     for i_y in range(d_y):
         for i_x in range(d_x):
-            u_l = i_x + i_y * (d_x+1)
-            mesh["tris"].append((u_l, u_l + 1, u_l + 1 + (d_x+1)))
-            mesh["tris"].append((u_l, u_l + 1 + (d_x+1), u_l + (d_x+1)))
+            u_l = i_x + i_y * (d_x + 1)
+            mesh["tris"].append((u_l, u_l + 1, u_l + 1 + (d_x + 1)))
+            mesh["tris"].append((u_l, u_l + 1 + (d_x + 1), u_l + (d_x + 1)))
             color = colors[0] if (i_x + i_y) % 2 == 0 else colors[1]
             mesh["colors"].append(color)
             mesh["colors"].append(color)
