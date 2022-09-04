@@ -13,7 +13,6 @@ SCR_ORIGIN_X = SCR_WIDTH / 2
 SCR_ORIGIN_Y = SCR_HEIGHT / 2
 
 RGB_BLACK = (0, 0, 0)
-RGB_DARKGREEN = (0, 128, 0)
 
 # MATHS
 
@@ -317,34 +316,6 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
     for _,points,color in scene_triangles:
         pygame.draw.polygon(surface, color, points)
 
-# OTHER DRAWING
-
-def draw_coord_grid(surface, m_4, color):
-    """Draw coordinate grid at origin"""
-    dark_color = (color[0]/2, color[1]/2, color[2]/2)
-    def grid_line(v_0, v_1, color):
-        v_0 = vec4_mat4_mul(v_0, m_4)
-        v_1 = vec4_mat4_mul(v_1, m_4)
-        p_0 = (v_0[0]/-v_0[2], v_0[1]/-v_0[2]) # perspective divide
-        p_1 = (v_1[0]/-v_1[2], v_1[1]/-v_1[2])
-        x_1 = SCR_ORIGIN_X + p_0[0] * SCR_ORIGIN_X
-        y_1 = SCR_ORIGIN_Y - p_0[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
-        x_2 = SCR_ORIGIN_X + p_1[0] * SCR_ORIGIN_X
-        y_2 = SCR_ORIGIN_Y - p_1[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
-        pygame.draw.aaline(surface, color, (x_1, y_1), (x_2, y_2), 1)
-    num_lines = 11
-    for i in range(num_lines):
-        line_d = 1
-        line_start = (num_lines - 1) / 2
-        line_end = -line_start + i * line_d
-        grid_line((line_end, 0, line_start, 1), (line_end, 0, -line_start, 1), dark_color)
-        grid_line((line_start, 0, line_end, 1), (-line_start, 0, line_end, 1), dark_color)
-    origin = (0, 0, 0, 1)
-    grid_line(origin, (5, 0, 0, 1), color)
-    grid_line(origin, (0, 5, 0, 1), color)
-    grid_line(origin, (0, 0, 5, 1), color)
-    grid_line((5, 0, 1, 1), (5, 0, -1, 1), color)
-
 # DEMO CODE
 
 def create_scene_graph():
@@ -396,7 +367,6 @@ def draw_scene_graph(surface, frame, scene_graph):
     camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -10), camera_m)
 
-    draw_coord_grid(surface, camera_m, RGB_DARKGREEN)
     dist = math.sin(angle) * 5
     scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(dist, 1.6, dist)
 
