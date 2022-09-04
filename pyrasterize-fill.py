@@ -321,6 +321,11 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
 
 # DEMO CODE
 
+LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
+SPRITE_SPEED = 0.1
+CUBE_COLOR_1 = (200, 0, 0)
+CUBE_COLOR_2 = (0, 0, 200)
+
 def create_scene_graph():
     """Return scene graph to draw"""
 
@@ -356,23 +361,25 @@ def create_scene_graph():
         return instance
 
     scene_graph = { "cubeRoot": get_model_instance(None) }
-    scene_graph["cubeRoot"]["children"]["faceFront"] = get_model_instance(get_rect_mesh((10, 10),
-        (10, 10), ((200,0,0), (0,200,0))),
-        get_rot_x_m4(deg_to_rad(-90)))
-    scene_graph["cubeRoot"]["children"]["faceFront"]["children"]["sprite"] = get_sprite_instance()
+    face_name = "faceTop"
+    scene_graph["cubeRoot"]["children"][face_name] = get_model_instance(
+        get_rect_mesh((10, 10), (10, 10), (CUBE_COLOR_1, CUBE_COLOR_2)),
+        get_rot_x_m4(deg_to_rad(-90)),
+        get_transl_m4(0, 5, 0)
+        )
+    face = scene_graph["cubeRoot"]["children"][face_name]
+    face["children"]["sprite"] = get_sprite_instance()
     return scene_graph
-
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
-SPRITE_SPEED = 0.1
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
     camera_m = get_rot_x_m4(deg_to_rad(20))
     camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
-    camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -10), camera_m)
+    camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -15), camera_m)
 
-    instance = scene_graph["cubeRoot"]["children"]["faceFront"]["children"]["sprite"]
+    face_name = "faceTop"
+    instance = scene_graph["cubeRoot"]["children"][face_name]["children"]["sprite"]
     pos = instance["pos"]
     target = instance["target"]
     phi = math.atan2(target[1] - pos[1], target[0] - pos[0])
