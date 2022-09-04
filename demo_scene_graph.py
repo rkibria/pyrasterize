@@ -14,6 +14,7 @@ SCR_ORIGIN_X = SCR_WIDTH / 2
 SCR_ORIGIN_Y = SCR_HEIGHT / 2
 
 RGB_BLACK = (0, 0, 0)
+RGB_WHITE = (255, 255, 255)
 
 # MATHS
 
@@ -400,10 +401,10 @@ def create_scene_graph():
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
-    camera_m = get_rot_x_m4(deg_to_rad(20))
+    camera_m = get_rot_x_m4(deg_to_rad(0))
     camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
-    camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -17), camera_m)
+    camera_m = mat4_mat4_mul(get_transl_m4(0, -3, -17), camera_m)
 
     for face_name,_,_ in CUBE_FACES:
         instance = scene_graph["cubeRoot"]["children"][face_name]["children"]["sprite"]
@@ -449,6 +450,12 @@ def main_function():
 
     scene_graph = create_scene_graph()
 
+    font = pygame.font.Font(None, 30)
+    title1 = font.render("A SCENE GRAPH organizes 3D objects as a tree structure,", True, RGB_WHITE)
+    title2 = font.render("propagating transformations from parent to child objects.", True, RGB_WHITE)
+    title3 = font.render("Each cube face is a child of the cube's abstract parent,", True, RGB_WHITE)
+    title4 = font.render("providing an independent coordinate system for the figures to move in.", True, RGB_WHITE)
+
     frame = 0
     done = False
     while not done:
@@ -459,6 +466,11 @@ def main_function():
         screen.fill(RGB_BLACK)
 
         draw_scene_graph(screen, frame, scene_graph)
+
+        screen.blit(title1, (30, 20))
+        screen.blit(title2, (30, 50))
+        screen.blit(title3, (30, 80))
+        screen.blit(title4, (30, 110))
 
         pygame.display.flip()
         frame += 1
