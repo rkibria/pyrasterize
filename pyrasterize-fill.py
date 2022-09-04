@@ -322,7 +322,7 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
 
 # DEMO CODE
 
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
+LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 SPRITE_SPEED = 0.1
 CUBE_COLOR_1 = (200, 0, 0)
 CUBE_COLOR_2 = (0, 0, 200)
