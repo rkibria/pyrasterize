@@ -325,6 +325,7 @@ LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
 SPRITE_SPEED = 0.1
 CUBE_COLOR_1 = (200, 0, 0)
 CUBE_COLOR_2 = (0, 0, 200)
+CUBE_FACES = [("faceTop", (0,5,0), (0,0,0))]
 
 def create_scene_graph():
     """Return scene graph to draw"""
@@ -361,14 +362,19 @@ def create_scene_graph():
         return instance
 
     scene_graph = { "cubeRoot": get_model_instance(None) }
-    face_name = "faceTop"
-    scene_graph["cubeRoot"]["children"][face_name] = get_model_instance(
-        get_rect_mesh((10, 10), (10, 10), (CUBE_COLOR_1, CUBE_COLOR_2)),
-        get_rot_x_m4(deg_to_rad(-90)),
-        get_transl_m4(0, 5, 0)
-        )
-    face = scene_graph["cubeRoot"]["children"][face_name]
-    face["children"]["sprite"] = get_sprite_instance()
+
+    for face_name,face_tran,face_rot in CUBE_FACES:
+        xform_m4 = get_rot_x_m4(face_rot[0])
+        xform_m4 = mat4_mat4_mul(get_rot_y_m4(face_rot[1]), xform_m4)
+        xform_m4 = mat4_mat4_mul(get_rot_z_m4(face_rot[2]), xform_m4)
+        xform_m4 = mat4_mat4_mul(get_transl_m4(*face_tran), xform_m4)
+        scene_graph["cubeRoot"]["children"][face_name] = get_model_instance(
+            get_rect_mesh((10, 10), (10, 10), (CUBE_COLOR_1, CUBE_COLOR_2)),
+            get_rot_x_m4(deg_to_rad(-90)),
+            xform_m4)
+        face = scene_graph["cubeRoot"]["children"][face_name]
+        face["children"]["sprite"] = get_sprite_instance()
+
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
@@ -378,27 +384,27 @@ def draw_scene_graph(surface, frame, scene_graph):
     camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
     camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -15), camera_m)
 
-    face_name = "faceTop"
-    instance = scene_graph["cubeRoot"]["children"][face_name]["children"]["sprite"]
-    pos = instance["pos"]
-    target = instance["target"]
-    phi = math.atan2(target[1] - pos[1], target[0] - pos[0])
-    d_p = (SPRITE_SPEED * math.cos(phi), SPRITE_SPEED * math.sin(phi))
-    pos[0] += d_p[0]
-    pos[1] += d_p[1]
-    if abs(target[0] - pos[0]) + abs(target[1] - pos[1]) < 0.1:
-        pos[0] = target[0]
-        pos[1] = target[1]
-        target[0] = random.uniform(-4, 4)
-        target[1] = random.uniform(-4, 4)
-    mat = get_rot_y_m4(-phi - math.pi/2)
-    mat = mat4_mat4_mul(get_transl_m4(pos[0], 1.6, pos[1]), mat)
-    instance["xform_m4"] = mat
+    for face_name,_,_ in CUBE_FACES:
+        instance = scene_graph["cubeRoot"]["children"][face_name]["children"]["sprite"]
+        pos = instance["pos"]
+        target = instance["target"]
+        phi = math.atan2(target[1] - pos[1], target[0] - pos[0])
+        d_p = (SPRITE_SPEED * math.cos(phi), SPRITE_SPEED * math.sin(phi))
+        pos[0] += d_p[0]
+        pos[1] += d_p[1]
+        if abs(target[0] - pos[0]) + abs(target[1] - pos[1]) < 0.1:
+            pos[0] = target[0]
+            pos[1] = target[1]
+            target[0] = random.uniform(-4, 4)
+            target[1] = random.uniform(-4, 4)
+        mat = get_rot_y_m4(-phi - math.pi/2)
+        mat = mat4_mat4_mul(get_transl_m4(pos[0], 1.6, pos[1]), mat)
+        instance["xform_m4"] = mat
 
-    for name,side in [("leftLeg", 0), ("rightLeg", 1)]:
-        leg = instance["children"][name]
-        leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20
-            * math.sin(deg_to_rad((side*180) + (frame*10) % 360))))
+        for name,side in [("leftLeg", 0), ("rightLeg", 1)]:
+            leg = instance["children"][name]
+            leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20
+                * math.sin(deg_to_rad((side*180) + (frame*10) % 360))))
 
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
 
