@@ -210,18 +210,20 @@ def get_model_center_pos(model):
 
 # SCENE GRAPH RENDERING
 
-def get_visible_tris(tri_list, world_vec4_list, near_clip_plane=-0.5, far_clip_plane=-100):
+def get_visible_tris(tri_list, world_vec4_list, clip_planes=(-0.5,-100)):
     """Returns ([indices of visible triangles],[normals of all triangles])"""
     idcs = []
     normals = []
     i = -1
+    near_clip = clip_planes[0]
+    far_clip = clip_planes[1]
     for tri in tri_list:
         i += 1
         v_0 = world_vec4_list[tri[0]]
         v_1 = world_vec4_list[tri[1]]
         v_2 = world_vec4_list[tri[2]]
-        if (v_0[2] >= near_clip_plane or v_1[2] >= near_clip_plane or v_2[2] >= near_clip_plane
-          or v_0[2] <= far_clip_plane or v_1[2] <= far_clip_plane or v_1[2] <= far_clip_plane):
+        if ((v_0[2] >= near_clip or v_1[2] >= near_clip or v_2[2] >= near_clip)
+          or (v_0[2] <= far_clip or v_1[2] <= far_clip or v_1[2] <= far_clip)):
             normals.append((0,0,0))
             continue
         # normal = cross_product(v_1 - v_0, v_2 - v_0)
@@ -231,8 +233,8 @@ def get_visible_tris(tri_list, world_vec4_list, near_clip_plane=-0.5, far_clip_p
             sub10[2]*sub20[0] - sub10[0]*sub20[2],
             sub10[0]*sub20[1] - sub10[1]*sub20[0])
         normals.append(normal)
-        # visible if dot_product(v_0, normal) < 0
-        if (v_0[0]*normal[0] + v_0[1]*normal[1] + v_0[2]*normal[2]) < 0:
+        # Back-face culling: visible if dot_product(v_0, normal) < 0
+        if (v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0:
             idcs.append(i)
     return (idcs, normals)
 
