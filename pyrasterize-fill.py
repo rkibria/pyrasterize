@@ -1,5 +1,5 @@
 """
-Rasterizer demo with pygame
+Filled polygons with simple lighting rasterizer demo using pygame
 """
 
 import math
@@ -11,7 +11,7 @@ def norm_vec3(v_3):
     """Return normalized vec3"""
     mag = v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]
     if mag == 0:
-        return (0, 0, 0)
+        return [0, 0, 0]
     mag = 1.0 / math.sqrt(mag)
     return [v_3[0] * mag, v_3[1] * mag, v_3[2] * mag]
 
@@ -55,38 +55,42 @@ def get_scal_m4(s_x, s_y, s_z):
     return [float(s_x), 0.0,       0.0,       0.0,
             0.0,       float(s_y), 0.0,       0.0,
             0.0,       0.0,       float(s_z), 0.0,
-            0.0,       0.0,       0.0,       1.0,]
+            0.0,       0.0,       0.0,        1.0]
 
-def GetRotateXMatrix(phi):
-        cos_phi = math.cos(phi)
-        sin_phi = math.sin(phi)
-        return [1.0,    0.0,            0.0,            0.0,
-                0.0,    cos_phi,        -sin_phi,       0.0,
-                0.0,    sin_phi,        cos_phi,        0.0,
-                0.0,    0.0,            0.0,            1.0,]
+def get_rot_x_m4(phi):
+    """Return 4x4 x-rotation matrix"""
+    cos_phi = math.cos(phi)
+    sin_phi = math.sin(phi)
+    return [1.0, 0.0,     0.0,      0.0,
+            0.0, cos_phi, -sin_phi, 0.0,
+            0.0, sin_phi, cos_phi,  0.0,
+            0.0, 0.0,     0.0,      1.0]
 
-def GetRotateYMatrix(phi):
-        cos_phi = math.cos(phi)
-        sin_phi = math.sin(phi)
-        return [cos_phi,        0.0,    sin_phi,        0.0,
-                0.0,            1.0,    0.0,            0.0,
-                -sin_phi,       0.0,    cos_phi,        0.0,
-                0.0,            0.0,    0.0,            1.0,]
+def get_rot_y_m4(phi):
+    """Return 4x4 y-rotation matrix"""
+    cos_phi = math.cos(phi)
+    sin_phi = math.sin(phi)
+    return [cos_phi,  0.0,  sin_phi, 0.0,
+            0.0,      1.0,  0.0,     0.0,
+            -sin_phi, 0.0,  cos_phi, 0.0,
+            0.0,      0.0,  0.0,     1.0]
 
-def GetRotateZMatrix(phi):
-        cos_phi = math.cos(phi)
-        sin_phi = math.sin(phi)
-        return [cos_phi,        -sin_phi,       0.0,     0.0,
-                sin_phi,        cos_phi,        0.0,     0.0,
-                0.0,            0.0,            1.0,     0.0,
-                0.0,            0.0,            0.0,     1.0,]
+def get_rot_z_m4(phi):
+    """Return 4x4 z-rotation matrix"""
+    cos_phi = math.cos(phi)
+    sin_phi = math.sin(phi)
+    return [cos_phi, -sin_phi, 0.0, 0.0,
+            sin_phi, cos_phi,  0.0, 0.0,
+            0.0,     0.0,      1.0, 0.0,
+            0.0,     0.0,      0.0, 1.0]
 
-def degToRad(d):
-    return d * (math.pi / 180)
+def deg_to_rad(degrees):
+    """Return degrees converted to radians"""
+    return degrees * (math.pi / 180)
 
 # MODELS
 
-DEFAULT_COLOR = (200,200,200)
+DEFAULT_COLOR = (200, 200, 200)
 
 def GetCubeMesh(color=DEFAULT_COLOR):
     return {
@@ -222,9 +226,9 @@ def getVisibleTris(tris, worldVerts):
     return (idcs, normals)
 
 def getCameraTransform(rot, tran):
-    m = GetRotateXMatrix(rot[0])
-    m = mat4_mat4_mul(GetRotateYMatrix(rot[1]), m)
-    m = mat4_mat4_mul(GetRotateZMatrix(rot[2]), m)
+    m = get_rot_x_m4(rot[0])
+    m = mat4_mat4_mul(get_rot_y_m4(rot[1]), m)
+    m = mat4_mat4_mul(get_rot_z_m4(rot[2]), m)
     m = mat4_mat4_mul(get_transl_m4(*tran), m)
     return m
 
@@ -433,12 +437,12 @@ if __name__ == '__main__':
         return spriteInstance
 
     sceneGraph = { "ground": MakeModelInstance(Make2DRectangleMesh(10, 10, 10, 10, (200,0,0), (0,200,0)),
-        GetRotateXMatrix(degToRad(-90))) }
+        get_rot_x_m4(deg_to_rad(-90))) }
     sceneGraph["ground"]["children"]["sprite_1"] = MakeSpriteInstance()
 
     def drawSprite(surface, frame):
-        angle = degToRad(frame)
-        cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -10))
+        angle = deg_to_rad(frame)
+        cameraM = getCameraTransform((deg_to_rad(20), 0, 0), (0, 0, -10))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
         y = math.sin(angle)*5
         sceneGraph["ground"]["children"]["sprite_1"]["transformM"] = get_transl_m4(y, 1.6, y)
