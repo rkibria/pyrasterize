@@ -325,7 +325,10 @@ LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
 SPRITE_SPEED = 0.1
 CUBE_COLOR_1 = (200, 0, 0)
 CUBE_COLOR_2 = (0, 0, 200)
-CUBE_FACES = [("faceTop", (0,5,0), (0,0,0))]
+CUBE_FACES = [
+    ("faceTop",   (0,5,0), (0,0,0)),
+    ("faceFront", (0,0,5), (deg_to_rad(90),0,0)),
+    ]
 
 def create_scene_graph():
     """Return scene graph to draw"""
