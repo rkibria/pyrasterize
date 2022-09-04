@@ -36,23 +36,26 @@ def vec4_mat4_mul(v_4, m_4):
             m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2 + m_4[11] * v_4_3,
             m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15] * v_4_3]
 
-def GetUnitMatrix():
-        return [1.0, 0.0, 0.0, 0.0,
-                0.0, 1.0, 0.0, 0.0,
-                0.0, 0.0, 1.0, 0.0,
-                0.0, 0.0, 0.0, 1.0,]
+def get_unit_m4():
+    """Return 4x4 unit matrix"""
+    return [1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0]
 
-def GetTranslationMatrix(dx, dy, dz):
-        return [1.0, 0.0, 0.0, float(dx),
-                0.0, 1.0, 0.0, float(dy),
-                0.0, 0.0, 1.0, float(dz),
-                0.0, 0.0, 0.0, 1.0,]
+def get_transl_m4(d_x, d_y, d_z):
+    """Return 4x4 translation matrix"""
+    return [1.0, 0.0, 0.0, float(d_x),
+            0.0, 1.0, 0.0, float(d_y),
+            0.0, 0.0, 1.0, float(d_z),
+            0.0, 0.0, 0.0, 1.0]
 
-def GetScalingMatrix(sx, sy, sz):
-        return [float(sx), 0.0,       0.0,       0.0,
-                0.0,       float(sy), 0.0,       0.0,
-                0.0,       0.0,       float(sz), 0.0,
-                0.0,       0.0,       0.0,       1.0,]
+def get_scal_m4(s_x, s_y, s_z):
+    """Return 4x4 scaling matrix"""
+    return [float(s_x), 0.0,       0.0,       0.0,
+            0.0,       float(s_y), 0.0,       0.0,
+            0.0,       0.0,       float(s_z), 0.0,
+            0.0,       0.0,       0.0,       1.0,]
 
 def GetRotateXMatrix(phi):
         cos_phi = math.cos(phi)
@@ -133,7 +136,7 @@ def Make2DRectangleMesh(w, h, dx, dy, color1=DEFAULT_COLOR, color2=DEFAULT_COLOR
             mesh["colors"].append(color)
     return mesh
 
-def MakeModelInstance(model, preprocessM=GetUnitMatrix(), transformM=GetUnitMatrix()):
+def MakeModelInstance(model, preprocessM=get_unit_m4(), transformM=get_unit_m4()):
     return { "model": model,
         "preprocessM": preprocessM,
         "transformM": transformM,
@@ -222,7 +225,7 @@ def getCameraTransform(rot, tran):
     m = GetRotateXMatrix(rot[0])
     m = mat4_mat4_mul(GetRotateYMatrix(rot[1]), m)
     m = mat4_mat4_mul(GetRotateZMatrix(rot[2]), m)
-    m = mat4_mat4_mul(GetTranslationMatrix(*tran), m)
+    m = mat4_mat4_mul(get_transl_m4(*tran), m)
     return m
 
 # DRAWING
@@ -344,7 +347,7 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
             passM = mat4_mat4_mul(parentM, instance["transformM"])
             if instance["children"]:
                 traverseSg(instance["children"], passM)
-    traverseSg(sg, GetUnitMatrix())
+    traverseSg(sg, get_unit_m4())
 
     sceneTriangles.sort(key=lambda x: x[0], reverse=False)
 
@@ -401,31 +404,31 @@ if __name__ == '__main__':
     def MakeSpriteInstance():
         bodyWidth = 0.75
         spriteInstance = MakeModelInstance(GetCubeMesh())
-        spriteInstance["preprocessM"] = GetScalingMatrix(bodyWidth, 1, 0.5)
+        spriteInstance["preprocessM"] = get_scal_m4(bodyWidth, 1, 0.5)
         bodyChildren = spriteInstance["children"]
         #
         headSize = 0.4
         bodyChildren["head"] = MakeModelInstance(GetCubeMesh((242,212,215)))
-        bodyChildren["head"]["transformM"] = GetTranslationMatrix(0, 1 - headSize, 0)
-        bodyChildren["head"]["preprocessM"] = GetScalingMatrix(headSize, headSize, headSize)
+        bodyChildren["head"]["transformM"] = get_transl_m4(0, 1 - headSize, 0)
+        bodyChildren["head"]["preprocessM"] = get_scal_m4(headSize, headSize, headSize)
         #
         legWidth = 0.25
         stanceWidth = 1.2
         bodyChildren["leftLeg"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["leftLeg"]["transformM"] = GetTranslationMatrix(legWidth/2*stanceWidth, -1, 0)
-        bodyChildren["leftLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
+        bodyChildren["leftLeg"]["transformM"] = get_transl_m4(legWidth/2*stanceWidth, -1, 0)
+        bodyChildren["leftLeg"]["preprocessM"] = get_scal_m4(legWidth, 1, legWidth)
         bodyChildren["rightLeg"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["rightLeg"]["transformM"] = GetTranslationMatrix(-legWidth/2*stanceWidth, -1, 0)
-        bodyChildren["rightLeg"]["preprocessM"] = GetScalingMatrix(legWidth, 1, legWidth)
+        bodyChildren["rightLeg"]["transformM"] = get_transl_m4(-legWidth/2*stanceWidth, -1, 0)
+        bodyChildren["rightLeg"]["preprocessM"] = get_scal_m4(legWidth, 1, legWidth)
         #
         armWidth = 0.2
         armLength = 0.9
         bodyChildren["leftArm"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["leftArm"]["transformM"] = GetTranslationMatrix(-bodyWidth/2-armWidth/2, 0, 0)
-        bodyChildren["leftArm"]["preprocessM"] = GetScalingMatrix(armWidth, armLength, armWidth)
+        bodyChildren["leftArm"]["transformM"] = get_transl_m4(-bodyWidth/2-armWidth/2, 0, 0)
+        bodyChildren["leftArm"]["preprocessM"] = get_scal_m4(armWidth, armLength, armWidth)
         bodyChildren["rightArm"] = MakeModelInstance(GetCubeMesh())
-        bodyChildren["rightArm"]["transformM"] = GetTranslationMatrix(bodyWidth/2+armWidth/2, 0, 0)
-        bodyChildren["rightArm"]["preprocessM"] = GetScalingMatrix(armWidth, armLength, armWidth)
+        bodyChildren["rightArm"]["transformM"] = get_transl_m4(bodyWidth/2+armWidth/2, 0, 0)
+        bodyChildren["rightArm"]["preprocessM"] = get_scal_m4(armWidth, armLength, armWidth)
         #
         return spriteInstance
 
@@ -438,7 +441,7 @@ if __name__ == '__main__':
         cameraM = getCameraTransform((degToRad(20), 0, 0), (0, 0, -10))
         drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
         y = math.sin(angle)*5
-        sceneGraph["ground"]["children"]["sprite_1"]["transformM"] = GetTranslationMatrix(y, 1.6, y)
+        sceneGraph["ground"]["children"]["sprite_1"]["transformM"] = get_transl_m4(y, 1.6, y)
         return drawSceneGraph(surface, sceneGraph, cameraM, lighting)
 
     frame = 0
