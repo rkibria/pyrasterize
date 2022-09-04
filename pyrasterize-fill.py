@@ -409,6 +409,12 @@ def draw_scene_graph(surface, frame, scene_graph):
             leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20
                 * math.sin(deg_to_rad((side*180) + (frame*10) % 360))))
 
+    angle = 0.4 * deg_to_rad(frame)
+    cube_m = get_rot_x_m4(angle)
+    cube_m = mat4_mat4_mul(get_rot_y_m4(angle * 1.1), cube_m)
+    cube_m = mat4_mat4_mul(get_rot_z_m4(angle * 0.9), cube_m)
+    scene_graph["cubeRoot"]["xform_m4"] = cube_m
+
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
 
 # MAIN
