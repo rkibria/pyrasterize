@@ -23,7 +23,7 @@ def crossProduct(a, b):
         a[2]*b[0] - a[0]*b[2],
         a[0]*b[1] - a[1]*b[0]]
 
-def matMatMult(m1, m2):
+def MatMatMul(m1, m2):
     newM = [0] * 16
     for r in range(4):
         for c in range(4):
@@ -33,7 +33,7 @@ def matMatMult(m1, m2):
                 newM[4 * r + c] += v1 * v2
     return newM
 
-def vecMatMult(v, m):
+def VecMatMul(v, m):
     """This form was more than twice as fast as a nested loop"""
     v0 = v[0]
     v1 = v[1]
@@ -190,7 +190,7 @@ def loadObjFile(fname):
 
 def projectVerts(m, modelVerts):
     """Transform the model's vec3's into projected vec4's"""
-    return list(map(lambda v: vecMatMult((v[0], v[1], v[2], 1), m), modelVerts))
+    return list(map(lambda v: VecMatMul((v[0], v[1], v[2], 1), m), modelVerts))
 
 NEAR_CLIP_PLANE = -0.5
 FAR_CLIP_PLANE = -100
@@ -228,9 +228,9 @@ def getVisibleTris(tris, worldVerts):
 
 def getCameraTransform(rot, tran):
     m = GetRotateXMatrix(rot[0])
-    m = matMatMult(GetRotateYMatrix(rot[1]), m)
-    m = matMatMult(GetRotateZMatrix(rot[2]), m)
-    m = matMatMult(GetTranslationMatrix(*tran), m)
+    m = MatMatMul(GetRotateYMatrix(rot[1]), m)
+    m = MatMatMul(GetRotateZMatrix(rot[2]), m)
+    m = MatMatMul(GetTranslationMatrix(*tran), m)
     return m
 
 # DRAWING
@@ -246,7 +246,7 @@ def precomputeColors(instance, lighting):
     instance["precompColors"] = True
 
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-    projLight = normVec(vecMatMult(lightDirVec4, modelM)[0:3])
+    projLight = normVec(VecMatMul(lightDirVec4, modelM)[0:3])
 
     worldVerts = projectVerts(modelM, model["verts"])
     modelTris = model["tris"]
@@ -278,8 +278,8 @@ def drawEdge(surface, p0, p1, color):
 def drawCoordGrid(surface, m, color):
     darkColor = (color[0]/2, color[1]/2, color[2]/2)
     def gridLine(v0, v1, color):
-        v0 = vecMatMult(v0, m)
-        v1 = vecMatMult(v1, m)
+        v0 = VecMatMul(v0, m)
+        v1 = VecMatMul(v1, m)
         if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
             return
         p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
@@ -314,7 +314,7 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
     useDynamicLighting = not ("precompColors" in modelInstance)
     lightDir = lighting["lightDir"]
     lightDirVec4 = (lightDir[0], lightDir[1], lightDir[2], 0) # direction vector! w=0
-    projLight = normVec(vecMatMult(lightDirVec4, cameraM)[0:3])
+    projLight = normVec(VecMatMul(lightDirVec4, cameraM)[0:3])
 
     for idx in drawIdcs:
         tri = modelTris[idx]
@@ -344,12 +344,12 @@ def drawSceneGraph(surface, sg, cameraM, lighting):
     sceneTriangles = []
     def traverseSg(subgraph, parentM):
         for _,instance in subgraph.items():
-            projM = matMatMult(instance["transformM"], instance["preprocessM"])
-            projM = matMatMult(parentM, projM)
-            projM = matMatMult(cameraM, projM)
+            projM = MatMatMul(instance["transformM"], instance["preprocessM"])
+            projM = MatMatMul(parentM, projM)
+            projM = MatMatMul(cameraM, projM)
             getInstanceTris(sceneTriangles, instance, cameraM, projM, lighting)
 
-            passM = matMatMult(parentM, instance["transformM"])
+            passM = MatMatMul(parentM, instance["transformM"])
             if instance["children"]:
                 traverseSg(instance["children"], passM)
     traverseSg(sg, GetUnitMatrix())
