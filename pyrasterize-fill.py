@@ -345,6 +345,63 @@ def draw_coord_grid(surface, m_4, color):
     grid_line(origin, (0, 0, 5, 1), color)
     grid_line((5, 0, 1, 1), (5, 0, -1, 1), color)
 
+# DEMO CODE
+
+def create_scene_graph():
+    """Return scene graph to draw"""
+    def get_sprite_instance():
+        body_width = 0.75
+        instance = get_model_instance(get_cube_mesh())
+        instance["preproc_m4"] = get_scal_m4(body_width, 1, 0.5)
+        children = instance["children"]
+        #
+        head_size = 0.4
+        children["head"] = get_model_instance(get_cube_mesh((242,212,215)))
+        children["head"]["xform_m4"] = get_transl_m4(0, 1 - head_size, 0)
+        children["head"]["preproc_m4"] = get_scal_m4(head_size, head_size, head_size)
+        #
+        leg_w = 0.25
+        stance_w = 1.2
+        children["leftLeg"] = get_model_instance(get_cube_mesh())
+        children["leftLeg"]["xform_m4"] = get_transl_m4(leg_w/2*stance_w, -1, 0)
+        children["leftLeg"]["preproc_m4"] = get_scal_m4(leg_w, 1, leg_w)
+        children["rightLeg"] = get_model_instance(get_cube_mesh())
+        children["rightLeg"]["xform_m4"] = get_transl_m4(-leg_w/2*stance_w, -1, 0)
+        children["rightLeg"]["preproc_m4"] = get_scal_m4(leg_w, 1, leg_w)
+        #
+        arm_w = 0.2
+        arm_len = 0.9
+        children["leftArm"] = get_model_instance(get_cube_mesh())
+        children["leftArm"]["xform_m4"] = get_transl_m4(-body_width/2-arm_w/2, 0, 0)
+        children["leftArm"]["preproc_m4"] = get_scal_m4(arm_w, arm_len, arm_w)
+        children["rightArm"] = get_model_instance(get_cube_mesh())
+        children["rightArm"]["xform_m4"] = get_transl_m4(body_width/2+arm_w/2, 0, 0)
+        children["rightArm"]["preproc_m4"] = get_scal_m4(arm_w, arm_len, arm_w)
+        #
+        return instance
+    scene_graph = { "ground": get_model_instance(get_rect_mesh((10, 10), (10, 10),
+        ((200,0,0), (0,200,0))),
+        get_rot_x_m4(deg_to_rad(-90))) }
+    scene_graph["ground"]["children"]["sprite_1"] = get_sprite_instance()
+    return scene_graph
+
+LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
+
+def draw_scene_graph(surface, frame, scene_graph):
+    """Draw the scene graph"""
+    angle = deg_to_rad(frame)
+
+    camera_m = get_rot_x_m4(deg_to_rad(20))
+    camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
+    camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
+    camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -10), camera_m)
+
+    draw_coord_grid(surface, camera_m, RGB_DARKGREEN)
+    dist = math.sin(angle) * 5
+    scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(dist, 1.6, dist)
+
+    render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
+
 # MAIN
 
 def main_function():
@@ -352,63 +409,13 @@ def main_function():
     pygame.init()
 
     screen = pygame.display.set_mode(SCR_SIZE)
-
     pygame.display.set_caption("PyRasterize")
-
-    done = False
     clock = pygame.time.Clock()
 
-    lighting = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
-
-    def MakeSpriteInstance():
-        bodyWidth = 0.75
-        spriteInstance = get_model_instance(get_cube_mesh())
-        spriteInstance["preproc_m4"] = get_scal_m4(bodyWidth, 1, 0.5)
-        bodyChildren = spriteInstance["children"]
-        #
-        headSize = 0.4
-        bodyChildren["head"] = get_model_instance(get_cube_mesh((242,212,215)))
-        bodyChildren["head"]["xform_m4"] = get_transl_m4(0, 1 - headSize, 0)
-        bodyChildren["head"]["preproc_m4"] = get_scal_m4(headSize, headSize, headSize)
-        #
-        legWidth = 0.25
-        stanceWidth = 1.2
-        bodyChildren["leftLeg"] = get_model_instance(get_cube_mesh())
-        bodyChildren["leftLeg"]["xform_m4"] = get_transl_m4(legWidth/2*stanceWidth, -1, 0)
-        bodyChildren["leftLeg"]["preproc_m4"] = get_scal_m4(legWidth, 1, legWidth)
-        bodyChildren["rightLeg"] = get_model_instance(get_cube_mesh())
-        bodyChildren["rightLeg"]["xform_m4"] = get_transl_m4(-legWidth/2*stanceWidth, -1, 0)
-        bodyChildren["rightLeg"]["preproc_m4"] = get_scal_m4(legWidth, 1, legWidth)
-        #
-        armWidth = 0.2
-        armLength = 0.9
-        bodyChildren["leftArm"] = get_model_instance(get_cube_mesh())
-        bodyChildren["leftArm"]["xform_m4"] = get_transl_m4(-bodyWidth/2-armWidth/2, 0, 0)
-        bodyChildren["leftArm"]["preproc_m4"] = get_scal_m4(armWidth, armLength, armWidth)
-        bodyChildren["rightArm"] = get_model_instance(get_cube_mesh())
-        bodyChildren["rightArm"]["xform_m4"] = get_transl_m4(bodyWidth/2+armWidth/2, 0, 0)
-        bodyChildren["rightArm"]["preproc_m4"] = get_scal_m4(armWidth, armLength, armWidth)
-        #
-        return spriteInstance
-
-    sceneGraph = { "ground": get_model_instance(get_rect_mesh((10, 10), (10, 10), ((200,0,0), (0,200,0))),
-        get_rot_x_m4(deg_to_rad(-90))) }
-    sceneGraph["ground"]["children"]["sprite_1"] = MakeSpriteInstance()
-
-    def drawSprite(surface, frame):
-        angle = deg_to_rad(frame)
-
-        camera_m = get_rot_x_m4(deg_to_rad(20))
-        camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
-        camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
-        camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -10), camera_m)
-
-        draw_coord_grid(surface, camera_m, RGB_DARKGREEN)
-        y = math.sin(angle)*5
-        sceneGraph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(y, 1.6, y)
-        return render_scene_graph(surface, sceneGraph, camera_m, lighting)
+    scene_graph = create_scene_graph()
 
     frame = 0
+    done = False
     while not done:
         clock.tick(30)
         for event in pygame.event.get():
@@ -416,7 +423,7 @@ def main_function():
                 done = True
         screen.fill(RGB_BLACK)
 
-        drawSprite(screen, frame)
+        draw_scene_graph(screen, frame, scene_graph)
 
         pygame.display.flip()
         frame += 1
