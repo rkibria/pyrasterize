@@ -336,8 +336,9 @@ def create_scene_graph():
         leg_w = 0.25
         stance_w = 1.2
         children["leftLeg"] = get_model_instance(get_cube_mesh())
-        children["leftLeg"]["xform_m4"] = get_transl_m4(leg_w/2*stance_w, -1, 0)
-        children["leftLeg"]["preproc_m4"] = get_scal_m4(leg_w, 1, leg_w)
+        m_leg = mat4_mat4_mul(get_transl_m4(leg_w/2*stance_w, -1, 0), get_scal_m4(leg_w, 1, leg_w))
+        children["leftLeg"]["preproc_m4"] = m_leg
+        ##
         children["rightLeg"] = get_model_instance(get_cube_mesh())
         children["rightLeg"]["xform_m4"] = get_transl_m4(-leg_w/2*stance_w, -1, 0)
         children["rightLeg"]["preproc_m4"] = get_scal_m4(leg_w, 1, leg_w)
@@ -386,6 +387,8 @@ def draw_scene_graph(surface, frame, scene_graph):
     mat = get_rot_y_m4(-phi - math.pi/2)
     mat = mat4_mat4_mul(get_transl_m4(pos[0], 1.6, pos[1]), mat)
     scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = mat
+    left_leg = scene_graph["ground"]["children"]["sprite_1"]["children"]["leftLeg"]
+    left_leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20 * math.sin(deg_to_rad((frame*10) % 360))))
 
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
 
