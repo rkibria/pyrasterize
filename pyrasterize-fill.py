@@ -5,6 +5,16 @@ Filled polygons with simple lighting rasterizer demo using pygame
 import math
 import pygame
 
+# CONSTANTS
+
+SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 800, 600
+SCR_ASPECT_RATIO = SCR_WIDTH / SCR_HEIGHT
+SCR_ORIGIN_X = SCR_WIDTH / 2
+SCR_ORIGIN_Y = SCR_HEIGHT / 2
+
+RGB_BLACK = (0, 0, 0)
+RGB_DARKGREEN = (0, 128, 0)
+
 # MATHS
 
 def norm_vec3(v_3):
@@ -263,12 +273,11 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
         z2 = worldVerts[tri[2]][2]
         triZ = (z0 + z1 + z2) / 3
         points = []
-        aspectRatio = width/height
         for i in range(3):
             v0 = worldVerts[tri[i]]
             p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
-            x1 = o_x + p0[0] * o_x
-            y1 = o_y - p0[1] * o_y * aspectRatio
+            x1 = SCR_ORIGIN_X + p0[0] * SCR_ORIGIN_X
+            y1 = SCR_ORIGIN_Y - p0[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
             points.append((int(x1), int(y1)))
         if useDynamicLighting:
             normal = norm_vec3(normals[idx])
@@ -309,10 +318,10 @@ def draw_coord_grid(surface, m_4, color):
         v_1 = vec4_mat4_mul(v_1, m_4)
         p_0 = (v_0[0]/-v_0[2], v_0[1]/-v_0[2]) # perspective divide
         p_1 = (v_1[0]/-v_1[2], v_1[1]/-v_1[2])
-        x_1 = o_x + p_0[0] * o_x
-        y_1 = o_y - p_0[1] * o_y * (width/height)
-        x_2 = o_x + p_1[0] * o_x
-        y_2 = o_y - p_1[1] * o_y * (width/height)
+        x_1 = SCR_ORIGIN_X + p_0[0] * SCR_ORIGIN_X
+        y_1 = SCR_ORIGIN_Y - p_0[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
+        x_2 = SCR_ORIGIN_X + p_1[0] * SCR_ORIGIN_X
+        y_2 = SCR_ORIGIN_Y - p_1[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
         pygame.draw.aaline(surface, color, (x_1, y_1), (x_2, y_2), 1)
     num_lines = 11
     for i in range(num_lines):
@@ -329,17 +338,10 @@ def draw_coord_grid(surface, m_4, color):
 
 # MAIN
 
-RGB_BLACK = (0, 0, 0)
-RGB_DARKGREEN = (0, 128, 0)
-
 if __name__ == '__main__':
     pygame.init()
 
-    size = width, height = 800, 600
-    o_x = width/2
-    o_y = height/2
-
-    screen = pygame.display.set_mode(size)
+    screen = pygame.display.set_mode(SCR_SIZE)
 
     pygame.display.set_caption("PyRasterize")
 
