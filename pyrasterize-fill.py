@@ -383,7 +383,9 @@ def draw_scene_graph(surface, frame, scene_graph):
         pos[1] = target[1]
         target[0] = random.uniform(-4, 4)
         target[1] = random.uniform(-4, 4)
-    scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(pos[0], 1.6, pos[1])
+    mat = get_rot_y_m4(-phi - math.pi/2)
+    mat = mat4_mat4_mul(get_transl_m4(pos[0], 1.6, pos[1]), mat)
+    scene_graph["ground"]["children"]["sprite_1"]["xform_m4"] = mat
 
     render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
 
