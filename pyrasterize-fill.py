@@ -200,78 +200,63 @@ def get_model_from_obj_file(fname):
 
 # RENDERING ALGORITHMS
 
-NEAR_CLIP_PLANE = -0.5
-FAR_CLIP_PLANE = -100
-
-def getVisibleTris(tris, worldVerts):
-    """
-    Return:
-    - tri indices that aren't culled/outside view
-    - normals indexed same as tri's
-    - assumes the camera is at origin
-    """
+def get_visible_tris(tri_list, world_vec4_list, near_clip_plane=-0.5, far_clip_plane=-100):
+    """Returns ([indices of visible triangles],[normals of all triangles])"""
     idcs = []
     normals = []
     i = -1
-    for tri in tris:
+    for tri in tri_list:
         i += 1
-        v0 = worldVerts[tri[0]]
-        v1 = worldVerts[tri[1]]
-        v2 = worldVerts[tri[2]]
-        if (v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE or v2[2] >= NEAR_CLIP_PLANE
-          or v0[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE or v1[2] <= FAR_CLIP_PLANE):
+        v_0 = world_vec4_list[tri[0]]
+        v_1 = world_vec4_list[tri[1]]
+        v_2 = world_vec4_list[tri[2]]
+        if (v_0[2] >= near_clip_plane or v_1[2] >= near_clip_plane or v_2[2] >= near_clip_plane
+          or v_0[2] <= far_clip_plane or v_1[2] <= far_clip_plane or v_1[2] <= far_clip_plane):
             normals.append((0,0,0))
             continue
-        # normal = crossProduct(subVec(v1, v0), subVec(v2, v0))
-        sub10 = (v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2])
-        sub20 = (v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2])
+        # normal = cross_product(v_1 - v_0, v_2 - v_0)
+        sub10 = (v_1[0] - v_0[0], v_1[1] - v_0[1], v_1[2] - v_0[2])
+        sub20 = (v_2[0] - v_0[0], v_2[1] - v_0[1], v_2[2] - v_0[2])
         normal = (sub10[1]*sub20[2] - sub10[2]*sub20[1],
             sub10[2]*sub20[0] - sub10[0]*sub20[2],
             sub10[0]*sub20[1] - sub10[1]*sub20[0])
         normals.append(normal)
-        # isVisible = (dotProduct(v0, normal) < 0)
-        if ((v0[0]*normal[0] + v0[1]*normal[1] + v0[2]*normal[2]) < 0):
+        # visible if dot_product(v_0, normal) < 0
+        if (v_0[0]*normal[0] + v_0[1]*normal[1] + v_0[2]*normal[2]) < 0:
             idcs.append(i)
     return (idcs, normals)
 
-def getCameraTransform(rot, tran):
-    m = get_rot_x_m4(rot[0])
-    m = mat4_mat4_mul(get_rot_y_m4(rot[1]), m)
-    m = mat4_mat4_mul(get_rot_z_m4(rot[2]), m)
-    m = mat4_mat4_mul(get_transl_m4(*tran), m)
-    return m
-
 # DRAWING
 
-def drawEdge(surface, p0, p1, color):
-    x1 = o_x + p0[0] * o_x
-    y1 = o_y - p0[1] * o_y * (width/height)
-    x2 = o_x + p1[0] * o_x
-    y2 = o_y - p1[1] * o_y * (width/height)
-    pygame.draw.aaline(surface, color, (x1, y1), (x2, y2), 1)
+def draw_edge(surface, p_0, p_1, color):
+    """Draw line in screen coordinates"""
+    x_1 = o_x + p_0[0] * o_x
+    y_1 = o_y - p_0[1] * o_y * (width/height)
+    x_2 = o_x + p_1[0] * o_x
+    y_2 = o_y - p_1[1] * o_y * (width/height)
+    pygame.draw.aaline(surface, color, (x_1, y_1), (x_2, y_2), 1)
 
-def drawCoordGrid(surface, m, color):
-    darkColor = (color[0]/2, color[1]/2, color[2]/2)
-    def gridLine(v0, v1, color):
-        v0 = vec4_mat4_mul(v0, m)
-        v1 = vec4_mat4_mul(v1, m)
-        if v0[2] >= NEAR_CLIP_PLANE or v1[2] >= NEAR_CLIP_PLANE:
-            return
+def draw_coord_grid(surface, m_4, color):
+    """Draw coordinate grid at origin"""
+    dark_color = (color[0]/2, color[1]/2, color[2]/2)
+    def grid_line(v0, v1, color):
+        v0 = vec4_mat4_mul(v0, m_4)
+        v1 = vec4_mat4_mul(v1, m_4)
         p0 = (v0[0]/-v0[2], v0[1]/-v0[2]) # perspective divide
         p1 = (v1[0]/-v1[2], v1[1]/-v1[2])
-        drawEdge(surface, p0, p1, color)
+        draw_edge(surface, p0, p1, color)
     numLines = 11
     for i in range(numLines):
         d = 1
         s = (numLines - 1) / 2
         t = -s + i * d
-        gridLine((t, 0, s, 1), (t, 0, -s, 1), darkColor)
-        gridLine((s, 0, t, 1), (-s, 0, t, 1), darkColor)
+        grid_line((t, 0, s, 1), (t, 0, -s, 1), dark_color)
+        grid_line((s, 0, t, 1), (-s, 0, t, 1), dark_color)
     origin = (0, 0, 0, 1)
-    gridLine(origin, (5, 0, 0, 1), color)
-    gridLine(origin, (0, 5, 0, 1), color)
-    gridLine(origin, (0, 0, 5, 1), color)
-    gridLine((5, 0, 1, 1), (5, 0, -1, 1), color)
+    grid_line(origin, (5, 0, 0, 1), color)
+    grid_line(origin, (0, 5, 0, 1), color)
+    grid_line(origin, (0, 0, 5, 1), color)
+    grid_line((5, 0, 1, 1), (5, 0, -1, 1), color)
 
 def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
     """return times {project, cull, draw}"""
@@ -284,7 +269,7 @@ def getInstanceTris(sceneTriangles, modelInstance, cameraM, modelM, lighting):
     worldVerts = list(map(lambda v: vec4_mat4_mul((v[0], v[1], v[2], 1), modelM), modelVerts))
 
     modelTris = model["tris"]
-    drawIdcs,normals = getVisibleTris(modelTris, worldVerts)
+    drawIdcs,normals = get_visible_tris(modelTris, worldVerts)
 
     useDynamicLighting = not ("precompColors" in modelInstance)
     lightDir = lighting["lightDir"]
@@ -366,21 +351,6 @@ if __name__ == '__main__':
 
     lighting = {"lightDir" : (1, 1, 1), "ambient": 0.1, "diffuse": 0.9}
 
-    # mesh = loadObjFile("teapot.obj") # teapot-low.obj
-    # mesh = loadObjFile("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
-    # meshSg = { "mesh_1" : MakeModelInstance(mesh) }
-    # meshCenterVec = mulVec(-1, getModelCenterPos(mesh))
-    # meshSg["mesh_1"]["preproc_m4"] = getTranslationMatrix(*meshCenterVec)
-    # def drawMesh(surface, frame):
-    #     angle = degToRad(frame)
-    #     cameraM = getCameraTransform((degToRad(20), 0, 0), (0, -0.5, -17.5))
-    #     drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
-    #     m = getRotateXMatrix(angle)
-    #     m = matMatMult(getRotateYMatrix(angle), m)
-    #     m = matMatMult(getRotateZMatrix(angle), m)
-    #     meshSg["mesh_1"]["xform_m4"] = m
-    #     return drawSceneGraph(surface, meshSg, cameraM, lighting)
-
     def MakeSpriteInstance():
         bodyWidth = 0.75
         spriteInstance = get_model_instance(get_cube_mesh())
@@ -418,11 +388,16 @@ if __name__ == '__main__':
 
     def drawSprite(surface, frame):
         angle = deg_to_rad(frame)
-        cameraM = getCameraTransform((deg_to_rad(20), 0, 0), (0, 0, -10))
-        drawCoordGrid(surface, cameraM, RGB_DARKGREEN)
+
+        camera_m = get_rot_x_m4(deg_to_rad(20))
+        camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
+        camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
+        camera_m = mat4_mat4_mul(get_transl_m4(0, 0, -10), camera_m)
+
+        draw_coord_grid(surface, camera_m, RGB_DARKGREEN)
         y = math.sin(angle)*5
         sceneGraph["ground"]["children"]["sprite_1"]["xform_m4"] = get_transl_m4(y, 1.6, y)
-        return drawSceneGraph(surface, sceneGraph, cameraM, lighting)
+        return drawSceneGraph(surface, sceneGraph, camera_m, lighting)
 
     frame = 0
     while not done:
