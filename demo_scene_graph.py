@@ -535,6 +535,8 @@ def main_function():
 
         pygame.display.flip()
         frame += 1
+        # if frame % 30 == 0:
+        #     print(clock.get_fps())
 
 if __name__ == '__main__':
     main_function()
