@@ -27,12 +27,73 @@ def norm_vec3(v_3):
     return [v_3[0] * mag, v_3[1] * mag, v_3[2] * mag]
 
 def mat4_mat4_mul(m4_1, m4_2):
-    """Return multiplication of 4x4 matrices"""
+    """Return multiplication of 4x4 matrices
+    Unrolled form is faster than loops"""
     result = [0] * 16
-    for row in range(4):
-        for col in range(4):
-            for i in range(4):
-                result[4 * row + col] += m4_1[4 * row + i] * m4_2[4 * i + col]
+    result[0] += m4_1[0] * m4_2[0]
+    result[0] += m4_1[1] * m4_2[4]
+    result[0] += m4_1[2] * m4_2[8]
+    result[0] += m4_1[3] * m4_2[12]
+    result[1] += m4_1[0] * m4_2[1]
+    result[1] += m4_1[1] * m4_2[5]
+    result[1] += m4_1[2] * m4_2[9]
+    result[1] += m4_1[3] * m4_2[13]
+    result[2] += m4_1[0] * m4_2[2]
+    result[2] += m4_1[1] * m4_2[6]
+    result[2] += m4_1[2] * m4_2[10]
+    result[2] += m4_1[3] * m4_2[14]
+    result[3] += m4_1[0] * m4_2[3]
+    result[3] += m4_1[1] * m4_2[7]
+    result[3] += m4_1[2] * m4_2[11]
+    result[3] += m4_1[3] * m4_2[15]
+    result[4] += m4_1[4] * m4_2[0]
+    result[4] += m4_1[5] * m4_2[4]
+    result[4] += m4_1[6] * m4_2[8]
+    result[4] += m4_1[7] * m4_2[12]
+    result[5] += m4_1[4] * m4_2[1]
+    result[5] += m4_1[5] * m4_2[5]
+    result[5] += m4_1[6] * m4_2[9]
+    result[5] += m4_1[7] * m4_2[13]
+    result[6] += m4_1[4] * m4_2[2]
+    result[6] += m4_1[5] * m4_2[6]
+    result[6] += m4_1[6] * m4_2[10]
+    result[6] += m4_1[7] * m4_2[14]
+    result[7] += m4_1[4] * m4_2[3]
+    result[7] += m4_1[5] * m4_2[7]
+    result[7] += m4_1[6] * m4_2[11]
+    result[7] += m4_1[7] * m4_2[15]
+    result[8] += m4_1[8] * m4_2[0]
+    result[8] += m4_1[9] * m4_2[4]
+    result[8] += m4_1[10] * m4_2[8]
+    result[8] += m4_1[11] * m4_2[12]
+    result[9] += m4_1[8] * m4_2[1]
+    result[9] += m4_1[9] * m4_2[5]
+    result[9] += m4_1[10] * m4_2[9]
+    result[9] += m4_1[11] * m4_2[13]
+    result[10] += m4_1[8] * m4_2[2]
+    result[10] += m4_1[9] * m4_2[6]
+    result[10] += m4_1[10] * m4_2[10]
+    result[10] += m4_1[11] * m4_2[14]
+    result[11] += m4_1[8] * m4_2[3]
+    result[11] += m4_1[9] * m4_2[7]
+    result[11] += m4_1[10] * m4_2[11]
+    result[11] += m4_1[11] * m4_2[15]
+    result[12] += m4_1[12] * m4_2[0]
+    result[12] += m4_1[13] * m4_2[4]
+    result[12] += m4_1[14] * m4_2[8]
+    result[12] += m4_1[15] * m4_2[12]
+    result[13] += m4_1[12] * m4_2[1]
+    result[13] += m4_1[13] * m4_2[5]
+    result[13] += m4_1[14] * m4_2[9]
+    result[13] += m4_1[15] * m4_2[13]
+    result[14] += m4_1[12] * m4_2[2]
+    result[14] += m4_1[13] * m4_2[6]
+    result[14] += m4_1[14] * m4_2[10]
+    result[14] += m4_1[15] * m4_2[14]
+    result[15] += m4_1[12] * m4_2[3]
+    result[15] += m4_1[13] * m4_2[7]
+    result[15] += m4_1[14] * m4_2[11]
+    result[15] += m4_1[15] * m4_2[15]
     return result
 
 def vec4_mat4_mul(v_4, m_4):
@@ -474,6 +535,8 @@ def main_function():
 
         pygame.display.flip()
         frame += 1
+        if frame % 30 == 0:
+            print(f"{clock.get_fps()} fps")
 
 if __name__ == '__main__':
     main_function()
