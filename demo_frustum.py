@@ -384,64 +384,45 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
 
 # DEMO CODE
 
+CAMERA = { "pos": [0,0,0], "rot": [0,0,0] }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 SPRITE_SPEED = 0.1
-CUBE_COLOR_1 = (200, 0, 0)
-CUBE_COLOR_2 = (0, 0, 200)
+
+def get_camera_m(cam):
+    """Return matrix based on camera dict(rot,pos)"""
+    cam_pos = cam["pos"]
+    cam_rot = cam["rot"]
+    camera_m = get_transl_m4(-cam_pos[0], -cam_pos[1], -cam_pos[2])
+    camera_m = mat4_mat4_mul(get_rot_z_m4(-cam_rot[2]), camera_m)
+    camera_m = mat4_mat4_mul(get_rot_y_m4(-cam_rot[1]), camera_m)
+    camera_m = mat4_mat4_mul(get_rot_x_m4(-cam_rot[0]), camera_m)
+    return camera_m
 
 def create_scene_graph():
     """Create the main scene graph"""
     scene_graph = { "root": get_model_instance(None) }
-    size = 10
-    for x in range(size):
-        for y in range(size):
-
-    scene_graph["groundRoot"]["children"]["groundMesh"] = get_model_instance(
-        get_rect_mesh((10, 10), (10, 10), (CUBE_COLOR_1, CUBE_COLOR_2)),
-        get_rot_x_m4(deg_to_rad(-90)))
-    ground = scene_graph["groundRoot"]["children"]["groundMesh"]
-
-    for sprite_name in SPRITE_NAMES:
-        ground["children"][sprite_name] = get_model_instance(None)
-        instance = ground["children"][sprite_name]
-        instance["pos"] = [0,0]
-        instance["target"] = [1, 0]
-        instance["children"]["spriteInstance"] = SPRITE_INSTANCE
-
+    size = 11
+    start = -int(size / 2)
+    r_ch = scene_graph["root"]["children"]
+    tile_spacing = 1
+    for r_i in range(size):
+        y_i = start + r_i
+        for t_i in range(size):
+            x_i = start + t_i
+            color = (200, 0, 0) if ((r_i + t_i) % 2 == 0) else (0, 0, 200)
+            tile = get_model_instance(get_rect_mesh((1,1), (1,1), (color, color)),
+                get_rot_x_m4(deg_to_rad(-90)),
+                get_transl_m4(x_i * tile_spacing, -1, y_i * tile_spacing))
+            r_ch["tile_" + str(x_i) + "_" + str(y_i)] = tile
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
-    camera_m = get_rot_x_m4(deg_to_rad(0))
-    camera_m = mat4_mat4_mul(get_rot_y_m4(0), camera_m)
-    camera_m = mat4_mat4_mul(get_rot_z_m4(0), camera_m)
-    camera_m = mat4_mat4_mul(get_transl_m4(0, -3, -10), camera_m)
-
-    for instance_name in SPRITE_NAMES:
-        instance = scene_graph["groundRoot"]["children"]["groundMesh"]["children"][instance_name]
-        pos = instance["pos"]
-        target = instance["target"]
-        phi = math.atan2(target[1] - pos[1], target[0] - pos[0])
-        d_p = (SPRITE_SPEED * math.cos(phi), SPRITE_SPEED * math.sin(phi))
-        pos[0] += d_p[0]
-        pos[1] += d_p[1]
-        if abs(target[0] - pos[0]) + abs(target[1] - pos[1]) < 0.1:
-            pos[0] = target[0]
-            pos[1] = target[1]
-            target[0] = random.uniform(-4, 4)
-            target[1] = random.uniform(-4, 4)
-        mat = get_rot_y_m4(-phi - math.pi/2)
-        mat = mat4_mat4_mul(get_transl_m4(pos[0], 1.6, pos[1]), mat)
-        instance["xform_m4"] = mat
-
-    animate_sprite(frame)
-
-    cube_m = get_rot_x_m4(0)
-    cube_m = mat4_mat4_mul(get_rot_y_m4(0), cube_m)
-    cube_m = mat4_mat4_mul(get_rot_z_m4(0), cube_m)
-    scene_graph["groundRoot"]["xform_m4"] = cube_m
-
-    render_scene_graph(surface, scene_graph, camera_m, LIGHTING)
+    # CAMERA["rot"][1] = deg_to_rad(frame)
+    radius = 3
+    CAMERA["pos"][0] = radius * math.cos(deg_to_rad(frame))
+    CAMERA["pos"][2] = radius * math.sin(deg_to_rad(frame))
+    render_scene_graph(surface, scene_graph, get_camera_m(CAMERA), LIGHTING)
 
 # MAIN
 
@@ -468,8 +449,8 @@ def main_function():
 
         pygame.display.flip()
         frame += 1
-        if frame % 30 == 0:
-            print(f"{clock.get_fps()} fps")
+        # if frame % 30 == 0:
+        #     print(f"{clock.get_fps()} fps")
 
 if __name__ == '__main__':
     main_function()
