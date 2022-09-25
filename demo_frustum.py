@@ -30,11 +30,11 @@ def mat4_mat4_mul(m4_1, m4_2):
     """Return multiplication of 4x4 matrices
     Unrolled form is faster than loops"""
     result = [0] * 16
-    result[0] += m4_1[0] * m4_2[0]
+    result[0] += m4_1[0] * m4_2[0] # row 1 x column 1
     result[0] += m4_1[1] * m4_2[4]
     result[0] += m4_1[2] * m4_2[8]
     result[0] += m4_1[3] * m4_2[12]
-    result[1] += m4_1[0] * m4_2[1]
+    result[1] += m4_1[0] * m4_2[1] # row 1 x column 2
     result[1] += m4_1[1] * m4_2[5]
     result[1] += m4_1[2] * m4_2[9]
     result[1] += m4_1[3] * m4_2[13]
@@ -283,6 +283,16 @@ def get_model_centering_offset(model):
 
 # SCENE GRAPH RENDERING
 
+def get_camera_m(cam):
+    """Return matrix based on camera dict(rot = [x,y,z],pos = [x,y,z])"""
+    cam_pos = cam["pos"]
+    cam_rot = cam["rot"]
+    camera_m = get_transl_m4(-cam_pos[0], -cam_pos[1], -cam_pos[2])
+    camera_m = mat4_mat4_mul(get_rot_z_m4(-cam_rot[2]), camera_m)
+    camera_m = mat4_mat4_mul(get_rot_y_m4(-cam_rot[1]), camera_m)
+    camera_m = mat4_mat4_mul(get_rot_x_m4(-cam_rot[0]), camera_m)
+    return camera_m
+
 def get_visible_tris(tri_list, world_vec4_list, clip_planes=(-0.5,-100)):
     """Returns ([indices of visible triangles],[normals of all triangles])"""
     idcs = []
@@ -387,16 +397,6 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
 CAMERA = { "pos": [0,0,0], "rot": [0,0,0] }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 SPRITE_SPEED = 0.1
-
-def get_camera_m(cam):
-    """Return matrix based on camera dict(rot,pos)"""
-    cam_pos = cam["pos"]
-    cam_rot = cam["rot"]
-    camera_m = get_transl_m4(-cam_pos[0], -cam_pos[1], -cam_pos[2])
-    camera_m = mat4_mat4_mul(get_rot_z_m4(-cam_rot[2]), camera_m)
-    camera_m = mat4_mat4_mul(get_rot_y_m4(-cam_rot[1]), camera_m)
-    camera_m = mat4_mat4_mul(get_rot_x_m4(-cam_rot[0]), camera_m)
-    return camera_m
 
 def create_scene_graph():
     """Create the main scene graph"""
