@@ -431,11 +431,14 @@ def get_sprite_instance():
 
 SPRITE_INSTANCE = get_sprite_instance()
 
-BOX = get_model_instance(get_cube_mesh((100,100,200)), get_scal_m4(2, 1, 2),
-    children={"sprite" : get_model_instance(None, None,
-        mat4_mat4_mul(get_transl_m4(0, 0.9, 0), get_scal_m4(0.2, 0.2, 0.2)),
-        children={"sprite_inst": SPRITE_INSTANCE})}
-    )
+CUBE_COLOR_1 = (200, 0, 0)
+CUBE_COLOR_2 = (0, 0, 200)
+CUBE_FACES = [
+    ("faceTop",    (0,0,0),  (0,0,0)),
+    # ("faceFront",  (0,0,1),  (deg_to_rad(90),0,0)),
+    # ("faceLeft",   (-1,0,0), (0,0,deg_to_rad(90))),
+    # ("faceRight",  (1,0,0),  (0,0,deg_to_rad(-90))),
+    ]
 
 def animate_sprite(frame):
     """Animate the main sprite instance"""
@@ -443,20 +446,39 @@ def animate_sprite(frame):
         leg = SPRITE_INSTANCE["children"][name]
         leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20
             * math.sin(deg_to_rad((side*180) + (frame*10) % 360))))
+    radius = 1.2
     BOX["children"]["sprite"]["xform_m4"] = mat4_mat4_mul(
-        get_transl_m4(math.cos(deg_to_rad(frame)), 0.9, math.sin(deg_to_rad(frame))),
+        get_transl_m4(radius * math.cos(deg_to_rad(frame)),
+            0.3,
+            radius * math.sin(deg_to_rad(frame))),
         get_scal_m4(0.2, 0.2, 0.2))
+
+BOX = get_model_instance(None)
 
 def create_scene_graph():
     """Create the main scene graph"""
+    BOX["children"]["cube"] = get_model_instance(None)
+    cube = BOX["children"]["cube"]
+    for face_name,face_tran,face_rot in CUBE_FACES:
+        xform_m4 = get_rot_x_m4(face_rot[0])
+        xform_m4 = mat4_mat4_mul(get_rot_y_m4(face_rot[1]), xform_m4)
+        xform_m4 = mat4_mat4_mul(get_rot_z_m4(face_rot[2]), xform_m4)
+        xform_m4 = mat4_mat4_mul(get_transl_m4(*face_tran), xform_m4)
+        cube["children"][face_name] = get_model_instance(
+            get_rect_mesh((3, 3), (15, 15), (CUBE_COLOR_1, CUBE_COLOR_2)),
+            get_rot_x_m4(deg_to_rad(-90)),
+            xform_m4)
+    BOX["children"]["sprite"] = get_model_instance(None,
+        children={"sprite_inst": SPRITE_INSTANCE})
+
     scene_graph = { "root": get_model_instance(None) }
     scene_graph["root"]["children"]["box"] = BOX
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
-    CAMERA["pos"] = [0, 2, 2]
-    CAMERA["rot"] = [deg_to_rad(-30), 0, 0]
+    CAMERA["pos"] = [0, 3, 3]
+    CAMERA["rot"] = [deg_to_rad(-45), 0, 0]
     animate_sprite(frame)
     render_scene_graph(surface, scene_graph, get_camera_m(CAMERA), LIGHTING)
 
