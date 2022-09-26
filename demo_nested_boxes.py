@@ -446,12 +446,13 @@ def animate_sprite(frame):
         leg = SPRITE_INSTANCE["children"][name]
         leg["xform_m4"] = get_rot_x_m4(deg_to_rad(20
             * math.sin(deg_to_rad((side*180) + (frame*10) % 360))))
-    radius = 1.2
+    radius = 1.4
     BOX["children"]["sprite"]["xform_m4"] = mat4_mat4_mul(
         get_transl_m4(radius * math.cos(deg_to_rad(frame)),
             0.3,
             radius * math.sin(deg_to_rad(frame))),
-        get_scal_m4(0.2, 0.2, 0.2))
+        mat4_mat4_mul(get_rot_y_m4(deg_to_rad(-frame)), get_scal_m4(0.2, 0.2, 0.2))
+        )
 
 BOX = get_model_instance(None)
 
@@ -473,6 +474,9 @@ def create_scene_graph():
 
     scene_graph = { "root": get_model_instance(None) }
     scene_graph["root"]["children"]["box"] = BOX
+    scene_graph["root"]["children"]["box_2"] = get_model_instance(None, None,
+        mat4_mat4_mul(get_transl_m4(0, 0.1, 0), get_scal_m4(0.5, 0.5, 0.5)),
+        children={"box": BOX})
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
