@@ -164,6 +164,18 @@ def deg_to_rad(degrees):
 
 DEFAULT_COLOR = (200, 200, 200)
 
+def get_test_triangle_mesh():
+    """triangle to 1,1,0"""
+    return {
+        "verts" : [
+            (0, 0, 0),
+            (1, 0, 0),
+            (1, 1, 0),
+        ],
+        "tris" : [(0, 1, 2)],
+        "colors" : [DEFAULT_COLOR]
+    }
+
 def get_cube_mesh(color=DEFAULT_COLOR):
     """Return a unit cube mesh model dictionary:
     'verts': vertices (float vec3s for point positions in local coordinates)
@@ -305,8 +317,8 @@ def get_visible_tris(tri_list, world_vec4_list, clip_planes=(-0.5,-100)):
         v_0 = world_vec4_list[tri[0]]
         v_1 = world_vec4_list[tri[1]]
         v_2 = world_vec4_list[tri[2]]
-        if ((v_0[2] >= near_clip or v_1[2] >= near_clip or v_2[2] >= near_clip)
-          or (v_0[2] <= far_clip or v_1[2] <= far_clip or v_1[2] <= far_clip)):
+        if ( (v_0[2] >= near_clip or v_1[2] >= near_clip or v_2[2] >= near_clip)
+          or (v_0[2] <= far_clip  or v_1[2] <= far_clip  or v_2[2] <= far_clip)):
             normals.append((0,0,0))
             continue
         # normal = cross_product(v_1 - v_0, v_2 - v_0)
@@ -351,12 +363,13 @@ def render_scene_graph(surface, scene_graph, camera_m, lighting):
         use_dyn_light = not "precompColors" in instance
         model_colors = model["colors"]
 
+        view_plane = 1
         for idx in idcs:
             tri = model_tris[idx]
             points = []
             for i in range(3):
                 v_3 = world_verts[tri[i]]
-                v_2 = (v_3[0] / -v_3[2], v_3[1] / -v_3[2]) # perspective divide
+                v_2 = (view_plane * v_3[0] / -v_3[2], view_plane * v_3[1] / -v_3[2]) # perspective divide
                 scr_x = SCR_ORIGIN_X + v_2[0] * SCR_ORIGIN_X
                 scr_y = SCR_ORIGIN_Y - v_2[1] * SCR_ORIGIN_Y * SCR_ASPECT_RATIO
                 points.append((int(scr_x), int(scr_y)))
@@ -401,27 +414,32 @@ SPRITE_SPEED = 0.1
 def create_scene_graph():
     """Create the main scene graph"""
     scene_graph = { "root": get_model_instance(None) }
-    size = 11
-    start = -int(size / 2)
-    r_ch = scene_graph["root"]["children"]
-    tile_spacing = 1
-    for r_i in range(size):
-        y_i = start + r_i
-        for t_i in range(size):
-            x_i = start + t_i
-            color = (200, 0, 0) if ((r_i + t_i) % 2 == 0) else (0, 0, 200)
-            tile = get_model_instance(get_rect_mesh((1,1), (1,1), (color, color)),
-                get_rot_x_m4(deg_to_rad(-90)),
-                get_transl_m4(x_i * tile_spacing, -1, y_i * tile_spacing))
-            r_ch["tile_" + str(x_i) + "_" + str(y_i)] = tile
+    scene_graph["root"]["children"]["tri"] = get_model_instance(get_test_triangle_mesh())
+    # size = 11
+    # start = -int(size / 2)
+    # r_ch = scene_graph["root"]["children"]
+    # tile_spacing = 1
+    # for r_i in range(size):
+    #     y_i = start + r_i
+    #     for t_i in range(size):
+    #         x_i = start + t_i
+    #         color = (200, 0, 0) if ((r_i + t_i) % 2 == 0) else (0, 0, 200)
+    #         tile = get_model_instance(get_rect_mesh((1,1), (1,1), (color, color)),
+    #             get_rot_x_m4(deg_to_rad(-90)),
+    #             get_transl_m4(x_i * tile_spacing, -1, y_i * tile_spacing))
+    #         r_ch["tile_" + str(x_i) + "_" + str(y_i)] = tile
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
-    # CAMERA["rot"][1] = deg_to_rad(frame)
-    radius = 3
-    CAMERA["pos"][0] = radius * math.cos(deg_to_rad(frame))
-    CAMERA["pos"][2] = radius * math.sin(deg_to_rad(frame))
+    # radius = 3
+    # CAMERA["pos"][0] = radius * math.cos(deg_to_rad(frame))
+    # CAMERA["pos"][2] = radius * math.sin(deg_to_rad(frame))
+    CAMERA["pos"][0] = 0
+    CAMERA["pos"][1] = 0
+    CAMERA["pos"][2] = 1 + 0.2 * math.sin(deg_to_rad(frame))
+    print(CAMERA["pos"][2])
+    CAMERA["rot"][0] = deg_to_rad(0)
     render_scene_graph(surface, scene_graph, get_camera_m(CAMERA), LIGHTING)
 
 # MAIN
