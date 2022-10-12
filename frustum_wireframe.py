@@ -1,4 +1,6 @@
+from lib2to3 import pygram
 import pygame, math, sys
+import pygame.gfxdraw
 
 NEAR_CLIP_PLANE = -0.5
 
@@ -237,6 +239,9 @@ if __name__ == '__main__':
 
         FOV = 90 + 60 * math.sin(degToRad(frame))
         screen.blit(font.render(f"FOV: {float(int(FOV*10))/10}", True, RGB_WHITE), (30, 20))
+
+        pygame.draw.circle(screen, (100,100,100), (745,55), 50)
+        pygame.gfxdraw.pie(screen, 745, 55, 50, -int(FOV/2), int(FOV/2), RGB_WHITE)
 
         angle = degToRad(frame)
         rot = (degToRad(20), angle, 0)
