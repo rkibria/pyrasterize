@@ -62,7 +62,7 @@ def draw_scene_graph(surface, frame, scene_graph):
     CAMERA["pos"][2] = 1 + 0.2 * math.sin(vecmat.deg_to_rad(frame))
     print(CAMERA["pos"][2])
     CAMERA["rot"][0] = vecmat.deg_to_rad(0)
-    rasterizer.render_scene_graph(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), LIGHTING)
+    rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), LIGHTING)
 
 # MAIN
 

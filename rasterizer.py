@@ -48,7 +48,7 @@ def get_visible_tris(tri_list, world_vec4_list, clip_planes=(-0.5,-100)):
             idcs.append(i)
     return (idcs, normals)
 
-def render_scene_graph(surface, screen_area, scene_graph, camera_m, lighting):
+def render(surface, screen_area, scene_graph, camera_m, lighting):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
