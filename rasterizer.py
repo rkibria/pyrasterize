@@ -101,7 +101,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
         view_verts = list(map(project_to_view, model["verts"]))
 
-        draw_as_wireframe = True # ("wireframe" in instance) and instance["wireframe"]
+        draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
         no_culling = ("noCulling" in instance) and instance["noCulling"]
         model_colors = model["colors"]
         model_tris = model["tris"]

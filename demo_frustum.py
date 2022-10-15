@@ -34,7 +34,7 @@ def create_scene_graph():
     """Create the main scene graph"""
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
-    scene_graph["root"]["children"]["cube"]["wireframe"] = True
+    # scene_graph["root"]["children"]["cube"]["wireframe"] = True
     # scene_graph["root"]["children"]["cube"]["noCulling"] = True
     return scene_graph
 
