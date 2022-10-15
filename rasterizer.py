@@ -26,7 +26,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     """
     scr_origin_x = screen_area[0] + screen_area[2] / 2
     scr_origin_y = screen_area[1] + screen_area[3] / 2
-    scr_aspect_ratio = screen_area[2] / screen_area[3]
 
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
@@ -41,15 +40,17 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     scene_triangles = []
 
     def project_to_screen(view_v):
-        z = -view_v[2]
-        if z == 0:
+        minus_z = -view_v[2]
+        if minus_z == 0:
             return None
         else:
-            sv = vecmat.vec4_mat4_mul(view_v, persp_m)
-            return [sv[0]/z, sv[1]/z]
+            screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
+            return [screen_v[0]/minus_z, screen_v[1]/minus_z]
 
     def get_visible_instance_tris(tris, view_verts, no_culling, clip_planes=(-0.5,-100)):
-        """Returns ([indices of visible triangles],[normals of all tris],[screen verts of visible tris])"""
+        """Returns ([indices of visible triangles],
+            [normals of all tris],
+            [screen verts of visible tris])"""
         idcs = []
         normals = []
         screen_verts = list(map(project_to_screen, view_verts))
@@ -106,14 +107,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         model_tris = model["tris"]
 
         idcs,normals,screen_verts = get_visible_instance_tris(model_tris, view_verts, no_culling)
+        screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x),
+            int(scr_origin_y - v_2[1] * scr_origin_y)) for v_2 in screen_verts]
+
         for idx in idcs:
             tri = model_tris[idx]
-            points = []
-            for i in range(3):
-                v_2 = screen_verts[tri[i]]
-                scr_x = scr_origin_x + v_2[0] * scr_origin_x
-                scr_y = scr_origin_y - v_2[1] * scr_origin_y
-                points.append((int(scr_x), int(scr_y)))
+            points = [screen_verts[tri[i]] for i in range(3)]
             if not draw_as_wireframe:
                 normal = vecmat.norm_vec3(normals[idx])
                 color = model_colors[idx]
