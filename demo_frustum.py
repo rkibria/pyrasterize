@@ -4,6 +4,7 @@ Filled polygons with simple lighting rasterizer demo using pygame
 
 import math
 import pygame
+import pygame.gfxdraw
 
 import vecmat
 import rasterizer
@@ -86,7 +87,10 @@ def main_function():
 
         draw_scene_graph(screen, frame, scene_graph)
 
-        screen.blit(font.render(f"FOV: {float(int(CAMERA['fov'] * 10))/10}", True, RGB_WHITE), (30, 20))
+        screen.blit(font.render(f"FOV: {float(int(CAMERA['fov'] * 10))/10}",
+            True, RGB_WHITE), (30, 20))
+        pygame.draw.circle(screen, (100,100,100), (745,55), 50)
+        pygame.gfxdraw.pie(screen, 745, 55, 50, -int(CAMERA['fov']/2), int(CAMERA['fov']/2), RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
