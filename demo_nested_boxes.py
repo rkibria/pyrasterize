@@ -55,11 +55,13 @@ def get_sprite_instance():
     arm_w = 0.2
     arm_len = 0.9
     children["leftArm"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
-    children["leftArm"]["xform_m4"] = vecmat.get_transl_m4(-body_width/2-arm_w/2, 0, 0)
-    children["leftArm"]["preproc_m4"] = vecmat.get_scal_m4(arm_w, arm_len, arm_w)
+    children["leftArm"]["preproc_m4"] = vecmat.mat4_mat4_mul(
+        vecmat.get_transl_m4(-body_width/2-arm_w/2, 0, 0),
+        vecmat.get_scal_m4(arm_w, arm_len, arm_w))
     children["rightArm"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
-    children["rightArm"]["xform_m4"] = vecmat.get_transl_m4(body_width/2+arm_w/2, 0, 0)
-    children["rightArm"]["preproc_m4"] = vecmat.get_scal_m4(arm_w, arm_len, arm_w)
+    children["rightArm"]["preproc_m4"] = vecmat.mat4_mat4_mul(
+        vecmat.get_transl_m4(body_width/2+arm_w/2, 0, 0),
+        vecmat.get_scal_m4(arm_w, arm_len, arm_w))
     return instance
 
 SPRITE_INSTANCE = get_sprite_instance()
@@ -70,6 +72,13 @@ def animate_sprite(frame):
         leg = SPRITE_INSTANCE["children"][name]
         leg["xform_m4"] = vecmat.get_rot_x_m4(vecmat.deg_to_rad(20
             * math.sin(vecmat.deg_to_rad((side*180) + (frame*10) % 360))))
+    for name,side in [("leftArm", 1), ("rightArm", 0)]:
+        arm = SPRITE_INSTANCE["children"][name]
+        arm_rot = 10 * math.sin(vecmat.deg_to_rad((side*180) + (frame*10) % 360))
+        m_arm = vecmat.get_transl_m4(0, -0.45, 0)
+        m_arm = vecmat.mat4_mat4_mul(vecmat.get_rot_x_m4(vecmat.deg_to_rad(arm_rot)), m_arm)
+        m_arm = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.45, 0), m_arm)
+        arm["xform_m4"] = m_arm
     radius = 1.4
     BOX["children"]["sprite"]["xform_m4"] = vecmat.mat4_mat4_mul(
         vecmat.get_transl_m4(radius * math.cos(vecmat.deg_to_rad(frame)),
