@@ -8,17 +8,19 @@
 import pygame
 import vecmat
 
-def get_model_instance(model, preproc_m4=None, xform_m4=None):
+def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary"""
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
     if xform_m4 is None:
         xform_m4 = vecmat.get_unit_m4()
+    if children is None:
+        children = {}
     return { "model": model,
         "preproc_m4": preproc_m4,
         "xform_m4": xform_m4,
-        "children": {} }
+        "children": children }
 
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     """Render the scene graph
