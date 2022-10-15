@@ -52,10 +52,10 @@ def draw_scene_graph(surface, frame, scene_graph):
     cube_m = vecmat.get_rot_x_m4(angle)
     cube_m = vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(angle * 0.6), cube_m)
     cube_m = vecmat.mat4_mat4_mul(vecmat.get_rot_z_m4(angle * 0.4), cube_m)
-    cube_m = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(2 * math.sin(angle*2), 0, 0), cube_m)
+    # cube_m = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(1 * math.sin(angle*2), 0, 0), cube_m)
     scene_graph["root"]["children"]["cube"]["xform_m4"] = cube_m
 
-    # CAMERA["fov"] = 90 + 60 * math.sin(vecmat.deg_to_rad(frame))
+    CAMERA["fov"] = 90 + 30 * math.sin(vecmat.deg_to_rad(frame))
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
 
