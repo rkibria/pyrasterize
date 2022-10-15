@@ -148,3 +148,14 @@ def get_rot_z_m4(phi):
 def deg_to_rad(degrees):
     """Return degrees converted to radians"""
     return degrees * (math.pi / 180)
+
+def get_persp_m4(d, ar):
+    """Return perspective transformation matrix"""
+    return [d,    0.0,   0.0,  0.0,
+            0.0,  d*ar,  0.0,  0.0,
+            0.0,  0.0,   1.0,  0.0,
+            0.0,  0.0,   1.0,  0.0]
+
+def get_view_plane_from_fov(fov):
+    """Return view plane distance"""
+    return 1 / math.tan(deg_to_rad(fov / 2))

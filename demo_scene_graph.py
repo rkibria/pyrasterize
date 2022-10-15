@@ -132,7 +132,9 @@ def draw_scene_graph(surface, frame, scene_graph):
 
     scene_graph["fishRoot"]["xform_m4"] = vecmat.get_rot_y_m4(-angle)
 
-    rasterizer.render(surface, SCR_AREA, scene_graph, camera_m, LIGHTING)
+    persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(90), SCR_WIDTH/SCR_HEIGHT)
+
+    rasterizer.render(surface, SCR_AREA, scene_graph, camera_m, persp_m, LIGHTING)
 
 # MAIN
 

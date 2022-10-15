@@ -27,29 +27,15 @@ def get_camera_m(cam):
     camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_x_m4(-cam_rot[0]), camera_m)
     return camera_m
 
-# DEMO CODE
-
-CAMERA = { "pos": [0,0,0], "rot": [0,0,0] }
+CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
-SPRITE_SPEED = 0.1
 
 def create_scene_graph():
     """Create the main scene graph"""
     scene_graph = { "root": rasterizer.get_model_instance(None) }
-    scene_graph["root"]["children"]["tri"] = rasterizer.get_model_instance(meshes.get_test_triangle_mesh())
-    # size = 11
-    # start = -int(size / 2)
-    # r_ch = scene_graph["root"]["children"]
-    # tile_spacing = 1
-    # for r_i in range(size):
-    #     y_i = start + r_i
-    #     for t_i in range(size):
-    #         x_i = start + t_i
-    #         color = (200, 0, 0) if ((r_i + t_i) % 2 == 0) else (0, 0, 200)
-    #         tile = get_model_instance(get_rect_mesh((1,1), (1,1), (color, color)),
-    #             get_rot_x_m4(deg_to_rad(-90)),
-    #             get_transl_m4(x_i * tile_spacing, -1, y_i * tile_spacing))
-    #         r_ch["tile_" + str(x_i) + "_" + str(y_i)] = tile
+    scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
+    scene_graph["root"]["children"]["cube"]["wireframe"] = True
+    # scene_graph["root"]["children"]["cube"]["noCulling"] = True
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
@@ -59,10 +45,21 @@ def draw_scene_graph(surface, frame, scene_graph):
     # CAMERA["pos"][2] = radius * math.sin(deg_to_rad(frame))
     CAMERA["pos"][0] = 0
     CAMERA["pos"][1] = 0
-    CAMERA["pos"][2] = 1 + 0.2 * math.sin(vecmat.deg_to_rad(frame))
-    print(CAMERA["pos"][2])
+    CAMERA["pos"][2] = 2
     CAMERA["rot"][0] = vecmat.deg_to_rad(0)
-    rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), LIGHTING)
+
+    angle = 0.4 * vecmat.deg_to_rad(frame)
+    cube_m = vecmat.get_rot_x_m4(angle)
+    cube_m = vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(angle * 0.6), cube_m)
+    cube_m = vecmat.mat4_mat4_mul(vecmat.get_rot_z_m4(angle * 0.4), cube_m)
+    cube_m = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(2 * math.sin(angle*2), 0, 0), cube_m)
+    scene_graph["root"]["children"]["cube"]["xform_m4"] = cube_m
+
+    # CAMERA["fov"] = 90 + 60 * math.sin(vecmat.deg_to_rad(frame))
+
+    persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
+
+    rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
 
 # MAIN
 
@@ -76,6 +73,8 @@ def main_function():
 
     scene_graph = create_scene_graph()
 
+    font = pygame.font.Font(None, 30)
+
     frame = 0
     done = False
     while not done:
@@ -86,6 +85,8 @@ def main_function():
         screen.fill(RGB_BLACK)
 
         draw_scene_graph(screen, frame, scene_graph)
+
+        screen.blit(font.render(f"FOV: {float(int(CAMERA['fov'] * 10))/10}", True, RGB_WHITE), (30, 20))
 
         pygame.display.flip()
         frame += 1
