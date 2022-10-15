@@ -41,7 +41,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     scene_triangles = []
 
     def project_to_screen(view_v):
-        z = view_v[2]
+        z = -view_v[2]
         if z == 0:
             return None
         else:
