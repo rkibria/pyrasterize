@@ -4,6 +4,7 @@ Filled polygons with simple lighting rasterizer demo using pygame
 
 import math
 import pygame
+import pygame.gfxdraw
 
 import vecmat
 import rasterizer
@@ -111,8 +112,9 @@ def create_scene_graph():
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
-    CAMERA["pos"] = [0, 1 + 2 * abs(math.sin(vecmat.deg_to_rad(frame))), 2]
-    CAMERA["rot"] = [vecmat.deg_to_rad(-60 + 20 * abs(math.cos(vecmat.deg_to_rad(frame)))), 0, 0]
+    i = 200
+    CAMERA["pos"] = [0, 1 + 2 * abs(math.sin(vecmat.deg_to_rad(i))), 2]
+    CAMERA["rot"] = [vecmat.deg_to_rad(-60 + 20 * abs(math.cos(vecmat.deg_to_rad(i)))), 0, 0]
     animate_sprite(frame)
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
@@ -128,6 +130,7 @@ def main_function():
     clock = pygame.time.Clock()
 
     scene_graph = create_scene_graph()
+    font = pygame.font.Font(None, 30)
 
     frame = 0
     done = False
@@ -139,6 +142,11 @@ def main_function():
         screen.fill(RGB_BLACK)
 
         draw_scene_graph(screen, frame, scene_graph)
+
+        screen.blit(font.render(f"FOV: {float(int(CAMERA['fov'] * 10))/10}",
+            True, RGB_WHITE), (30, 20))
+        pygame.draw.circle(screen, (100,100,100), (745,55), 50)
+        pygame.gfxdraw.pie(screen, 745, 55, 50, -int(CAMERA['fov']/2), int(CAMERA['fov']/2), RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
