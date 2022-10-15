@@ -84,35 +84,24 @@ def create_scene_graph():
     """Create the main scene graph"""
     BOX["children"]["cube"] = rasterizer.get_model_instance(None)
     cube = BOX["children"]["cube"]
-
     cube["children"]["face_top"] = rasterizer.get_model_instance(meshes.get_rect_mesh((3, 3), (15, 15),
         ((100, 100, 200), (90, 90, 150))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
-    cube["children"]["face_front"] = rasterizer.get_model_instance(meshes.get_rect_mesh((3, 0.25), (15, 2),
-        ((160,50,50), (90, 90, 150))),
-        None,
-        vecmat.get_transl_m4(0, -0.125, 1.5))
-    cube["children"]["face_back"] = rasterizer.get_model_instance(meshes.get_rect_mesh((3, 0.25), (15, 2),
-        ((160,50,50), (90, 90, 150))),
-        vecmat.get_rot_y_m4(vecmat.deg_to_rad(180)),
-        vecmat.get_transl_m4(0, -0.125, -1.5))
-    cube["children"]["face_left"] = rasterizer.get_model_instance(meshes.get_rect_mesh((3, 0.25), (15, 2),
-        ((160,50,50), (90, 90, 150))),
-        vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90)),
-        vecmat.get_transl_m4(-1.5, -0.125, 0))
-
+    side_mesh = meshes.get_rect_mesh((3, 0.25), (15, 2),
+        ((160,50,50), (90, 90, 150)))
+    for i in range(4):
+        cube["children"][f"face_front_{i}"] = rasterizer.get_model_instance(side_mesh,
+            vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(i * 90)), vecmat.get_transl_m4(0, -0.125, 1.5)),
+            None)
     BOX["children"]["sprite"] = rasterizer.get_model_instance(None, children={"sprite_inst": SPRITE_INSTANCE})
-
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     scene_graph["root"]["children"]["box"] = BOX
-
     inst = scene_graph["root"]
     for _ in range(4):
         inst["children"]["box_ref"] = rasterizer.get_model_instance(None, None,
             vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.5, 0), vecmat.get_scal_m4(0.5, 0.5, 0.5)),
             children={"box": BOX})
         inst = inst["children"]["box_ref"]
-
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
