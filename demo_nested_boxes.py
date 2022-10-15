@@ -93,10 +93,10 @@ def create_scene_graph():
     """Create the main scene graph"""
     BOX["children"]["cube"] = rasterizer.get_model_instance(None)
     cube = BOX["children"]["cube"]
-    cube["children"]["face_top"] = rasterizer.get_model_instance(meshes.get_rect_mesh((3, 3), (15, 15),
+    cube["children"]["face_top"] = rasterizer.get_model_instance(meshes.get_rect_mesh((3, 3), (8, 8),
         ((100, 100, 200), (90, 90, 150))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
-    side_mesh = meshes.get_rect_mesh((3, 0.25), (15, 2),
+    side_mesh = meshes.get_rect_mesh((3, 0.25), (6, 2),
         ((160,50,50), (90, 90, 150)))
     for i in range(4):
         cube["children"][f"face_front_{i}"] = rasterizer.get_model_instance(side_mesh,
@@ -106,7 +106,7 @@ def create_scene_graph():
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     scene_graph["root"]["children"]["box"] = BOX
     inst = scene_graph["root"]
-    for _ in range(4):
+    for _ in range(8):
         inst["children"]["box_ref"] = rasterizer.get_model_instance(None, None,
             vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.5, 0), vecmat.get_scal_m4(0.5, 0.5, 0.5)),
             children={"box": BOX})
@@ -115,14 +115,15 @@ def create_scene_graph():
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw the scene graph"""
-    i = 200
-    CAMERA["pos"] = [0, 1 + 2 * abs(math.sin(vecmat.deg_to_rad(i))), 2]
-    CAMERA["rot"] = [vecmat.deg_to_rad(-60 + 20 * abs(math.cos(vecmat.deg_to_rad(i)))), 0, 0]
+    CAMERA["pos"] = [0, 1.8, 2]
+    CAMERA["rot"] = [vecmat.deg_to_rad(-25), 0, 0]
     #
     animate_sprite(frame)
     #
-    scene_graph["root"]["xform_m4"] = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame))
+    scene_graph["root"]["xform_m4"] = vecmat.get_rot_y_m4(vecmat.deg_to_rad(25 + frame * 0.5))
     #
+    CAMERA["fov"] = 60 + 50 * -math.cos(vecmat.deg_to_rad(frame))
+
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
 
@@ -150,8 +151,10 @@ def main_function():
 
         draw_scene_graph(screen, frame, scene_graph)
 
-        screen.blit(font.render(f"FOV: {float(int(CAMERA['fov'] * 10))/10}",
-            True, RGB_WHITE), (30, 20))
+        if frame % 10 == 0:
+            legend = font.render(f"FOV: {int(CAMERA['fov'])}°", True, RGB_WHITE)
+        screen.blit(legend, (30, 20))
+
         pygame.draw.circle(screen, (100,100,100), (745,55), 50)
         pygame.gfxdraw.pie(screen, 745, 55, 50, -int(CAMERA['fov']/2), int(CAMERA['fov']/2), RGB_WHITE)
 
