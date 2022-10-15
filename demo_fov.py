@@ -54,13 +54,14 @@ def get_sprite_instance():
     #
     arm_w = 0.2
     arm_len = 0.9
+    arm_d = 1.6
     children["leftArm"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
     children["leftArm"]["preproc_m4"] = vecmat.mat4_mat4_mul(
-        vecmat.get_transl_m4(-body_width/2-arm_w/2 * 2.2, 0, 0),
+        vecmat.get_transl_m4(-body_width/2-arm_w/2 * arm_d, 0, 0),
         vecmat.get_scal_m4(arm_w, arm_len, arm_w))
     children["rightArm"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
     children["rightArm"]["preproc_m4"] = vecmat.mat4_mat4_mul(
-        vecmat.get_transl_m4(body_width/2+arm_w/2 * 2.2, 0, 0),
+        vecmat.get_transl_m4(body_width/2+arm_w/2 * arm_d, 0, 0),
         vecmat.get_scal_m4(arm_w, arm_len, arm_w))
     return instance
 
