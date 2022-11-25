@@ -5,11 +5,10 @@ Filled polygons with simple lighting rasterizer demo using pygame
 import math
 import pygame
 import pygame.gfxdraw
-from demo_instances import deg_to_rad
 
-import vecmat
-import rasterizer
-import meshes
+import pyrasterize.vecmat as vecmat
+import pyrasterize.rasterizer as rasterizer
+import pyrasterize.meshes as meshes
 
 # CONSTANTS
 

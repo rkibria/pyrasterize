@@ -6,10 +6,10 @@ import math
 import pygame
 import random
 
-import vecmat
-import rasterizer
-import meshes
-import model_file_io
+import pyrasterize.vecmat as vecmat
+import pyrasterize.rasterizer as rasterizer
+import pyrasterize.meshes as meshes
+import pyrasterize.model_file_io as model_file_io
 
 # CONSTANTS
 
