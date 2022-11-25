@@ -6,7 +6,7 @@
 """
 
 import pygame
-import vecmat
+import pyrasterize.vecmat as vecmat
 
 def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
