@@ -12,7 +12,7 @@ def norm_vec3(v_3):
     mag = v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]
     if mag == 0:
         return [0, 0, 0]
-    mag = 1.0 / math.sqrt(mag)
+    mag = mag ** -0.5 # 1.0 / math.sqrt(mag)
     return [v_3[0] * mag, v_3[1] * mag, v_3[2] * mag]
 
 def mat4_mat4_mul(m4_1, m4_2):
