@@ -46,12 +46,12 @@ def create_scene_graph():
         xform_m4=vecmat.get_transl_m4(1,0,0))
     scene_graph["root"]["children"]["cube_2"]["bound_sph_r"] = 1
 
-    scene_graph["root"]["children"]["select_cube"] = rasterizer.get_model_instance(
+    scene_graph["root"]["children"]["selected_mesh"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(RGB_GREEN),
         xform_m4=vecmat.get_transl_m4(0,0,0))
-    scene_graph["root"]["children"]["select_cube"]["enabled"] = False
-    scene_graph["root"]["children"]["select_cube"]["wireframe"] = True
-    scene_graph["root"]["children"]["select_cube"]["noCulling"] = True
+    scene_graph["root"]["children"]["selected_mesh"]["enabled"] = False
+    scene_graph["root"]["children"]["selected_mesh"]["wireframe"] = True
+    scene_graph["root"]["children"]["selected_mesh"]["noCulling"] = True
 
     return scene_graph
 
@@ -66,13 +66,13 @@ def draw_scene_graph(surface, frame, scene_graph):
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
     selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph, get_camera_m(CAMERA))
-    select_cube = scene_graph["root"]["children"]["select_cube"]
+    selected_mesh = scene_graph["root"]["children"]["selected_mesh"]
     if selection:
-        select_cube["enabled"] = True
-        select_cube["preproc_m4"] = selection["preproc_m4"]
-        select_cube["xform_m4"] = selection["xform_m4"]
+        selected_mesh["enabled"] = True
+        selected_mesh["preproc_m4"] = selection["preproc_m4"]
+        selected_mesh["xform_m4"] = selection["xform_m4"]
     else:
-        select_cube["enabled"] = False
+        selected_mesh["enabled"] = False
 
 def main_function():
     """Main"""
