@@ -159,3 +159,26 @@ def get_persp_m4(d, ar):
 def get_view_plane_from_fov(fov):
     """Return view plane distance"""
     return 1 / math.tan(deg_to_rad(fov / 2))
+
+def ray_sphere_intersect(r_orig3, r_dir3, sph_orig3, sph_r, t_min=0.001, t_max=10**6):
+    """Return ray direction multi t if ray intersects sphere or None"""
+    oc = [r_orig3[0] - sph_orig3[0], r_orig3[1] - sph_orig3[1], r_orig3[2] - sph_orig3[2]]
+    a = r_dir3[0] * r_dir3[0] + r_dir3[1] * r_dir3[1] + r_dir3[2] * r_dir3[2]
+    b = oc[0] * r_dir3[0] + oc[1] * r_dir3[1] + oc[2] * r_dir3[2]
+    c = oc[0] * oc[0] + oc[1] * oc[1] + oc[2] * oc[2] - sph_r * sph_r
+    discriminant = b * b - a * c
+    if discriminant > 0:
+        sqrt_discriminant = discriminant ** 0.5
+        temp_1 = (-b - sqrt_discriminant) / a
+        if temp_1 < t_max and temp_1 > t_min:
+            return temp_1
+        temp_2 = (-b + sqrt_discriminant) / a
+        if temp_2 < t_max and temp_2 > t_min:
+            return temp_2
+    return None
+
+def mouse_pos_to_ray(pos, scr_size):
+    """Get ray vec3 into scene from mouse position"""
+    ndc_x = 2 * pos[0] / scr_size[0] - 1
+    ndc_y = 1 - (2 * pos[1]) / scr_size[1]
+    return norm_vec3([ndc_x, ndc_y, -1])
