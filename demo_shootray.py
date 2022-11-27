@@ -38,9 +38,13 @@ def create_scene_graph():
     scene_graph["root"]["children"]["cube_1"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(),
         xform_m4=vecmat.get_transl_m4(-1,0,0))
+    scene_graph["root"]["children"]["cube_1"]["bound_sph_r"] = 1
+
     scene_graph["root"]["children"]["cube_2"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(),
         xform_m4=vecmat.get_transl_m4(1,0,0))
+    scene_graph["root"]["children"]["cube_2"]["bound_sph_r"] = 1
+
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
@@ -50,6 +54,10 @@ def draw_scene_graph(surface, frame, scene_graph):
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
 
 # MAIN
+
+def on_left_down(pos, scene_graph):
+    """Handle left button down"""
+    selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph, get_camera_m(CAMERA))
 
 def main_function():
     """Main"""
@@ -72,7 +80,7 @@ def main_function():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                print(pygame.mouse.get_pos())
+                on_left_down(pygame.mouse.get_pos(), scene_graph)
 
         screen.fill(RGB_BLACK)
 

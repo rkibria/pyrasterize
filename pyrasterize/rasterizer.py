@@ -6,7 +6,8 @@
 """
 
 import pygame
-import pyrasterize.vecmat as vecmat
+
+from . import vecmat
 
 def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
@@ -148,3 +149,31 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             pygame.draw.polygon(surface, color, points)
         else:
             pygame.draw.lines(surface, color, True, points)
+
+def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
+    """"""
+    selected = []
+    r_orig = [0, 0, 0]
+    # TODO handle non standard screen region
+    r_dir = vecmat.mouse_pos_to_ray(mouse_pos, [screen_area[2], screen_area[3]])
+
+    def check_if_selected(instance, model_m):
+        if "bound_sph_r" not in instance:
+            return
+        # TODO handle off center bounding spheres
+        model_pos = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)[:3]
+        print("checking pos ", model_pos)
+
+    def traverse_scene_graph(subgraph, parent_m):
+        for _,instance in subgraph.items():
+            proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
+            proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
+            proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
+
+            check_if_selected(instance, proj_m)
+
+            pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
+            if instance["children"]:
+                traverse_scene_graph(instance["children"], pass_m)
+    traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
+    return selected
