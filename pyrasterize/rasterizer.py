@@ -150,7 +150,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                     traverse_scene_graph(instance["children"], pass_m)
 
     traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
-    scene_triangles.sort(key=lambda x: x[0], reverse=False)
+    # Wireframe lines are always drawn last
+    scene_triangles.sort(key=lambda x: (1 if x[3] else 0, x[0]), reverse=False)
     for _,points,color,draw_as_wireframe in scene_triangles:
         if not draw_as_wireframe:
             pygame.draw.polygon(surface, color, points)

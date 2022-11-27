@@ -35,20 +35,20 @@ LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 def create_scene_graph():
     """Create the main scene graph"""
+    cube_bound_sph_r = 0.7
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     scene_graph["root"]["children"]["cube_1"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(),
         xform_m4=vecmat.get_transl_m4(-1,0,0))
-    scene_graph["root"]["children"]["cube_1"]["bound_sph_r"] = 1
+    scene_graph["root"]["children"]["cube_1"]["bound_sph_r"] = cube_bound_sph_r
 
     scene_graph["root"]["children"]["cube_2"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(),
         xform_m4=vecmat.get_transl_m4(1,0,0))
-    scene_graph["root"]["children"]["cube_2"]["bound_sph_r"] = 1
+    scene_graph["root"]["children"]["cube_2"]["bound_sph_r"] = cube_bound_sph_r
 
     scene_graph["root"]["children"]["selected_mesh"] = rasterizer.get_model_instance(
-        meshes.get_cube_mesh(RGB_GREEN),
-        xform_m4=vecmat.get_transl_m4(0,0,0))
+        meshes.get_cube_mesh(RGB_GREEN))
     scene_graph["root"]["children"]["selected_mesh"]["enabled"] = False
     scene_graph["root"]["children"]["selected_mesh"]["wireframe"] = True
     scene_graph["root"]["children"]["selected_mesh"]["noCulling"] = True
