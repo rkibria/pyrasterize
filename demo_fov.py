@@ -6,9 +6,9 @@ import math
 import pygame
 import pygame.gfxdraw
 
-import pyrasterize.vecmat as vecmat
-import pyrasterize.rasterizer as rasterizer
-import pyrasterize.meshes as meshes
+from pyrasterize import vecmat
+from pyrasterize import rasterizer
+from pyrasterize import meshes
 
 # CONSTANTS
 
@@ -84,7 +84,8 @@ def animate_sprite(frame):
         vecmat.get_transl_m4(radius * math.cos(vecmat.deg_to_rad(frame)),
             0.3,
             radius * math.sin(vecmat.deg_to_rad(frame))),
-        vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(-frame)), vecmat.get_scal_m4(0.2, 0.2, 0.2))
+        vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(-frame)),
+            vecmat.get_scal_m4(0.2, 0.2, 0.2))
         )
 
 BOX = rasterizer.get_model_instance(None)
@@ -93,22 +94,26 @@ def create_scene_graph():
     """Create the main scene graph"""
     BOX["children"]["cube"] = rasterizer.get_model_instance(None)
     cube = BOX["children"]["cube"]
-    cube["children"]["face_top"] = rasterizer.get_model_instance(meshes.get_rect_mesh((3, 3), (8, 8),
+    cube["children"]["face_top"] = rasterizer.get_model_instance(meshes.get_rect_mesh(
+        (3, 3), (8, 8),
         ((100, 100, 200), (90, 90, 150))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
     side_mesh = meshes.get_rect_mesh((3, 0.25), (6, 2),
         ((160,50,50), (90, 90, 150)))
     for i in range(4):
         cube["children"][f"face_front_{i}"] = rasterizer.get_model_instance(side_mesh,
-            vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(i * 90)), vecmat.get_transl_m4(0, -0.125, 1.5)),
+            vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(i * 90)),
+                vecmat.get_transl_m4(0, -0.125, 1.5)),
             None)
-    BOX["children"]["sprite"] = rasterizer.get_model_instance(None, children={"sprite_inst": SPRITE_INSTANCE})
+    BOX["children"]["sprite"] = rasterizer.get_model_instance(None,
+        children={"sprite_inst": SPRITE_INSTANCE})
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     scene_graph["root"]["children"]["box"] = BOX
     inst = scene_graph["root"]
     for _ in range(8):
         inst["children"]["box_ref"] = rasterizer.get_model_instance(None, None,
-            vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.5, 0), vecmat.get_scal_m4(0.5, 0.5, 0.5)),
+            vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.5, 0),
+                vecmat.get_scal_m4(0.5, 0.5, 0.5)),
             children={"box": BOX})
         inst = inst["children"]["box_ref"]
     return scene_graph
@@ -156,7 +161,8 @@ def main_function():
         screen.blit(legend, (30, 20))
 
         pygame.draw.circle(screen, (100,100,100), (745,55), 50)
-        pygame.gfxdraw.pie(screen, 745, 55, 50, -int(CAMERA['fov']/2), int(CAMERA['fov']/2), RGB_WHITE)
+        pygame.gfxdraw.pie(screen, 745, 55, 50,
+            -int(CAMERA['fov']/2), int(CAMERA['fov']/2), RGB_WHITE)
 
         pygame.display.flip()
         frame += 1
