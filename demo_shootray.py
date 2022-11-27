@@ -34,34 +34,35 @@ def get_camera_m(cam):
 
 CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+NUM_CUBES = 8
+CUR_SELECTED = None
 
 def create_scene_graph():
     """Create the main scene graph"""
     cube_bound_sph_r = 0.9
     scene_graph = { "root": rasterizer.get_model_instance(None) }
-    n_cubes = 6
-    for i in range(n_cubes):
+    for i in range(NUM_CUBES):
         name = "cube_" + str(i)
-        phi = vecmat.deg_to_rad(360 / n_cubes * i)
+        phi = vecmat.deg_to_rad(360 / NUM_CUBES * i)
         rd = 3
         scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
             meshes.get_cube_mesh(),
             xform_m4=vecmat.get_transl_m4(rd * math.cos(phi), rd * math.sin(phi), 0))
         scene_graph["root"]["children"][name]["bound_sph_r"] = cube_bound_sph_r
-
-    scene_graph["root"]["children"]["selected_mesh"] = rasterizer.get_model_instance(
-        meshes.get_cube_mesh(RGB_GREEN))
-    scene_graph["root"]["children"]["selected_mesh"]["enabled"] = False
-    scene_graph["root"]["children"]["selected_mesh"]["wireframe"] = True
-    scene_graph["root"]["children"]["selected_mesh"]["noCulling"] = True
-
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
     CAMERA["pos"] = [0, 0, 8]
 
-    scene_graph["root"]["xform_m4"] = vecmat.get_rot_z_m4(vecmat.deg_to_rad(25 + frame * 0.5))
+    scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
+        vecmat.get_rot_z_m4(vecmat.deg_to_rad(25 + frame * 0.5)),
+        vecmat.get_rot_x_m4(vecmat.deg_to_rad(25 + frame * 0.5)))
+
+    for i in range(NUM_CUBES):
+        name = "cube_" + str(i)
+        scene_graph["root"]["children"][name]["preproc_m4"] = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame))
+
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
 
@@ -69,14 +70,17 @@ def draw_scene_graph(surface, frame, scene_graph):
 
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
+    global CUR_SELECTED
     selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph, get_camera_m(CAMERA))
-    selected_mesh = scene_graph["root"]["children"]["selected_mesh"]
+    if CUR_SELECTED is not None:
+        CUR_SELECTED["wireframe"] = False
+        CUR_SELECTED["noCulling"] = False
     if selection:
-        selected_mesh["enabled"] = True
-        selected_mesh["preproc_m4"] = selection["preproc_m4"]
-        selected_mesh["xform_m4"] = selection["xform_m4"]
+        CUR_SELECTED = selection
+        CUR_SELECTED["wireframe"] = True
+        CUR_SELECTED["noCulling"] = True
     else:
-        selected_mesh["enabled"] = False
+        CUR_SELECTED = None
 
 def main_function():
     """Main"""
