@@ -1,5 +1,5 @@
 """
-Filled polygons with simple lighting rasterizer demo using pygame
+Demonstrates mouse selection of scene graph objects
 """
 
 import math
