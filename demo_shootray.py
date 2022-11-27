@@ -2,9 +2,10 @@
 Filled polygons with simple lighting rasterizer demo using pygame
 """
 
-import math
 import pygame
 import pygame.gfxdraw
+import pygame.mouse
+import pygame.cursors
 
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
@@ -58,6 +59,8 @@ def main_function():
     pygame.display.set_caption("PyRasterize")
     clock = pygame.time.Clock()
 
+    pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+
     scene_graph = create_scene_graph()
     # font = pygame.font.Font(None, 30)
 
@@ -68,6 +71,9 @@ def main_function():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                print(pygame.mouse.get_pos())
+
         screen.fill(RGB_BLACK)
 
         draw_scene_graph(screen, frame, scene_graph)
