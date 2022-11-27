@@ -58,6 +58,7 @@ def draw_scene_graph(surface, frame, scene_graph):
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
     selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph, get_camera_m(CAMERA))
+    print(selection)
 
 def main_function():
     """Main"""

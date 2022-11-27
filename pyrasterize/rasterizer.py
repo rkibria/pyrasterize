@@ -151,18 +151,20 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             pygame.draw.lines(surface, color, True, points)
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
-    """"""
-    selected = []
+    """Return closest instance"""
     r_orig = [0, 0, 0]
     # TODO handle non standard screen region
     r_dir = vecmat.mouse_pos_to_ray(mouse_pos, [screen_area[2], screen_area[3]])
+    min_t = -1
+    selected = None
 
     def check_if_selected(instance, model_m):
         if "bound_sph_r" not in instance:
-            return
+            return None
         # TODO handle off center bounding spheres
-        model_pos = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)[:3]
-        print("checking pos ", model_pos)
+        sph_orig = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)[:3]
+        sph_r = instance["bound_sph_r"]
+        return vecmat.ray_sphere_intersect(r_orig, r_dir, sph_orig, sph_r)
 
     def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
@@ -170,7 +172,17 @@ def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
             proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
             proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
 
-            check_if_selected(instance, proj_m)
+            t = check_if_selected(instance, proj_m)
+            if t is not None:
+                nonlocal min_t
+                nonlocal selected
+                if min_t < 0:
+                    min_t = t
+                    selected = instance
+                else:
+                    if t < min_t:
+                        min_t = t
+                        selected = instance
 
             pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
             if instance["children"]:
