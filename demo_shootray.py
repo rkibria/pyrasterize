@@ -2,6 +2,8 @@
 Filled polygons with simple lighting rasterizer demo using pygame
 """
 
+import math
+
 import pygame
 import pygame.gfxdraw
 import pygame.mouse
@@ -35,17 +37,17 @@ LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 def create_scene_graph():
     """Create the main scene graph"""
-    cube_bound_sph_r = 0.7
+    cube_bound_sph_r = 0.9
     scene_graph = { "root": rasterizer.get_model_instance(None) }
-    scene_graph["root"]["children"]["cube_1"] = rasterizer.get_model_instance(
-        meshes.get_cube_mesh(),
-        xform_m4=vecmat.get_transl_m4(-1,0,0))
-    scene_graph["root"]["children"]["cube_1"]["bound_sph_r"] = cube_bound_sph_r
-
-    scene_graph["root"]["children"]["cube_2"] = rasterizer.get_model_instance(
-        meshes.get_cube_mesh(),
-        xform_m4=vecmat.get_transl_m4(1,0,0))
-    scene_graph["root"]["children"]["cube_2"]["bound_sph_r"] = cube_bound_sph_r
+    n_cubes = 6
+    for i in range(n_cubes):
+        name = "cube_" + str(i)
+        phi = vecmat.deg_to_rad(360 / n_cubes * i)
+        rd = 3
+        scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
+            meshes.get_cube_mesh(),
+            xform_m4=vecmat.get_transl_m4(rd * math.cos(phi), rd * math.sin(phi), 0))
+        scene_graph["root"]["children"][name]["bound_sph_r"] = cube_bound_sph_r
 
     scene_graph["root"]["children"]["selected_mesh"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(RGB_GREEN))
@@ -56,8 +58,10 @@ def create_scene_graph():
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
-    """Draw the scene graph"""
-    CAMERA["pos"] = [0, 0, 4]
+    """Draw and animate the scene graph"""
+    CAMERA["pos"] = [0, 0, 8]
+
+    scene_graph["root"]["xform_m4"] = vecmat.get_rot_z_m4(vecmat.deg_to_rad(25 + frame * 0.5))
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
 

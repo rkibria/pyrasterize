@@ -160,6 +160,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""
+    # TODO apply scaling transforms to bounding sphere radius
     r_orig = [0, 0, 0]
     # TODO handle non standard screen region
     r_dir = vecmat.mouse_pos_to_ray(mouse_pos, [screen_area[2], screen_area[3]])
