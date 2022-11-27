@@ -11,17 +11,25 @@ from . import vecmat
 
 def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
-    These are the key values in a scene graph {name_1: instance_1, ...} dictionary"""
+    These are the key values in a scene graph {name_1: instance_1, ...} dictionary
+    Optional keys:
+    * wireframe (boolean): draw this as wireframe instead of filled polygons
+    * bound_sph_r (float): radius of the bounding sphere of this model, can check for e.g. selection
+    * noCulling (boolean): don't cull back face triangles
+    """
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
     if xform_m4 is None:
         xform_m4 = vecmat.get_unit_m4()
     if children is None:
         children = {}
-    return { "model": model,
+    return {
+        "enabled" : True,
+        "model": model,
         "preproc_m4": preproc_m4,
         "xform_m4": xform_m4,
-        "children": children }
+        "children": children
+        }
 
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     """Render the scene graph
@@ -132,15 +140,14 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
     def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
-            proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
-            proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
-            proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
-
-            get_screen_tris_for_instance(instance, proj_m)
-
-            pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
-            if instance["children"]:
-                traverse_scene_graph(instance["children"], pass_m)
+            if instance["enabled"]:
+                proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
+                proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
+                proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
+                get_screen_tris_for_instance(instance, proj_m)
+                pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
+                if instance["children"]:
+                    traverse_scene_graph(instance["children"], pass_m)
 
     traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
     scene_triangles.sort(key=lambda x: x[0], reverse=False)
@@ -159,8 +166,6 @@ def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     selected = None
 
     def check_if_selected(instance, model_m):
-        if "bound_sph_r" not in instance:
-            return None
         # TODO handle off center bounding spheres
         sph_orig = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)[:3]
         sph_r = instance["bound_sph_r"]
@@ -172,20 +177,22 @@ def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
             proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
             proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
 
-            t = check_if_selected(instance, proj_m)
-            if t is not None:
-                nonlocal min_t
-                nonlocal selected
-                if min_t < 0:
-                    min_t = t
-                    selected = instance
-                else:
-                    if t < min_t:
-                        min_t = t
+            if "bound_sph_r" in instance:
+                ray_t = check_if_selected(instance, proj_m)
+                if ray_t is not None:
+                    nonlocal min_t
+                    nonlocal selected
+                    if min_t < 0:
+                        min_t = ray_t
                         selected = instance
+                    else:
+                        if ray_t < min_t:
+                            min_t = ray_t
+                            selected = instance
+            else: # Only check outermost models for selection
+                pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
+                if instance["children"]:
+                    traverse_scene_graph(instance["children"], pass_m)
 
-            pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
-            if instance["children"]:
-                traverse_scene_graph(instance["children"], pass_m)
     traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
     return selected
