@@ -43,9 +43,9 @@ def create_scene_graph():
     for i in range(1):
         name = "cyl_" + str(i)
         scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
-            meshes.get_sphere_mesh(1, 13, 12, color=(0,255,0)),
+            meshes.get_sphere_mesh(1, 10, 10, color=(0,255,0)),
             xform_m4=vecmat.get_transl_m4(0, 0, 0))
-        scene_graph["root"]["children"][name]["wireframe"] = True
+        # scene_graph["root"]["children"][name]["wireframe"] = True
         # scene_graph["root"]["children"][name]["noCulling"] = True
     return scene_graph
 
