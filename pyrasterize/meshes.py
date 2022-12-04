@@ -79,9 +79,10 @@ def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR
             mesh["colors"].append(color)
     return mesh
 
-def get_cylinder_mesh(length, radius, r_divs, close_top=True, close_bottom=True, color=MESH_DEFAULT_COLOR):
+def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR, close_top=True, close_bottom=True):
     """
     Return a cylinder of requested length, radius and division count
+    Caution: cylinder insides are not rendered if top/bottom missing
     Center of cylinder is at origin of model space, orientation is lengthwise
     along the y axis.
     """
@@ -89,10 +90,12 @@ def get_cylinder_mesh(length, radius, r_divs, close_top=True, close_bottom=True,
     mesh = { "verts": [], "tris": [], "colors": []}
     bottom_y = -length/2
     top_y = length/2
-    mesh["verts"].append((0, bottom_y, 0)) # v0: bottom centerpoint
-    mesh["verts"].append((0, top_y, 0)) # v1: top centerpoint
+    bottom_center_v = 0
+    top_center_v = 1
+    mesh["verts"].append((0, bottom_y, 0))
+    mesh["verts"].append((0, top_y, 0))
     phi_step = 2 * math.pi / r_divs
-    for i in range(r_divs):
+    for i in range(r_divs): # wall verts
         phi = phi_step * i
         x_i = radius * math.cos(phi)
         z_i = -radius * math.sin(phi)
@@ -106,10 +109,17 @@ def get_cylinder_mesh(length, radius, r_divs, close_top=True, close_bottom=True,
         if i == r_divs - 1:
             next_bottom_v = 2
             next_top_v = next_bottom_v + 1
+        # cylinder wall
         mesh["tris"].append((bottom_v, next_top_v, top_v))
         mesh["tris"].append((bottom_v, next_bottom_v, next_top_v))
         mesh["colors"].append(color)
         mesh["colors"].append(color)
+        if close_top:
+            mesh["tris"].append((top_v, next_top_v, top_center_v))
+            mesh["colors"].append(color)
+        if close_bottom:
+            mesh["tris"].append((next_bottom_v, bottom_v, bottom_center_v))
+            mesh["colors"].append(color)
     return mesh
 
 def get_model_centering_offset(model):
