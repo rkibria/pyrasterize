@@ -5,6 +5,8 @@
 Mesh generation, manipulation and information
 """
 
+import math
+
 MESH_DEFAULT_COLOR = (200, 200, 200)
 
 def get_test_triangle_mesh():
@@ -75,6 +77,39 @@ def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR
             color = colors[0] if (i_x + i_y) % 2 == 0 else colors[1]
             mesh["colors"].append(color)
             mesh["colors"].append(color)
+    return mesh
+
+def get_cylinder_mesh(length, radius, r_divs, close_top=True, close_bottom=True, color=MESH_DEFAULT_COLOR):
+    """
+    Return a cylinder of requested length, radius and division count
+    Center of cylinder is at origin of model space, orientation is lengthwise
+    along the y axis.
+    """
+    r_divs = max(3, r_divs)
+    mesh = { "verts": [], "tris": [], "colors": []}
+    bottom_y = -length/2
+    top_y = length/2
+    mesh["verts"].append((0, bottom_y, 0)) # v0: bottom centerpoint
+    mesh["verts"].append((0, top_y, 0)) # v1: top centerpoint
+    phi_step = 2 * math.pi / r_divs
+    for i in range(r_divs):
+        phi = phi_step * i
+        x_i = radius * math.cos(phi)
+        z_i = -radius * math.sin(phi)
+        mesh["verts"].append((x_i, bottom_y, z_i))
+        mesh["verts"].append((x_i, top_y, z_i))
+    for i in range(r_divs):
+        bottom_v = 2 + i * 2
+        top_v = bottom_v + 1
+        next_bottom_v = top_v + 1
+        next_top_v = next_bottom_v + 1
+        if i == r_divs - 1:
+            next_bottom_v = 2
+            next_top_v = next_bottom_v + 1
+        mesh["tris"].append((bottom_v, next_top_v, top_v))
+        mesh["tris"].append((bottom_v, next_bottom_v, next_top_v))
+        mesh["colors"].append(color)
+        mesh["colors"].append(color)
     return mesh
 
 def get_model_centering_offset(model):
