@@ -5,6 +5,8 @@
 Mesh generation, manipulation and information
 """
 
+import math
+
 MESH_DEFAULT_COLOR = (200, 200, 200)
 
 def get_test_triangle_mesh():
@@ -74,6 +76,107 @@ def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR
             mesh["tris"].append((u_l, u_l + 1 + (d_x + 1), u_l + (d_x + 1)))
             color = colors[0] if (i_x + i_y) % 2 == 0 else colors[1]
             mesh["colors"].append(color)
+            mesh["colors"].append(color)
+    return mesh
+
+def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
+    """
+    Return a sphere
+    """
+    r_divs = max(3, r_divs)
+    l_divs = max(2, l_divs)
+    mesh = { "verts": [], "tris": [], "colors": []}
+    bottom_y = -radius
+    top_y = radius
+    bottom_center_v = 0
+    top_center_v = 1
+    mesh["verts"].append((0, bottom_y, 0))
+    mesh["verts"].append((0, top_y, 0))
+    r_phi_step = 2 * math.pi / r_divs
+
+    for l_i in range(l_divs - 1):
+        for r_i in range(r_divs):
+            y_i = -radius + (2 * radius / l_divs) * (l_i + 1)
+            radius_i = (radius ** 2 - y_i ** 2) ** 0.5
+
+            r_phi = r_phi_step * r_i
+            x_i = radius_i * math.cos(r_phi)
+            z_i = -radius_i * math.sin(r_phi)
+            mesh["verts"].append((x_i, y_i, z_i))
+
+    for l_i in range(l_divs - 2):
+        for r_i in range(r_divs):
+            bottom_v = 2 + l_i * r_divs + r_i
+            next_bottom_v = bottom_v + 1
+            top_v = bottom_v + r_divs
+            next_top_v = top_v + 1
+            if r_i == r_divs - 1:
+                next_bottom_v = 2 + l_i * r_divs
+                next_top_v = next_bottom_v + r_divs
+            mesh["tris"].append((bottom_v, next_top_v, top_v))
+            mesh["tris"].append((bottom_v, next_bottom_v, next_top_v))
+            mesh["colors"].append(color)
+            mesh["colors"].append(color)
+
+    for i in range(r_divs): # bottom cap
+        bottom_v = 2 + i
+        next_bottom_v = bottom_v + 1
+        if i == r_divs - 1:
+            next_bottom_v = 2
+        mesh["tris"].append((next_bottom_v, bottom_v, bottom_center_v))
+        mesh["colors"].append(color)
+
+    for i in range(r_divs): # top cap
+        top_v = 2 + (l_divs - 2) * r_divs + i
+        next_top_v = top_v + 1
+        if i == r_divs - 1:
+            next_top_v = 2 + (l_divs - 2) * r_divs
+        mesh["tris"].append((top_v, next_top_v, top_center_v))
+        mesh["colors"].append(color)
+
+    return mesh
+
+def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR,
+    close_top=True, close_bottom=True):
+    """
+    Return a cylinder of requested length, radius and division count
+    Caution: cylinder insides are not rendered if top/bottom missing
+    Center of cylinder is at origin of model space, orientation is lengthwise
+    along the y axis.
+    """
+    r_divs = max(3, r_divs)
+    mesh = { "verts": [], "tris": [], "colors": []}
+    bottom_y = -length/2
+    top_y = length/2
+    bottom_center_v = 0
+    top_center_v = 1
+    mesh["verts"].append((0, bottom_y, 0))
+    mesh["verts"].append((0, top_y, 0))
+    phi_step = 2 * math.pi / r_divs
+    for i in range(r_divs): # wall verts
+        phi = phi_step * i
+        x_i = radius * math.cos(phi)
+        z_i = -radius * math.sin(phi)
+        mesh["verts"].append((x_i, bottom_y, z_i))
+        mesh["verts"].append((x_i, top_y, z_i))
+    for i in range(r_divs):
+        bottom_v = 2 + i * 2
+        top_v = bottom_v + 1
+        next_bottom_v = top_v + 1
+        next_top_v = next_bottom_v + 1
+        if i == r_divs - 1:
+            next_bottom_v = 2
+            next_top_v = next_bottom_v + 1
+        # cylinder wall
+        mesh["tris"].append((bottom_v, next_top_v, top_v))
+        mesh["tris"].append((bottom_v, next_bottom_v, next_top_v))
+        mesh["colors"].append(color)
+        mesh["colors"].append(color)
+        if close_top:
+            mesh["tris"].append((top_v, next_top_v, top_center_v))
+            mesh["colors"].append(color)
+        if close_bottom:
+            mesh["tris"].append((next_bottom_v, bottom_v, bottom_center_v))
             mesh["colors"].append(color)
     return mesh
 
