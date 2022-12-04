@@ -34,21 +34,21 @@ def get_camera_m(cam):
 
 CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
-NUM_CUBES = 8
+NUM_OBJECTS = 8
 CUR_SELECTED = None
 
 def create_scene_graph():
     """Create the main scene graph"""
-    cube_bound_sph_r = 0.9
     scene_graph = { "root": rasterizer.get_model_instance(None) }
-    for i in range(NUM_CUBES):
-        name = "cube_" + str(i)
-        phi = vecmat.deg_to_rad(360 / NUM_CUBES * i)
-        rd = 3
+    for i in range(NUM_OBJECTS):
+        name = "object_" + str(i)
+        phi = vecmat.deg_to_rad(360 / NUM_OBJECTS * i)
+        placement_radius = 3
         scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
-            meshes.get_cube_mesh(),
-            xform_m4=vecmat.get_transl_m4(rd * math.cos(phi), rd * math.sin(phi), 0))
-        scene_graph["root"]["children"][name]["bound_sph_r"] = cube_bound_sph_r
+            meshes.get_sphere_mesh(0.5, 10, 10),
+            xform_m4=vecmat.get_transl_m4(placement_radius * math.cos(phi),
+                placement_radius * math.sin(phi), 0))
+        scene_graph["root"]["children"][name]["bound_sph_r"] = 1
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
@@ -58,10 +58,6 @@ def draw_scene_graph(surface, frame, scene_graph):
     scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
         vecmat.get_rot_z_m4(vecmat.deg_to_rad(25 + frame * 0.5)),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(25 + frame * 0.5)))
-
-    for i in range(NUM_CUBES):
-        name = "cube_" + str(i)
-        scene_graph["root"]["children"][name]["preproc_m4"] = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame))
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
