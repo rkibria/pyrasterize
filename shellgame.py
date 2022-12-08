@@ -87,8 +87,8 @@ def draw_scene_graph(surface, frame, scene_graph):
     CAMERA["pos"][2] = 7
     CAMERA["rot"][0] = vecmat.deg_to_rad(-20)
 
-    angle = 10 * vecmat.deg_to_rad(frame)
-    rotate_shell_13(scene_graph, angle)
+    # angle = 10 * vecmat.deg_to_rad(frame)
+    set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
