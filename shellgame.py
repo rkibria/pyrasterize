@@ -71,6 +71,11 @@ def rotate_cup_23(scene_graph, angle):
     rotate_cup_around_point(scene_graph, 1, CUP_DIST/2, 0, 0, angle, CUP_DIST/2)
     rotate_cup_around_point(scene_graph, 2, CUP_DIST/2, 0, 0, angle + math.pi, CUP_DIST/2)
 
+def rotate_cup_13(scene_graph, angle):
+    """Rotate cups 1 and 3 around mid point"""
+    rotate_cup_around_point(scene_graph, 0, 0, 0, 0, angle, CUP_DIST)
+    rotate_cup_around_point(scene_graph, 2, 0, 0, 0, angle + math.pi, CUP_DIST)
+
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
     CAMERA["pos"][1] = 4
@@ -78,7 +83,7 @@ def draw_scene_graph(surface, frame, scene_graph):
     CAMERA["rot"][0] = vecmat.deg_to_rad(-20)
 
     angle = 10 * vecmat.deg_to_rad(frame)
-    rotate_cup_23(scene_graph, angle)
+    rotate_cup_13(scene_graph, angle)
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
