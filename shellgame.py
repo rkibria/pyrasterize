@@ -35,24 +35,41 @@ def get_camera_m(cam):
 CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 CUR_SELECTED = None
+CUP_MESH = meshes.get_cylinder_mesh(2, 1, 12)
+CUP_DIST = 2.5
 
 def create_scene_graph():
     """Create the main scene graph"""
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     for i in range(3):
         name = "cup_" + str(i)
-        scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
-            meshes.get_cylinder_mesh(2, 1, 12),
-            xform_m4=vecmat.get_transl_m4(-3 + i * 3, 0, 0))
-        scene_graph["root"]["children"][name]["wireframe"] = True
-        scene_graph["root"]["children"][name]["noCulling"] = True
+        scene_graph["root"]["children"]["cup_" + str(i)] = rasterizer.get_model_instance(
+            CUP_MESH,
+            xform_m4=vecmat.get_transl_m4(-CUP_DIST + i * CUP_DIST, 0, 0))
+        # scene_graph["root"]["children"][name]["wireframe"] = True
+        # scene_graph["root"]["children"][name]["noCulling"] = True
     return scene_graph
+
+def set_cup_pos(scene_graph, n_cup, x, y, z):
+    """Set cup n position"""
+    inst = scene_graph["root"]["children"]["cup_" + str(n_cup)]
+    inst["xform_m4"] = vecmat.get_transl_m4(x, y, z)
+
+def rotate_cup_around_point(scene_graph, n_cup, px, pz, y, angle, radius):
+    """Rotate CCW by angle around point on XZ-plane"""
+    x = px + radius * math.cos(angle)
+    z = pz + radius * math.sin(angle)
+    set_cup_pos(scene_graph, n_cup, x, y, z)
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
-    CAMERA["pos"][1] = 0.5
+    CAMERA["pos"][1] = 4
     CAMERA["pos"][2] = 7
-    CAMERA["rot"][0] = vecmat.deg_to_rad(10)
+    CAMERA["rot"][0] = vecmat.deg_to_rad(-20)
+
+    angle = 10 * vecmat.deg_to_rad(frame)
+    rotate_cup_around_point(scene_graph, 0, -CUP_DIST/2, 0, 0, angle, CUP_DIST/2)
+    rotate_cup_around_point(scene_graph, 1, -CUP_DIST/2, 0, 0, angle + math.pi, CUP_DIST/2)
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
