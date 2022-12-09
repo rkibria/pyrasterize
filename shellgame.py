@@ -1,5 +1,5 @@
 """
-Demonstrates mouse selection of scene graph objects
+Simulates the classic shell game with 3d models
 """
 
 import math
@@ -12,6 +12,45 @@ import pygame.cursors
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
+
+# GAME LOGIC
+#
+# SHELL GAME https://en.wikipedia.org/wiki/Shell_game
+#
+# Shell  Shell  Shell
+#   0      1      2
+#
+# /---\  /---\  /---\
+# |   |  |   |  |   |
+# |   |  |   |  |   |
+#
+#   O <-- Pea location
+#
+# Game state: pea location = 0/1/2
+#
+# Possible shell swaps/game operations:
+# 0-1, 1-2, 0-2
+# - each move can be animated clockwise or counter-clockwise,
+#   but has the same result.
+# - a swap swaps the position of the pea if the pea is in
+#   either one of the affected shell positions.
+#
+
+SWAP_01 = 0
+SWAP_12 = 1
+SWAP_02 = 2
+
+PEA_LOC = 0
+
+SWAP_RESULT_TABLE = {
+    0: {SWAP_01: 1, SWAP_12: 0, SWAP_02: 2},
+    1: {SWAP_01: 0, SWAP_12: 2, SWAP_02: 1},
+    2: {SWAP_01: 2, SWAP_12: 1, SWAP_02: 0},
+}
+
+def get_new_pea_loc(pea_loc, n_swap):
+    """Returns new pea location depending on swap"""
+    return SWAP_RESULT_TABLE[pea_loc][n_swap]
 
 # CONSTANTS
 
@@ -38,7 +77,7 @@ CUR_SELECTED = None
 SHELL_MESH = meshes.get_cylinder_mesh(2, 1, 12, (100, 100, 230), close_bottom=False)
 SHELL_DIST = 2.5
 PEA_RADIUS = 0.5
-PEA_MESH = meshes.get_sphere_mesh(PEA_RADIUS, 16, 12, (200, 20, 20))
+PEA_MESH = meshes.get_sphere_mesh(PEA_RADIUS, 6, 4, (200, 20, 20))
 
 def create_scene_graph():
     """Create the main scene graph"""
