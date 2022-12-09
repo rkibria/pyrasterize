@@ -160,6 +160,7 @@ def draw_scene_graph(surface, frame, scene_graph):
         degs_per_frame = 10
         degs = min(180, CURRENT_FRAME * degs_per_frame)
         angle = vecmat.deg_to_rad(degs)
+        angle = angle if SWAP_CLOCKWISE == 0 else -angle
         if CURRENT_SWAP == SWAP_01:
             rotate_shell_01(scene_graph, angle)
         elif CURRENT_SWAP == SWAP_02:
