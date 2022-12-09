@@ -120,6 +120,10 @@ def rotate_shell_13(scene_graph, angle):
     rotate_shell_around_point(scene_graph, 0, 0, 0, 0, angle, SHELL_DIST)
     rotate_shell_around_point(scene_graph, 2, 0, 0, 0, angle + math.pi, SHELL_DIST)
 
+def enable_pea(scene_graph, en):
+    """Set enable for drawing of pea"""
+    scene_graph["root"]["children"]["pea"]["enabled"] = en
+
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
     CAMERA["pos"][1] = 4
@@ -127,6 +131,7 @@ def draw_scene_graph(surface, frame, scene_graph):
     CAMERA["rot"][0] = vecmat.deg_to_rad(-20)
 
     # angle = 10 * vecmat.deg_to_rad(frame)
+    enable_pea(scene_graph, False)
     set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
