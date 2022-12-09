@@ -71,7 +71,10 @@ def get_camera_m(cam):
     camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_x_m4(-cam_rot[0]), camera_m)
     return camera_m
 
-CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
+CAMERA = { "pos": [0, 4, 7],
+    "rot": [vecmat.deg_to_rad(-20), 0, 0],
+    "fov": 90,
+    "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 CUR_SELECTED = None
 SHELL_MESH = meshes.get_cylinder_mesh(2, 1, 12, (100, 100, 230), close_bottom=False)
@@ -126,10 +129,6 @@ def enable_pea(scene_graph, en):
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
-    CAMERA["pos"][1] = 4
-    CAMERA["pos"][2] = 7
-    CAMERA["rot"][0] = vecmat.deg_to_rad(-20)
-
     # angle = 10 * vecmat.deg_to_rad(frame)
     enable_pea(scene_graph, False)
     set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
