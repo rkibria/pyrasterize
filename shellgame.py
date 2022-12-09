@@ -3,6 +3,7 @@ Simulates the classic shell game with 3d models
 """
 
 import math
+import random
 
 import pygame
 import pygame.gfxdraw
@@ -108,17 +109,17 @@ def rotate_shell_around_point(scene_graph, n_shell, px, pz, y, angle, radius):
     z = pz + radius * math.sin(angle)
     set_shell_pos(scene_graph, n_shell, x, y, z)
 
-def rotate_shell_12(scene_graph, angle):
+def rotate_shell_01(scene_graph, angle):
     """Rotate 1 and 2 around mid point"""
     rotate_shell_around_point(scene_graph, 0, -SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
     rotate_shell_around_point(scene_graph, 1, -SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
 
-def rotate_shell_23(scene_graph, angle):
+def rotate_shell_12(scene_graph, angle):
     """Rotate 2 and 3 around mid point"""
     rotate_shell_around_point(scene_graph, 1, SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
     rotate_shell_around_point(scene_graph, 2, SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
 
-def rotate_shell_13(scene_graph, angle):
+def rotate_shell_02(scene_graph, angle):
     """Rotate 1 and 3 around mid point"""
     rotate_shell_around_point(scene_graph, 0, 0, 0, 0, angle, SHELL_DIST)
     rotate_shell_around_point(scene_graph, 2, 0, 0, 0, angle + math.pi, SHELL_DIST)
@@ -127,11 +128,47 @@ def enable_pea(scene_graph, en):
     """Set enable for drawing of pea"""
     scene_graph["root"]["children"]["pea"]["enabled"] = en
 
+def reset_shell_positions(scene_graph):
+    """Reset to default"""
+    set_shell_pos(scene_graph, 0, -SHELL_DIST, 0, 0)
+    set_shell_pos(scene_graph, 1, 0, 0, 0)
+    set_shell_pos(scene_graph, 2, SHELL_DIST, 0, 0)
+
+SWAP_DONE = True
+CURRENT_SWAP = 0
+SWAP_CLOCKWISE = 0
+CURRENT_FRAME = 0
+
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
     # angle = 10 * vecmat.deg_to_rad(frame)
     enable_pea(scene_graph, False)
-    set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
+    # set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
+
+    global SWAP_DONE
+    global CURRENT_SWAP
+    global SWAP_CLOCKWISE
+    global CURRENT_FRAME
+    if SWAP_DONE:
+        # Choose a new swap
+        reset_shell_positions(scene_graph)
+        CURRENT_SWAP = random.randint(0, 2)
+        SWAP_CLOCKWISE = random.randint(0, 1)
+        CURRENT_FRAME = 0
+        SWAP_DONE = False
+    else:
+        degs_per_frame = 10
+        degs = min(180, CURRENT_FRAME * degs_per_frame)
+        angle = vecmat.deg_to_rad(degs)
+        if CURRENT_SWAP == SWAP_01:
+            rotate_shell_01(scene_graph, angle)
+        elif CURRENT_SWAP == SWAP_02:
+            rotate_shell_02(scene_graph, angle)
+        elif CURRENT_SWAP == SWAP_12:
+            rotate_shell_12(scene_graph, angle)
+        CURRENT_FRAME += 1
+        if degs >= 180:
+            SWAP_DONE = True
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
@@ -155,6 +192,7 @@ def on_left_down(pos, scene_graph):
 def main_function():
     """Main"""
     pygame.init()
+    random.seed()
 
     screen = pygame.display.set_mode(SCR_SIZE)
     pygame.display.set_caption("PyRasterize")
