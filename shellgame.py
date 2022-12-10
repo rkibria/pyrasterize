@@ -78,7 +78,7 @@ CAMERA = { "pos": [0, 4, 7],
     "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 CUR_SELECTED = None
-SHELL_MESH = meshes.get_cylinder_mesh(2, 1, 12, (100, 100, 230), close_bottom=False)
+SHELL_MESH = meshes.get_cylinder_mesh(2, 1, 50, (100, 100, 230), close_bottom=False)
 SHELL_DIST = 2.5
 PEA_RADIUS = 0.5
 PEA_MESH = meshes.get_sphere_mesh(PEA_RADIUS, 6, 4, (200, 20, 20))
@@ -150,26 +150,29 @@ def draw_scene_graph(surface, frame, scene_graph):
     global SWAP_CLOCKWISE
     global CURRENT_FRAME
     if SWAP_DONE:
-        # Choose a new swap
         reset_shell_positions(scene_graph)
-        CURRENT_SWAP = random.randint(0, 2)
+        while True:
+            new_swap = random.randint(0, 2)
+            if new_swap != CURRENT_SWAP:
+                break
+        CURRENT_SWAP = new_swap
         SWAP_CLOCKWISE = random.randint(0, 1)
         CURRENT_FRAME = 0
         SWAP_DONE = False
-    else:
-        degs_per_frame = 10
-        degs = min(180, CURRENT_FRAME * degs_per_frame)
-        angle = vecmat.deg_to_rad(degs)
-        angle = angle if SWAP_CLOCKWISE == 0 else -angle
-        if CURRENT_SWAP == SWAP_01:
-            rotate_shell_01(scene_graph, angle)
-        elif CURRENT_SWAP == SWAP_02:
-            rotate_shell_02(scene_graph, angle)
-        elif CURRENT_SWAP == SWAP_12:
-            rotate_shell_12(scene_graph, angle)
-        CURRENT_FRAME += 1
-        if degs >= 180:
-            SWAP_DONE = True
+
+    degs_per_frame = 35 if CURRENT_SWAP != SWAP_02 else 30
+    degs = min(180, CURRENT_FRAME * degs_per_frame)
+    angle = vecmat.deg_to_rad(degs)
+    angle = angle if SWAP_CLOCKWISE == 0 else -angle
+    if CURRENT_SWAP == SWAP_01:
+        rotate_shell_01(scene_graph, angle)
+    elif CURRENT_SWAP == SWAP_02:
+        rotate_shell_02(scene_graph, angle)
+    elif CURRENT_SWAP == SWAP_12:
+        rotate_shell_12(scene_graph, angle)
+    CURRENT_FRAME += 1
+    if degs >= 180:
+        SWAP_DONE = True
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
