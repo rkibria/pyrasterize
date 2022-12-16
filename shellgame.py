@@ -62,16 +62,6 @@ RGB_BLACK = (0, 0, 0)
 RGB_WHITE = (255, 255, 255)
 RGB_GREEN = (0, 255, 0)
 
-def get_camera_m(cam):
-    """Return matrix based on camera dict(rot = [x,y,z],pos = [x,y,z])"""
-    cam_pos = cam["pos"]
-    cam_rot = cam["rot"]
-    camera_m = vecmat.get_transl_m4(-cam_pos[0], -cam_pos[1], -cam_pos[2])
-    camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_z_m4(-cam_rot[2]), camera_m)
-    camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(-cam_rot[1]), camera_m)
-    camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_x_m4(-cam_rot[0]), camera_m)
-    return camera_m
-
 CAMERA = { "pos": [0, 4, 7],
     "rot": [vecmat.deg_to_rad(-20), 0, 0],
     "fov": 90,
@@ -175,14 +165,16 @@ def draw_scene_graph(surface, frame, scene_graph):
         SWAP_DONE = True
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
-    rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
+    rasterizer.render(surface, SCR_AREA, scene_graph,
+        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
 
 # MAIN
 
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
     global CUR_SELECTED
-    selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph, get_camera_m(CAMERA))
+    selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
+        vecmat.get_simple_camera_m(CAMERA))
     if CUR_SELECTED is not None:
         CUR_SELECTED["wireframe"] = False
         CUR_SELECTED["noCulling"] = False
