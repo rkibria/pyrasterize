@@ -130,7 +130,7 @@ def run_swap(swap, scene_graph, angle):
         rotate_shell_12(scene_graph, angle)
 
 def create_game_state():
-    """Generate dict with game state"""
+    """Generate new game state dict"""
     game_state = {
         "swap_done": False,
         "cur_swap": 0,
@@ -139,28 +139,26 @@ def create_game_state():
     }
     return game_state
 
-def run_game(scene_graph, game_state):
-    """Run the game logic and animate scene graph"""
-    # angle = 10 * vecmat.deg_to_rad(frame)
-    enable_pea(scene_graph, False)
-    # set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
+def reset_game_state(game_state):
+    """Set state to start of a new random swap"""
+    while True:
+        new_swap = random.randint(0, 2)
+        if new_swap != game_state["cur_swap"]:
+            break
+    game_state["cur_swap"] = new_swap
+    game_state["swap_clockwise"] = random.randint(0, 1)
+    game_state["cur_frame"] = 0
+    game_state["swap_done"] = False
 
-    def check_swap_done():
-        if game_state["swap_done"]:
-            reset_shell_positions(scene_graph)
-            while True:
-                new_swap = random.randint(0, 2)
-                if new_swap != game_state["cur_swap"]:
-                    break
-            game_state["cur_swap"] = new_swap
-            game_state["swap_clockwise"] = random.randint(0, 1)
-            game_state["cur_frame"] = 0
-            game_state["swap_done"] = False
-
-    check_swap_done()
-
-    # degs_per_frame = 35 if CURRENT_SWAP != SWAP_02 else 30
+def advance_game_state(scene_graph, game_state):
+    """
+    Animate the current state of the game
+    Return True if reached last animation frame
+    """
+    if game_state["cur_frame"] == 0:
+        game_state["cur_frame"] = 1
     degs_per_frame = 15 if game_state["cur_swap"] != SWAP_02 else 10
+    # degs_per_frame = 35 if game_state["cur_swap"] != SWAP_02 else 30
     degs = min(180, game_state["cur_frame"] * degs_per_frame)
     angle = vecmat.deg_to_rad(degs)
     angle = angle if game_state["swap_clockwise"] == 0 else -angle
@@ -168,7 +166,18 @@ def run_game(scene_graph, game_state):
     game_state["cur_frame"] += 1
     if degs >= 180:
         game_state["swap_done"] = True
-        print("swap done", time.time())
+    return game_state["swap_done"]
+
+def run_game(scene_graph, game_state):
+    """Run the game logic and animate scene graph"""
+    # angle = 10 * vecmat.deg_to_rad(frame)
+    enable_pea(scene_graph, False)
+    # set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
+
+    if advance_game_state(scene_graph, game_state):
+        reset_shell_positions(scene_graph)
+        reset_game_state(game_state)
+        advance_game_state(scene_graph, game_state)
 
 def draw_scene_graph(surface, _, scene_graph):
     """Draw and animate the scene graph"""
@@ -207,6 +216,7 @@ def main_function():
 
     scene_graph = create_scene_graph()
     game_state = create_game_state()
+    reset_game_state(game_state)
 
     # font = pygame.font.Font(None, 30)
 
