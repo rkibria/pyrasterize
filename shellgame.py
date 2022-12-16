@@ -148,7 +148,7 @@ def create_game_state():
     return game_state
 
 # Possible new swaps depending on old swap, make a binary choice
-RANDOM_NEW_SWAP_TABLE = {
+NEW_SWAP_TABLE = {
     SWAP_01: [SWAP_02, SWAP_12],
     SWAP_02: [SWAP_01, SWAP_12],
     SWAP_12: [SWAP_01, SWAP_02],
@@ -156,7 +156,7 @@ RANDOM_NEW_SWAP_TABLE = {
 
 def reset_swap_state(game_state):
     """Set state to start of a new random swap"""
-    game_state["cur_swap"] = RANDOM_NEW_SWAP_TABLE[game_state["cur_swap"]][random.randint(0, 1)]
+    game_state["cur_swap"] = NEW_SWAP_TABLE[game_state["cur_swap"]][random.randint(0, 1)]
     game_state["swap_clockwise"] = random.randint(0, 1)
     game_state["cur_frame"] = 0
     game_state["swap_done"] = False
