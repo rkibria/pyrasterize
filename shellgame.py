@@ -82,8 +82,15 @@ def create_scene_graph():
     scene_graph["root"]["children"]["pea"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(PEA_RADIUS, 6, 4, (200, 20, 20)),
         xform_m4=vecmat.get_transl_m4(-SHELL_DIST, 0, 0))
+    scene_graph["root"]["children"]["pea"]["wireframe"] = True
+    scene_graph["root"]["children"]["pea"]["noCulling"] = True
 
     return scene_graph
+
+def set_pea_pos(scene_graph, n_shell, y=0):
+    """Set pea position at shell"""
+    inst = scene_graph["root"]["children"]["pea"]
+    inst["xform_m4"] = vecmat.get_transl_m4(-SHELL_DIST + n_shell * SHELL_DIST, y, 0)
 
 def set_shell_pos(scene_graph, n_shell, x, y, z):
     """Set cup n position"""
@@ -132,8 +139,9 @@ def run_swap(swap, scene_graph, angle):
 
 # Rotation speeds for small/big swaps depending on difficulty level
 ROTATE_SPEEDS = {
-    0: [15, 10],
-    1: [35, 30]
+    0: [5, 2],
+    1: [15, 10],
+    2: [35, 30]
 }
 
 def create_game_state():
@@ -144,7 +152,8 @@ def create_game_state():
         "swap_clockwise": 0,
         "cur_frame": 0,
         "rotate_speeds": ROTATE_SPEEDS[0],
-        "remaining_swaps": 3
+        "remaining_swaps": 3,
+        "pea_loc": 0
     }
     return game_state
 
@@ -155,12 +164,18 @@ NEW_SWAP_TABLE = {
     SWAP_12: [SWAP_01, SWAP_02],
 }
 
-def reset_swap_state(game_state):
-    """Set state to start of a new random swap"""
+def set_new_swap(game_state):
+    """
+    Set state to start of a new random swap
+    Pea location is set to where it would be at END of this swap
+    """
     game_state["cur_swap"] = NEW_SWAP_TABLE[game_state["cur_swap"]][random.randint(0, 1)]
     game_state["swap_clockwise"] = random.randint(0, 1)
     game_state["cur_frame"] = 0
     game_state["swap_done"] = False
+    new_loc = get_new_pea_loc(game_state["pea_loc"], game_state["cur_swap"])
+    print(f"pea from {game_state['pea_loc']} to {new_loc}")
+    game_state["pea_loc"] = new_loc
 
 def advance_game_state(scene_graph, game_state):
     """
@@ -182,14 +197,15 @@ def advance_game_state(scene_graph, game_state):
 def run_game(scene_graph, game_state):
     """Run the game logic and animate scene graph"""
     # angle = 10 * vecmat.deg_to_rad(frame)
-    enable_pea(scene_graph, False)
+    # enable_pea(scene_graph, False)
     # set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
 
     if advance_game_state(scene_graph, game_state):
         reset_shell_positions(scene_graph)
         if game_state["remaining_swaps"] > 0:
             game_state["remaining_swaps"] -= 1
-            reset_swap_state(game_state)
+            set_new_swap(game_state)
+            set_pea_pos(scene_graph, game_state["pea_loc"])
             advance_game_state(scene_graph, game_state)
 
 def draw_scene_graph(surface, _, scene_graph):
@@ -199,7 +215,6 @@ def draw_scene_graph(surface, _, scene_graph):
         vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
 
 # MAIN
-import time
 
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
@@ -229,7 +244,7 @@ def main_function():
 
     scene_graph = create_scene_graph()
     game_state = create_game_state()
-    reset_swap_state(game_state)
+    set_new_swap(game_state)
 
     # font = pygame.font.Font(None, 30)
 
