@@ -143,7 +143,8 @@ def create_game_state():
         "cur_swap": 0,
         "swap_clockwise": 0,
         "cur_frame": 0,
-        "rotate_speeds": ROTATE_SPEEDS[1]
+        "rotate_speeds": ROTATE_SPEEDS[0],
+        "remaining_swaps": 3
     }
     return game_state
 
@@ -186,8 +187,10 @@ def run_game(scene_graph, game_state):
 
     if advance_game_state(scene_graph, game_state):
         reset_shell_positions(scene_graph)
-        reset_swap_state(game_state)
-        advance_game_state(scene_graph, game_state)
+        if game_state["remaining_swaps"] > 0:
+            game_state["remaining_swaps"] -= 1
+            reset_swap_state(game_state)
+            advance_game_state(scene_graph, game_state)
 
 def draw_scene_graph(surface, _, scene_graph):
     """Draw and animate the scene graph"""
