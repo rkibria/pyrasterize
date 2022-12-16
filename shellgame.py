@@ -41,8 +41,6 @@ SWAP_01 = 0
 SWAP_12 = 1
 SWAP_02 = 2
 
-PEA_LOC = 0
-
 SWAP_RESULT_TABLE = {
     0: {SWAP_01: 1, SWAP_12: 0, SWAP_02: 2},
     1: {SWAP_01: 0, SWAP_12: 2, SWAP_02: 1},
@@ -68,22 +66,20 @@ CAMERA = { "pos": [0, 4, 7],
     "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 CUR_SELECTED = None
-SHELL_MESH = meshes.get_cylinder_mesh(2, 1, 50, (100, 100, 230), close_bottom=False)
 SHELL_DIST = 2.5
 PEA_RADIUS = 0.5
-PEA_MESH = meshes.get_sphere_mesh(PEA_RADIUS, 6, 4, (200, 20, 20))
 
 def create_scene_graph():
     """Create the main scene graph"""
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     for i in range(3):
         scene_graph["root"]["children"]["shell_" + str(i)] = rasterizer.get_model_instance(
-            SHELL_MESH,
+            meshes.get_cylinder_mesh(2, 1, 50, (100, 100, 230), close_bottom=False),
             xform_m4=vecmat.get_transl_m4(-SHELL_DIST + i * SHELL_DIST, 0, 0))
         # scene_graph["root"]["children"][name]["wireframe"] = True
         # scene_graph["root"]["children"][name]["noCulling"] = True
     scene_graph["root"]["children"]["pea"] = rasterizer.get_model_instance(
-        PEA_MESH,
+        meshes.get_sphere_mesh(PEA_RADIUS, 6, 4, (200, 20, 20)),
         xform_m4=vecmat.get_transl_m4(-SHELL_DIST, 0, 0))
 
     return scene_graph
@@ -94,81 +90,94 @@ def set_shell_pos(scene_graph, n_shell, x, y, z):
     inst["xform_m4"] = vecmat.get_transl_m4(x, y, z)
 
 def rotate_shell_around_point(scene_graph, n_shell, px, pz, y, angle, radius):
-    """Rotate CCW by angle around point on XZ-plane"""
+    """Rotate a shell counter-clockwise by the angle around the point px,0,pz"""
     x = px + radius * math.cos(angle)
     z = pz + radius * math.sin(angle)
     set_shell_pos(scene_graph, n_shell, x, y, z)
 
 def rotate_shell_01(scene_graph, angle):
-    """Rotate 1 and 2 around mid point"""
+    """Rotate shells 0 and 1 around their mid point"""
     rotate_shell_around_point(scene_graph, 0, -SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
     rotate_shell_around_point(scene_graph, 1, -SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
 
 def rotate_shell_12(scene_graph, angle):
-    """Rotate 2 and 3 around mid point"""
+    """Rotate shells 1 and 2 around their mid point"""
     rotate_shell_around_point(scene_graph, 1, SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
     rotate_shell_around_point(scene_graph, 2, SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
 
 def rotate_shell_02(scene_graph, angle):
-    """Rotate 1 and 3 around mid point"""
+    """Rotate shells 0 and 2 around their mid point"""
     rotate_shell_around_point(scene_graph, 0, 0, 0, 0, angle, SHELL_DIST)
     rotate_shell_around_point(scene_graph, 2, 0, 0, 0, angle + math.pi, SHELL_DIST)
 
 def enable_pea(scene_graph, en):
-    """Set enable for drawing of pea"""
+    """Enable drawing of the pea"""
     scene_graph["root"]["children"]["pea"]["enabled"] = en
 
 def reset_shell_positions(scene_graph):
-    """Reset to default"""
+    """Put all shells in their starting positions"""
     set_shell_pos(scene_graph, 0, -SHELL_DIST, 0, 0)
     set_shell_pos(scene_graph, 1, 0, 0, 0)
     set_shell_pos(scene_graph, 2, SHELL_DIST, 0, 0)
 
-SWAP_DONE = True
-CURRENT_SWAP = 0
-SWAP_CLOCKWISE = 0
-CURRENT_FRAME = 0
+def run_swap(swap, scene_graph, angle):
+    """Animate the current swap"""
+    if swap == SWAP_01:
+        rotate_shell_01(scene_graph, angle)
+    elif swap == SWAP_02:
+        rotate_shell_02(scene_graph, angle)
+    elif swap == SWAP_12:
+        rotate_shell_12(scene_graph, angle)
 
-def draw_scene_graph(surface, frame, scene_graph):
-    """Draw and animate the scene graph"""
+def create_game_state():
+    """Generate dict with game state"""
+    game_state = {
+        "swap_done": False,
+        "cur_swap": 0,
+        "swap_clockwise": 0,
+        "cur_frame": 0
+    }
+    return game_state
+
+def run_game(scene_graph, game_state):
+    """Run the game logic and animate scene graph"""
     # angle = 10 * vecmat.deg_to_rad(frame)
     enable_pea(scene_graph, False)
     # set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
 
-    global SWAP_DONE
-    global CURRENT_SWAP
-    global SWAP_CLOCKWISE
-    global CURRENT_FRAME
-    if SWAP_DONE:
-        reset_shell_positions(scene_graph)
-        while True:
-            new_swap = random.randint(0, 2)
-            if new_swap != CURRENT_SWAP:
-                break
-        CURRENT_SWAP = new_swap
-        SWAP_CLOCKWISE = random.randint(0, 1)
-        CURRENT_FRAME = 0
-        SWAP_DONE = False
+    def check_swap_done():
+        if game_state["swap_done"]:
+            reset_shell_positions(scene_graph)
+            while True:
+                new_swap = random.randint(0, 2)
+                if new_swap != game_state["cur_swap"]:
+                    break
+            game_state["cur_swap"] = new_swap
+            game_state["swap_clockwise"] = random.randint(0, 1)
+            game_state["cur_frame"] = 0
+            game_state["swap_done"] = False
 
-    degs_per_frame = 35 if CURRENT_SWAP != SWAP_02 else 30
-    degs = min(180, CURRENT_FRAME * degs_per_frame)
+    check_swap_done()
+
+    # degs_per_frame = 35 if CURRENT_SWAP != SWAP_02 else 30
+    degs_per_frame = 15 if game_state["cur_swap"] != SWAP_02 else 10
+    degs = min(180, game_state["cur_frame"] * degs_per_frame)
     angle = vecmat.deg_to_rad(degs)
-    angle = angle if SWAP_CLOCKWISE == 0 else -angle
-    if CURRENT_SWAP == SWAP_01:
-        rotate_shell_01(scene_graph, angle)
-    elif CURRENT_SWAP == SWAP_02:
-        rotate_shell_02(scene_graph, angle)
-    elif CURRENT_SWAP == SWAP_12:
-        rotate_shell_12(scene_graph, angle)
-    CURRENT_FRAME += 1
+    angle = angle if game_state["swap_clockwise"] == 0 else -angle
+    run_swap(game_state["cur_swap"], scene_graph, angle)
+    game_state["cur_frame"] += 1
     if degs >= 180:
-        SWAP_DONE = True
+        game_state["swap_done"] = True
+        print("swap done", time.time())
 
+def draw_scene_graph(surface, _, scene_graph):
+    """Draw and animate the scene graph"""
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph,
         vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
 
 # MAIN
+import time
 
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
@@ -197,6 +206,8 @@ def main_function():
     pygame.mouse.set_cursor(*pygame.cursors.broken_x)
 
     scene_graph = create_scene_graph()
+    game_state = create_game_state()
+
     # font = pygame.font.Font(None, 30)
 
     frame = 0
@@ -211,6 +222,7 @@ def main_function():
 
         screen.fill(RGB_BLACK)
 
+        run_game(scene_graph, game_state)
         draw_scene_graph(screen, frame, scene_graph)
 
         pygame.display.flip()
