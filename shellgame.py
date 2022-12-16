@@ -41,6 +41,7 @@ SWAP_01 = 0
 SWAP_12 = 1
 SWAP_02 = 2
 
+# Key: old pea location, Values: new location depending on swap
 SWAP_RESULT_TABLE = {
     0: {SWAP_01: 1, SWAP_12: 0, SWAP_02: 2},
     1: {SWAP_01: 0, SWAP_12: 2, SWAP_02: 1},
@@ -139,13 +140,16 @@ def create_game_state():
     }
     return game_state
 
-def reset_game_state(game_state):
+# Possible new swaps depending on old swap, make a binary choice
+RANDOM_NEW_SWAP_TABLE = {
+    SWAP_01: [SWAP_02, SWAP_12],
+    SWAP_02: [SWAP_01, SWAP_12],
+    SWAP_12: [SWAP_01, SWAP_02],
+}
+
+def reset_swap_state(game_state):
     """Set state to start of a new random swap"""
-    while True:
-        new_swap = random.randint(0, 2)
-        if new_swap != game_state["cur_swap"]:
-            break
-    game_state["cur_swap"] = new_swap
+    game_state["cur_swap"] = RANDOM_NEW_SWAP_TABLE[game_state["cur_swap"]][random.randint(0, 1)]
     game_state["swap_clockwise"] = random.randint(0, 1)
     game_state["cur_frame"] = 0
     game_state["swap_done"] = False
@@ -176,7 +180,7 @@ def run_game(scene_graph, game_state):
 
     if advance_game_state(scene_graph, game_state):
         reset_shell_positions(scene_graph)
-        reset_game_state(game_state)
+        reset_swap_state(game_state)
         advance_game_state(scene_graph, game_state)
 
 def draw_scene_graph(surface, _, scene_graph):
@@ -216,7 +220,7 @@ def main_function():
 
     scene_graph = create_scene_graph()
     game_state = create_game_state()
-    reset_game_state(game_state)
+    reset_swap_state(game_state)
 
     # font = pygame.font.Font(None, 30)
 
