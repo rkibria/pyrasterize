@@ -130,13 +130,20 @@ def run_swap(swap, scene_graph, angle):
     elif swap == SWAP_12:
         rotate_shell_12(scene_graph, angle)
 
+# Rotation speeds for small/big swaps depending on difficulty level
+ROTATE_SPEEDS = {
+    0: [15, 10],
+    1: [35, 30]
+}
+
 def create_game_state():
     """Generate new game state dict"""
     game_state = {
         "swap_done": False,
         "cur_swap": 0,
         "swap_clockwise": 0,
-        "cur_frame": 0
+        "cur_frame": 0,
+        "rotate_speeds": ROTATE_SPEEDS[1]
     }
     return game_state
 
@@ -161,8 +168,7 @@ def advance_game_state(scene_graph, game_state):
     """
     if game_state["cur_frame"] == 0:
         game_state["cur_frame"] = 1
-    degs_per_frame = 15 if game_state["cur_swap"] != SWAP_02 else 10
-    # degs_per_frame = 35 if game_state["cur_swap"] != SWAP_02 else 30
+    degs_per_frame = game_state["rotate_speeds"][0 if game_state["cur_swap"] != SWAP_02 else 1]
     degs = min(180, game_state["cur_frame"] * degs_per_frame)
     angle = vecmat.deg_to_rad(degs)
     angle = angle if game_state["swap_clockwise"] == 0 else -angle
