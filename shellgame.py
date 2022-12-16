@@ -144,9 +144,16 @@ ROTATE_SPEEDS = {
     2: [35, 30]
 }
 
+GS_WAIT_FOR_START = 0 # Waiting for player to press start
+GS_SHOW_PEA_START = 1 # Player started, showing pea start location
+GS_SWAPPING = 2 # Swapping shells until done
+GS_WAIT_FOR_CHOICE = 3 # Waiting for player to choose shell
+GS_REVEAL = 4 # Lift shell the player chose
+
 def create_game_state():
     """Generate new game state dict"""
     game_state = {
+        "state": GS_WAIT_FOR_START,
         "swap_done": False,
         "cur_swap": 0,
         "swap_clockwise": 0,
