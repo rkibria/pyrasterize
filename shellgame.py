@@ -69,6 +69,7 @@ LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 CUR_SELECTED = None
 SHELL_DIST = 2.5
 PEA_RADIUS = 0.5
+START_PRESSED = False
 
 def create_scene_graph():
     """Create the main scene graph"""
@@ -207,13 +208,18 @@ def run_game(scene_graph, game_state):
     # enable_pea(scene_graph, False)
     # set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
 
-    if advance_game_state(scene_graph, game_state):
-        reset_shell_positions(scene_graph)
-        if game_state["remaining_swaps"] > 0:
-            game_state["remaining_swaps"] -= 1
-            set_new_swap(game_state)
-            set_pea_pos(scene_graph, game_state["pea_loc"])
-            advance_game_state(scene_graph, game_state)
+    global START_PRESSED
+    if game_state["state"] == GS_WAIT_FOR_START:
+        if START_PRESSED:
+            game_state["state"] = GS_SWAPPING     
+    elif game_state["state"] == GS_SWAPPING:
+        if advance_game_state(scene_graph, game_state):
+            reset_shell_positions(scene_graph)
+            if game_state["remaining_swaps"] > 0:
+                game_state["remaining_swaps"] -= 1
+                set_new_swap(game_state)
+                set_pea_pos(scene_graph, game_state["pea_loc"])
+                advance_game_state(scene_graph, game_state)
 
 def draw_scene_graph(surface, _, scene_graph):
     """Draw and animate the scene graph"""
@@ -237,6 +243,10 @@ def on_left_down(pos, scene_graph):
         CUR_SELECTED["noCulling"] = True
     else:
         CUR_SELECTED = None
+
+    global START_PRESSED
+    if pos[0] < 100 and pos[1] < 100:
+        START_PRESSED = True
 
 def main_function():
     """Main"""
@@ -269,6 +279,8 @@ def main_function():
 
         run_game(scene_graph, game_state)
         draw_scene_graph(screen, frame, scene_graph)
+
+        pygame.draw.rect(screen, (0, 200, 0), (0, 0, 100, 100))
 
         pygame.display.flip()
         frame += 1
