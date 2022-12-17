@@ -211,14 +211,14 @@ def run_game(scene_graph, game_state):
     global START_PRESSED
     if game_state["state"] == GS_WAIT_FOR_START:
         if START_PRESSED:
-            game_state["state"] = GS_SWAPPING     
+            game_state["state"] = GS_SWAPPING
     elif game_state["state"] == GS_SWAPPING:
         if advance_game_state(scene_graph, game_state):
             reset_shell_positions(scene_graph)
+            set_pea_pos(scene_graph, game_state["pea_loc"])
             if game_state["remaining_swaps"] > 0:
                 game_state["remaining_swaps"] -= 1
                 set_new_swap(game_state)
-                set_pea_pos(scene_graph, game_state["pea_loc"])
                 advance_game_state(scene_graph, game_state)
 
 def draw_scene_graph(surface, _, scene_graph):
