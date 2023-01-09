@@ -75,11 +75,12 @@ def create_scene_graph():
     """Create the main scene graph"""
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     for i in range(3):
-        scene_graph["root"]["children"]["shell_" + str(i)] = rasterizer.get_model_instance(
+        name = "shell_" + str(i)
+        scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
             meshes.get_cylinder_mesh(2, 1, 50, (100, 100, 230), close_bottom=False),
             xform_m4=vecmat.get_transl_m4(-SHELL_DIST + i * SHELL_DIST, 0, 0))
-        # scene_graph["root"]["children"][name]["wireframe"] = True
-        # scene_graph["root"]["children"][name]["noCulling"] = True
+        scene_graph["root"]["children"][name]["wireframe"] = True
+        scene_graph["root"]["children"][name]["noCulling"] = True
     scene_graph["root"]["children"]["pea"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(PEA_RADIUS, 6, 4, (200, 20, 20)),
         xform_m4=vecmat.get_transl_m4(-SHELL_DIST, 0, 0))
@@ -145,11 +146,12 @@ ROTATE_SPEEDS = {
     2: [35, 30]
 }
 
-GS_WAIT_FOR_START = 0 # Waiting for player to press start
-GS_SHOW_PEA_START = 1 # Player started, showing pea start location
-GS_SWAPPING = 2 # Swapping shells until done
+# All game states
+GS_WAIT_FOR_START = 0  # Waiting for player to press start
+GS_SHOW_PEA_START = 1  # Player started, showing pea start location
+GS_SWAPPING = 2        # Swapping shells until done
 GS_WAIT_FOR_CHOICE = 3 # Waiting for player to choose shell
-GS_REVEAL = 4 # Lift shell the player chose
+GS_REVEAL = 4          # Lift shell the player chose
 
 def create_game_state():
     """Generate new game state dict"""
@@ -185,9 +187,9 @@ def set_new_swap(game_state):
     print(f"pea from {game_state['pea_loc']} to {new_loc}")
     game_state["pea_loc"] = new_loc
 
-def advance_game_state(scene_graph, game_state):
+def animate_shell_swapping(scene_graph, game_state):
     """
-    Animate the current state of the game
+    Animate the shell swapping
     Return True if reached last animation frame
     """
     if game_state["cur_frame"] == 0:
@@ -202,24 +204,31 @@ def advance_game_state(scene_graph, game_state):
         game_state["swap_done"] = True
     return game_state["swap_done"]
 
-def run_game(scene_graph, game_state):
+def run_game_state_machine(scene_graph, frame, game_state):
     """Run the game logic and animate scene graph"""
-    # angle = 10 * vecmat.deg_to_rad(frame)
-    # enable_pea(scene_graph, False)
-    # set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(5 * vecmat.deg_to_rad(frame))) * 3, 0)
-
     global START_PRESSED
+
     if game_state["state"] == GS_WAIT_FOR_START:
         if START_PRESSED:
-            game_state["state"] = GS_SWAPPING
+            enable_pea(scene_graph, True)
+            set_pea_pos(scene_graph, 0, 0)
+            game_state["state"] = GS_SHOW_PEA_START
     elif game_state["state"] == GS_SWAPPING:
-        if advance_game_state(scene_graph, game_state):
+        if animate_shell_swapping(scene_graph, game_state):
             reset_shell_positions(scene_graph)
             set_pea_pos(scene_graph, game_state["pea_loc"])
             if game_state["remaining_swaps"] > 0:
                 game_state["remaining_swaps"] -= 1
                 set_new_swap(game_state)
-                advance_game_state(scene_graph, game_state)
+                animate_shell_swapping(scene_graph, game_state)
+    elif game_state["state"] == GS_SHOW_PEA_START:
+        angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 0.5)
+        set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(angle)) * 3, 0)
+        game_state["cur_frame"] += 1
+        if angle >= math.pi:
+            game_state["cur_frame"] = 0
+            enable_pea(scene_graph, False)
+            game_state["state"] = GS_SWAPPING
 
 def draw_scene_graph(surface, _, scene_graph):
     """Draw and animate the scene graph"""
@@ -277,7 +286,7 @@ def main_function():
 
         screen.fill(RGB_BLACK)
 
-        run_game(scene_graph, game_state)
+        run_game_state_machine(scene_graph, frame, game_state)
         draw_scene_graph(screen, frame, scene_graph)
 
         pygame.draw.rect(screen, (0, 200, 0), (0, 0, 100, 100))
