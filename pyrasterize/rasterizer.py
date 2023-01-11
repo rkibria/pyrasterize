@@ -174,7 +174,7 @@ def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
         return vecmat.ray_sphere_intersect(r_orig, r_dir, sph_orig, sph_r)
 
     def traverse_scene_graph(subgraph, parent_m):
-        for _,instance in subgraph.items():
+        for name,instance in subgraph.items():
             proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
             proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
             proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
@@ -186,11 +186,11 @@ def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
                     nonlocal selected
                     if min_t < 0:
                         min_t = ray_t
-                        selected = instance
+                        selected = (name, instance)
                     else:
                         if ray_t < min_t:
                             min_t = ray_t
-                            selected = instance
+                            selected = (name, instance)
             else: # Only check outermost models for selection
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:

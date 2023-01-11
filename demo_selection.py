@@ -61,12 +61,12 @@ def on_left_down(pos, scene_graph):
     selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
         vecmat.get_simple_camera_m(CAMERA))
     if CUR_SELECTED is not None:
-        CUR_SELECTED["wireframe"] = False
-        CUR_SELECTED["noCulling"] = False
+        CUR_SELECTED[1]["wireframe"] = False
+        CUR_SELECTED[1]["noCulling"] = False
     if selection:
         CUR_SELECTED = selection
-        CUR_SELECTED["wireframe"] = True
-        CUR_SELECTED["noCulling"] = True
+        CUR_SELECTED[1]["wireframe"] = True
+        CUR_SELECTED[1]["noCulling"] = True
     else:
         CUR_SELECTED = None
 

@@ -4,6 +4,7 @@ Simulates the classic shell game with 3d models
 
 import math
 import random
+import sys
 
 import pygame
 import pygame.gfxdraw
@@ -77,6 +78,7 @@ def create_scene_graph():
         scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
             meshes.get_cylinder_mesh(2, 1, 50, (100, 100, 230), close_bottom=False),
             xform_m4=vecmat.get_transl_m4(-SHELL_DIST + i * SHELL_DIST, 0, 0))
+        scene_graph["root"]["children"][name]["bound_sph_r"] = 1
         scene_graph["root"]["children"][name]["wireframe"] = True
         scene_graph["root"]["children"][name]["noCulling"] = True
     scene_graph["root"]["children"]["pea"] = rasterizer.get_model_instance(
@@ -232,7 +234,16 @@ def run_game_state_machine(scene_graph, frame, game_state):
                 set_pea_pos(scene_graph, game_state["pea_loc"])
                 game_state["state"] = GS_WAIT_FOR_CHOICE
     elif game_state["state"] == GS_WAIT_FOR_CHOICE:
-        pass
+        if game_state["selected_shell"] is not None:
+            game_state["cur_frame"] = 0
+            game_state["selected_shell_idx"] = {"shell_0": 0, "shell_1": 1, "shell_2": 2}[game_state["selected_shell"][0]]
+            print(game_state["selected_shell_idx"])
+            game_state["state"] = GS_REVEAL
+    elif game_state["state"] == GS_REVEAL:
+        angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 1.95)
+        set_shell_pos(scene_graph, game_state["selected_shell_idx"], -SHELL_DIST, abs(math.sin(angle)) * 3, 0)
+        if angle <= math.pi/2:
+            game_state["cur_frame"] += 1
 
 def draw_scene_graph(surface, _, scene_graph):
     """Draw and animate the scene graph"""
@@ -244,11 +255,12 @@ def draw_scene_graph(surface, _, scene_graph):
 
 def on_left_down(pos, game_state, scene_graph):
     """Handle left button down"""
-    game_state["selected_shell"] = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
-        vecmat.get_simple_camera_m(CAMERA))
-
-    if pos[0] < 100 and pos[1] < 100:
-        game_state["start_pressed"] = True
+    if game_state["state"] == GS_WAIT_FOR_CHOICE:
+        game_state["selected_shell"] = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
+            vecmat.get_simple_camera_m(CAMERA))
+    elif game_state["state"] == GS_WAIT_FOR_START:
+        if pos[0] < 100 and pos[1] < 100:
+            game_state["start_pressed"] = True
 
 def main_function():
     """Main"""
