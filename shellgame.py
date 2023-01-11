@@ -66,10 +66,8 @@ CAMERA = { "pos": [0, 4, 7],
     "fov": 90,
     "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
-CUR_SELECTED = None
 SHELL_DIST = 2.5
 PEA_RADIUS = 0.5
-START_PRESSED = False
 
 def create_scene_graph():
     """Create the main scene graph"""
@@ -163,7 +161,9 @@ def create_game_state():
         "cur_frame": 0,
         "rotate_speeds": ROTATE_SPEEDS[1],
         "remaining_swaps": 3,
-        "pea_loc": 0
+        "pea_loc": 0,
+        "start_pressed": False,
+        "selected_shell": None
     }
     return game_state
 
@@ -206,10 +206,8 @@ def animate_shell_swapping(scene_graph, game_state):
 
 def run_game_state_machine(scene_graph, frame, game_state):
     """Run the game logic and animate scene graph"""
-    global START_PRESSED
-
     if game_state["state"] == GS_WAIT_FOR_START:
-        if START_PRESSED:
+        if game_state["start_pressed"]:
             enable_pea(scene_graph, True)
             set_pea_pos(scene_graph, 0, 0)
             game_state["state"] = GS_SHOW_PEA_START
@@ -230,10 +228,11 @@ def run_game_state_machine(scene_graph, frame, game_state):
                 set_new_swap(game_state)
                 animate_shell_swapping(scene_graph, game_state)
             else:
+                enable_pea(scene_graph, True)
+                set_pea_pos(scene_graph, game_state["pea_loc"])
                 game_state["state"] = GS_WAIT_FOR_CHOICE
     elif game_state["state"] == GS_WAIT_FOR_CHOICE:
-        enable_pea(scene_graph, True)
-        set_pea_pos(scene_graph, game_state["pea_loc"])
+        pass
 
 def draw_scene_graph(surface, _, scene_graph):
     """Draw and animate the scene graph"""
@@ -243,24 +242,13 @@ def draw_scene_graph(surface, _, scene_graph):
 
 # MAIN
 
-def on_left_down(pos, scene_graph):
+def on_left_down(pos, game_state, scene_graph):
     """Handle left button down"""
-    global CUR_SELECTED
-    selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
+    game_state["selected_shell"] = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
         vecmat.get_simple_camera_m(CAMERA))
-    if CUR_SELECTED is not None:
-        CUR_SELECTED["wireframe"] = False
-        CUR_SELECTED["noCulling"] = False
-    if selection:
-        CUR_SELECTED = selection
-        CUR_SELECTED["wireframe"] = True
-        CUR_SELECTED["noCulling"] = True
-    else:
-        CUR_SELECTED = None
 
-    global START_PRESSED
     if pos[0] < 100 and pos[1] < 100:
-        START_PRESSED = True
+        game_state["start_pressed"] = True
 
 def main_function():
     """Main"""
@@ -287,7 +275,7 @@ def main_function():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                on_left_down(pygame.mouse.get_pos(), scene_graph)
+                on_left_down(pygame.mouse.get_pos(), game_state, scene_graph)
 
         screen.fill(RGB_BLACK)
 
