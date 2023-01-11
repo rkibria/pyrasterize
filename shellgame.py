@@ -161,7 +161,7 @@ def create_game_state():
         "cur_swap": 0,
         "swap_clockwise": 0,
         "cur_frame": 0,
-        "rotate_speeds": ROTATE_SPEEDS[0],
+        "rotate_speeds": ROTATE_SPEEDS[1],
         "remaining_swaps": 3,
         "pea_loc": 0
     }
@@ -213,6 +213,14 @@ def run_game_state_machine(scene_graph, frame, game_state):
             enable_pea(scene_graph, True)
             set_pea_pos(scene_graph, 0, 0)
             game_state["state"] = GS_SHOW_PEA_START
+    elif game_state["state"] == GS_SHOW_PEA_START:
+        angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 1.95)
+        set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(angle)) * 3, 0)
+        game_state["cur_frame"] += 1
+        if angle >= math.pi:
+            game_state["cur_frame"] = 0
+            enable_pea(scene_graph, False)
+            game_state["state"] = GS_SWAPPING
     elif game_state["state"] == GS_SWAPPING:
         if animate_shell_swapping(scene_graph, game_state):
             reset_shell_positions(scene_graph)
@@ -221,14 +229,11 @@ def run_game_state_machine(scene_graph, frame, game_state):
                 game_state["remaining_swaps"] -= 1
                 set_new_swap(game_state)
                 animate_shell_swapping(scene_graph, game_state)
-    elif game_state["state"] == GS_SHOW_PEA_START:
-        angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 0.5)
-        set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(angle)) * 3, 0)
-        game_state["cur_frame"] += 1
-        if angle >= math.pi:
-            game_state["cur_frame"] = 0
-            enable_pea(scene_graph, False)
-            game_state["state"] = GS_SWAPPING
+            else:
+                game_state["state"] = GS_WAIT_FOR_CHOICE
+    elif game_state["state"] == GS_WAIT_FOR_CHOICE:
+        enable_pea(scene_graph, True)
+        set_pea_pos(scene_graph, game_state["pea_loc"])
 
 def draw_scene_graph(surface, _, scene_graph):
     """Draw and animate the scene graph"""
