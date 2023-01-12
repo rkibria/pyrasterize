@@ -241,7 +241,9 @@ def run_game_state_machine(scene_graph, frame, game_state):
             game_state["state"] = GS_REVEAL
     elif game_state["state"] == GS_REVEAL:
         angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 1.95)
-        set_shell_pos(scene_graph, game_state["selected_shell_idx"], -SHELL_DIST, abs(math.sin(angle)) * 3, 0)
+        set_shell_pos(scene_graph, game_state["selected_shell_idx"],
+            -SHELL_DIST + game_state["selected_shell_idx"] * SHELL_DIST,
+            abs(math.sin(angle)) * 3, 0)
         if angle <= math.pi/2:
             game_state["cur_frame"] += 1
 
