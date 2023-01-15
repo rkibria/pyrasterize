@@ -216,9 +216,10 @@ def animate_shell_swapping(scene_graph, game_state):
 def run_game_state_machine(game_state, scene_graph):
     """Run the game logic and animate scene graph"""
     if game_state["state"] == GS_WAIT_FOR_START:
+        enable_pea(scene_graph, False)
         set_pea_pos(scene_graph, game_state['pea_loc'], 0)
-        enable_pea(scene_graph, True)
         if game_state["button_pressed"]:
+            enable_pea(scene_graph, True)
             game_state["button_pressed"] = False
             game_state["state"] = GS_SHOW_PEA_START
     elif game_state["state"] == GS_SHOW_PEA_START:
@@ -227,7 +228,7 @@ def run_game_state_machine(game_state, scene_graph):
         game_state["cur_frame"] += 1
         if angle >= math.pi:
             game_state["cur_frame"] = 0
-            # enable_pea(scene_graph, False)
+            enable_pea(scene_graph, False)
             game_state["state"] = GS_SWAPPING
     elif game_state["state"] == GS_SWAPPING:
         if animate_shell_swapping(scene_graph, game_state):
@@ -244,7 +245,7 @@ def run_game_state_machine(game_state, scene_graph):
         if game_state["selected_shell"] is not None:
             game_state["cur_frame"] = 0
             game_state["selected_shell_idx"] = {"shell_0": 0, "shell_1": 1, "shell_2": 2}[game_state["selected_shell"][0]]
-            print(game_state["selected_shell_idx"])
+            enable_pea(scene_graph, True)
             game_state["state"] = GS_REVEAL
     elif game_state["state"] == GS_REVEAL:
         angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 1.95)
