@@ -298,7 +298,6 @@ def main_function():
     font = pygame.font.Font(None, 30)
     font_cache = create_font_cache(font)
 
-    frame = 0
     done = False
     while not done:
         clock.tick(30)
@@ -307,16 +306,10 @@ def main_function():
                 done = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_left_down(pygame.mouse.get_pos(), game_state, scene_graph)
-
         screen.fill((0, 0, 0))
-
         run_game_state_machine(game_state, scene_graph)
         draw_game_state(screen, font_cache, game_state, scene_graph)
-
         pygame.display.flip()
-        frame += 1
-        # if frame % 30 == 0:
-        #     print(f"{clock.get_fps()} fps")
 
 if __name__ == '__main__':
     main_function()
