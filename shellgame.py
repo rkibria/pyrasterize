@@ -72,13 +72,9 @@ def create_scene_graph():
             meshes.get_cylinder_mesh(SHELL_LENGTH, 1, 50, (100, 100, 230), close_bottom=False),
             xform_m4=vecmat.get_transl_m4(-SHELL_DIST + i * SHELL_DIST, 0, 0))
         scene_graph["root"]["children"][name]["bound_sph_r"] = 1
-        scene_graph["root"]["children"][name]["wireframe"] = True
-        scene_graph["root"]["children"][name]["noCulling"] = True
     scene_graph["root"]["children"]["pea"] = rasterizer.get_model_instance(
-        meshes.get_sphere_mesh(PEA_RADIUS, 6, 4, (200, 20, 20)),
+        meshes.get_sphere_mesh(PEA_RADIUS, 16, 16, (200, 20, 20)),
         xform_m4=vecmat.get_transl_m4(-SHELL_DIST, 0, 0))
-    scene_graph["root"]["children"]["pea"]["wireframe"] = True
-    scene_graph["root"]["children"]["pea"]["noCulling"] = True
     return scene_graph
 
 def set_pea_pos(scene_graph, n_shell):
@@ -98,21 +94,6 @@ def rotate_shell_around_point(scene_graph, n_shell, px, pz, y, angle, radius):
     z = pz + radius * math.sin(angle)
     set_shell_pos(scene_graph, n_shell, x, y, z)
 
-def rotate_shell_01(scene_graph, angle):
-    """Rotate shells 0 and 1 around their mid point"""
-    rotate_shell_around_point(scene_graph, 0, -SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
-    rotate_shell_around_point(scene_graph, 1, -SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
-
-def rotate_shell_12(scene_graph, angle):
-    """Rotate shells 1 and 2 around their mid point"""
-    rotate_shell_around_point(scene_graph, 1, SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
-    rotate_shell_around_point(scene_graph, 2, SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
-
-def rotate_shell_02(scene_graph, angle):
-    """Rotate shells 0 and 2 around their mid point"""
-    rotate_shell_around_point(scene_graph, 0, 0, 0, 0, angle, SHELL_DIST)
-    rotate_shell_around_point(scene_graph, 2, 0, 0, 0, angle + math.pi, SHELL_DIST)
-
 def enable_pea(scene_graph, en):
     """Enable drawing of the pea"""
     scene_graph["root"]["children"]["pea"]["enabled"] = en
@@ -126,11 +107,14 @@ def reset_shell_positions(scene_graph):
 def run_swap(swap, scene_graph, angle):
     """Animate the current swap"""
     if swap == SWAP_01:
-        rotate_shell_01(scene_graph, angle)
+        rotate_shell_around_point(scene_graph, 0, -SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
+        rotate_shell_around_point(scene_graph, 1, -SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
     elif swap == SWAP_02:
-        rotate_shell_02(scene_graph, angle)
+        rotate_shell_around_point(scene_graph, 0, 0, 0, 0, angle, SHELL_DIST)
+        rotate_shell_around_point(scene_graph, 2, 0, 0, 0, angle + math.pi, SHELL_DIST)
     elif swap == SWAP_12:
-        rotate_shell_12(scene_graph, angle)
+        rotate_shell_around_point(scene_graph, 1, SHELL_DIST/2, 0, 0, angle, SHELL_DIST/2)
+        rotate_shell_around_point(scene_graph, 2, SHELL_DIST/2, 0, 0, angle + math.pi, SHELL_DIST/2)
 
 # GAME STATE AND GAME LOGIC HELPERS
 
@@ -304,7 +288,7 @@ def main_function():
     random.seed()
 
     screen = pygame.display.set_mode(SCR_SIZE)
-    pygame.display.set_caption("PyRasterize")
+    pygame.display.set_caption("Shell Game")
     clock = pygame.time.Clock()
 
     pygame.mouse.set_cursor(*pygame.cursors.broken_x)
@@ -338,4 +322,3 @@ def main_function():
 
 if __name__ == '__main__':
     main_function()
-
