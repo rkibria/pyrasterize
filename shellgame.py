@@ -46,7 +46,7 @@ def get_new_pea_loc(pea_loc, n_swap):
     """Returns new pea location depending on swap"""
     return SWAP_RESULT_TABLE[pea_loc][n_swap]
 
-# CONSTANTS
+# VIEW SETTINGS
 
 SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 800, 600
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
@@ -56,6 +56,9 @@ CAMERA = { "pos": [0, 4, 7],
     "fov": 90,
     "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+
+# 3D ANIMATION FUNCTIONS
+
 SHELL_DIST = 2.5
 SHELL_LENGTH = 2
 PEA_RADIUS = 0.5
@@ -129,14 +132,8 @@ def run_swap(swap, scene_graph, angle):
     elif swap == SWAP_12:
         rotate_shell_12(scene_graph, angle)
 
-# Rotation speeds for small/big swaps depending on difficulty level
-ROTATE_SPEEDS = {
-    0: [5, 2],
-    1: [15, 10],
-    2: [35, 30]
-}
+# GAME STATE AND GAME LOGIC HELPERS
 
-# All game states
 GS_WAIT_FOR_START = 0  # Waiting for player to click to start game
 GS_SHOW_PEA_START = 1  # Player started, showing pea start location
 GS_SWAPPING = 2        # Swapping shells until done
@@ -152,7 +149,7 @@ def create_game_state():
         "cur_swap": 0,
         "swap_clockwise": 0,
         "cur_frame": 0,
-        "rotate_speeds": ROTATE_SPEEDS[1],
+        "rotate_speeds": [15, 10], # narrow/wide swap rotation speed
         "remaining_swaps": 3,
         "pea_loc": random.randint(0, 2),
         "button_pressed": False,
@@ -161,19 +158,7 @@ def create_game_state():
     }
     return game_state
 
-def create_font_cache(font):
-    """Create prerendered font images"""
-    cache = {
-        "Click left button to start": None,
-        "Click on the shell hiding the pea": None,
-        "Correct! Click left button to play again": None,
-        "Sorry, wrong! Click left button to play again": None
-    }
-    for k,_ in cache.items():
-        cache[k] = font.render(k, True, (255, 255, 255))
-    return cache
-
-# Possible new swaps depending on old swap, make a binary choice
+# Possible new swaps depending on old swap
 NEW_SWAP_TABLE = {
     SWAP_01: [SWAP_02, SWAP_12],
     SWAP_02: [SWAP_01, SWAP_12],
@@ -193,6 +178,8 @@ def perform_swap(game_state):
     print(f"pea from {game_state['pea_loc']} to {new_loc}")
     game_state["pea_loc"] = new_loc
 
+# DRAWING HELPERS
+
 def animate_shell_swapping(scene_graph, game_state):
     """
     Animate the shell swapping
@@ -209,6 +196,26 @@ def animate_shell_swapping(scene_graph, game_state):
     if degs >= 180:
         game_state["swap_done"] = True
     return game_state["swap_done"]
+
+def create_font_cache(font):
+    """Create prerendered font images"""
+    cache = {
+        "Click left button to start": None,
+        "Click on the shell hiding the pea": None,
+        "Correct! Click left button to play again": None,
+        "Sorry, wrong! Click left button to play again": None
+    }
+    for k,_ in cache.items():
+        cache[k] = font.render(k, True, (255, 255, 255))
+    return cache
+
+def draw_centered_text(surface, font_cache, string, pos):
+    """Draw text centered at position"""
+    text = font_cache[string]
+    text_rect = text.get_rect(center=pos)
+    surface.blit(text, text_rect)
+
+# MAIN GAME LOGIC AND DRAWING
 
 def run_game_state_machine(game_state, scene_graph):
     """Run the game logic and animate scene graph"""
@@ -264,12 +271,6 @@ def run_game_state_machine(game_state, scene_graph):
             init_swap(game_state)
             set_pea_pos(scene_graph, game_state["pea_loc"])
 
-def draw_centered_text(surface, font_cache, string, pos):
-    """Draw text centered at position"""
-    text = font_cache[string]
-    text_rect = text.get_rect(center=pos)
-    surface.blit(text, text_rect)
-
 def draw_game_state(surface, font_cache, game_state, scene_graph):
     """Draw and animate the scene graph and anything else related to the game"""
     title_pos = (SCR_WIDTH/2, SCR_HEIGHT/6)
@@ -287,7 +288,7 @@ def draw_game_state(surface, font_cache, game_state, scene_graph):
     rasterizer.render(surface, SCR_AREA, scene_graph,
         vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
 
-# MAIN
+# PYGAME MAIN
 
 def on_left_down(pos, game_state, scene_graph):
     """Handle left button down"""
