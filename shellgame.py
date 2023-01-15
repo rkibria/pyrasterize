@@ -61,6 +61,7 @@ CAMERA = { "pos": [0, 4, 7],
     "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 SHELL_DIST = 2.5
+SHELL_LENGTH = 2
 PEA_RADIUS = 0.5
 
 def create_scene_graph():
@@ -69,7 +70,7 @@ def create_scene_graph():
     for i in range(3):
         name = "shell_" + str(i)
         scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
-            meshes.get_cylinder_mesh(2, 1, 50, (100, 100, 230), close_bottom=False),
+            meshes.get_cylinder_mesh(SHELL_LENGTH, 1, 50, (100, 100, 230), close_bottom=False),
             xform_m4=vecmat.get_transl_m4(-SHELL_DIST + i * SHELL_DIST, 0, 0))
         scene_graph["root"]["children"][name]["bound_sph_r"] = 1
         scene_graph["root"]["children"][name]["wireframe"] = True
@@ -79,12 +80,12 @@ def create_scene_graph():
         xform_m4=vecmat.get_transl_m4(-SHELL_DIST, 0, 0))
     scene_graph["root"]["children"]["pea"]["wireframe"] = True
     scene_graph["root"]["children"]["pea"]["noCulling"] = True
-
     return scene_graph
 
-def set_pea_pos(scene_graph, n_shell, y=0):
+def set_pea_pos(scene_graph, n_shell):
     """Set pea position at shell"""
     inst = scene_graph["root"]["children"]["pea"]
+    y = -SHELL_LENGTH/2 + PEA_RADIUS
     inst["xform_m4"] = vecmat.get_transl_m4(-SHELL_DIST + n_shell * SHELL_DIST, y, 0)
 
 def set_shell_pos(scene_graph, n_shell, x, y, z):
@@ -217,7 +218,7 @@ def run_game_state_machine(game_state, scene_graph):
     """Run the game logic and animate scene graph"""
     if game_state["state"] == GS_WAIT_FOR_START:
         enable_pea(scene_graph, False)
-        set_pea_pos(scene_graph, game_state['pea_loc'], 0)
+        set_pea_pos(scene_graph, game_state['pea_loc'])
         if game_state["button_pressed"]:
             enable_pea(scene_graph, True)
             game_state["button_pressed"] = False
