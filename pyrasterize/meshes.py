@@ -81,7 +81,8 @@ def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR
 
 def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
     """
-    Return a sphere
+    Return a sphere with r_divs divisons along the radius
+    and l_divs divisions along the length from pole to pole
     """
     r_divs = max(3, r_divs)
     l_divs = max(2, l_divs)
@@ -93,10 +94,13 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
     mesh["verts"].append((0, bottom_y, 0))
     mesh["verts"].append((0, top_y, 0))
     r_phi_step = 2 * math.pi / r_divs
+    l_phi_step = math.pi / l_divs
 
     for l_i in range(l_divs - 1):
         for r_i in range(r_divs):
-            y_i = -radius + (2 * radius / l_divs) * (l_i + 1)
+            # divide surface arc from bottom to top into l_divs
+            l_phi = l_phi_step * (l_i + 1)
+            y_i = -radius * math.cos(l_phi)
             radius_i = (radius ** 2 - y_i ** 2) ** 0.5
 
             r_phi = r_phi_step * r_i
@@ -137,7 +141,8 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
     return mesh
 
 def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR,
-    close_top=True, close_bottom=True):
+    close_top=True, close_bottom=True,
+    top_offset=0.0, bottom_offset=0.0):
     """
     Return a cylinder of requested length, radius and division count
     Caution: cylinder insides are not rendered if top/bottom missing
@@ -150,8 +155,8 @@ def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR,
     top_y = length/2
     bottom_center_v = 0
     top_center_v = 1
-    mesh["verts"].append((0, bottom_y, 0))
-    mesh["verts"].append((0, top_y, 0))
+    mesh["verts"].append((0, bottom_y - bottom_offset, 0))
+    mesh["verts"].append((0, top_y + top_offset, 0))
     phi_step = 2 * math.pi / r_divs
     for i in range(r_divs): # wall verts
         phi = phi_step * i

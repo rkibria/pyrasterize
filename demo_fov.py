@@ -18,16 +18,6 @@ SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 RGB_WHITE = (255, 255, 255)
 
-def get_camera_m(cam):
-    """Return matrix based on camera dict(rot = [x,y,z],pos = [x,y,z])"""
-    cam_pos = cam["pos"]
-    cam_rot = cam["rot"]
-    camera_m = vecmat.get_transl_m4(-cam_pos[0], -cam_pos[1], -cam_pos[2])
-    camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_z_m4(-cam_rot[2]), camera_m)
-    camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(-cam_rot[1]), camera_m)
-    camera_m = vecmat.mat4_mat4_mul(vecmat.get_rot_x_m4(-cam_rot[0]), camera_m)
-    return camera_m
-
 CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
@@ -130,7 +120,8 @@ def draw_scene_graph(surface, frame, scene_graph):
     CAMERA["fov"] = 60 + 50 * -math.cos(vecmat.deg_to_rad(frame))
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
-    rasterizer.render(surface, SCR_AREA, scene_graph, get_camera_m(CAMERA), persp_m, LIGHTING)
+    rasterizer.render(surface, SCR_AREA, scene_graph,
+        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
 
 # MAIN
 
