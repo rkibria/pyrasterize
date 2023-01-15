@@ -158,7 +158,7 @@ def create_game_state():
         "cur_frame": 0,
         "rotate_speeds": ROTATE_SPEEDS[1],
         "remaining_swaps": 3,
-        "pea_loc": 0,
+        "pea_loc": random.randint(0, 2),
         "button_pressed": False,
         "selected_shell": None,
         "selected_shell_idx": None
@@ -225,7 +225,9 @@ def run_game_state_machine(game_state, scene_graph):
             game_state["state"] = GS_SHOW_PEA_START
     elif game_state["state"] == GS_SHOW_PEA_START:
         angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 1.95)
-        set_shell_pos(scene_graph, 0, -SHELL_DIST, abs(math.sin(angle)) * 3, 0)
+        set_shell_pos(scene_graph, game_state['pea_loc'],
+            -SHELL_DIST + game_state["pea_loc"] * SHELL_DIST,
+            abs(math.sin(angle)) * 3, 0)
         game_state["cur_frame"] += 1
         if angle >= math.pi:
             game_state["cur_frame"] = 0
