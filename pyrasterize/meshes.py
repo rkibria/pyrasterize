@@ -137,7 +137,8 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
     return mesh
 
 def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR,
-    close_top=True, close_bottom=True):
+    close_top=True, close_bottom=True,
+    top_offset=0.0, bottom_offset=0.0):
     """
     Return a cylinder of requested length, radius and division count
     Caution: cylinder insides are not rendered if top/bottom missing
@@ -150,8 +151,8 @@ def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR,
     top_y = length/2
     bottom_center_v = 0
     top_center_v = 1
-    mesh["verts"].append((0, bottom_y, 0))
-    mesh["verts"].append((0, top_y, 0))
+    mesh["verts"].append((0, bottom_y - bottom_offset, 0))
+    mesh["verts"].append((0, top_y + top_offset, 0))
     phi_step = 2 * math.pi / r_divs
     for i in range(r_divs): # wall verts
         phi = phi_step * i

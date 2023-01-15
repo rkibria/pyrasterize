@@ -69,7 +69,8 @@ def create_scene_graph():
     for i in range(3):
         name = "shell_" + str(i)
         scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
-            meshes.get_cylinder_mesh(SHELL_LENGTH, 1, 50, (100, 100, 230), close_bottom=False),
+            meshes.get_cylinder_mesh(SHELL_LENGTH, 1, 50, (100, 100, 230),
+            close_bottom=False, top_offset=0.5),
             xform_m4=vecmat.get_transl_m4(-SHELL_DIST + i * SHELL_DIST, 0, 0))
         scene_graph["root"]["children"][name]["bound_sph_r"] = 1
     scene_graph["root"]["children"]["pea"] = rasterizer.get_model_instance(
