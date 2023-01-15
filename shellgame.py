@@ -179,23 +179,13 @@ def animate_shell_swapping(scene_graph, game_state):
         game_state["swap_done"] = True
     return game_state["swap_done"]
 
-def create_font_cache(font):
-    """Create prerendered font images"""
-    cache = {
-        "Click left button to start": None,
-        "Click on the shell hiding the pea": None,
-        "Correct! Click left button to play again": None,
-        "Sorry, wrong! Click left button to play again": None
-    }
-    for k,_ in cache.items():
-        cache[k] = font.render(k, True, (255, 255, 255))
-    return cache
-
 def draw_centered_text(surface, font_cache, string, pos):
     """Draw text centered at position"""
-    text = font_cache[string]
-    text_rect = text.get_rect(center=pos)
-    surface.blit(text, text_rect)
+    if not string in font_cache:
+        font_cache[string] = font_cache["_FONT_OBJ"].render(string, True, (255, 255, 255))
+    img = font_cache[string]
+    text_rect = img.get_rect(center=pos)
+    surface.blit(img, text_rect)
 
 # MAIN GAME LOGIC AND DRAWING
 
@@ -296,7 +286,7 @@ def main_function():
     init_swap(game_state)
 
     font = pygame.font.Font(None, 30)
-    font_cache = create_font_cache(font)
+    font_cache = {"_FONT_OBJ" : font}
 
     done = False
     while not done:
