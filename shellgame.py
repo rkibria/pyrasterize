@@ -4,7 +4,6 @@ Simulates the classic shell game with 3d models
 
 import math
 import random
-import sys
 
 import pygame
 import pygame.gfxdraw
