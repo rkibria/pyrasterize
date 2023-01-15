@@ -158,9 +158,7 @@ def init_swap(game_state):
 
 def perform_swap(game_state):
     """Perform the swap indicated by current state"""
-    new_loc = get_new_pea_loc(game_state["pea_loc"], game_state["cur_swap"])
-    print(f"pea from {game_state['pea_loc']} to {new_loc}")
-    game_state["pea_loc"] = new_loc
+    game_state["pea_loc"] = get_new_pea_loc(game_state["pea_loc"], game_state["cur_swap"])
 
 # DRAWING HELPERS
 
