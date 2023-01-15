@@ -159,7 +159,8 @@ def create_game_state():
         "remaining_swaps": 3,
         "pea_loc": 0,
         "start_pressed": False,
-        "selected_shell": None
+        "selected_shell": None,
+        "selected_shell_idx": None
     }
     return game_state
 
@@ -167,11 +168,9 @@ def create_font_cache(font):
     """Create prerendered font images"""
     cache = {
         "Click left button to start": None,
-        "Click on shell where the pea is": None,
-        "Correct!": None,
-        "Sorry, wrong!": None,
-        "Game Over": None,
-        "Click left button to play again": None
+        "Click on the shell hiding the pea": None,
+        "Correct! Click left button to play again": None,
+        "Sorry, wrong! Click left button to play again": None
     }
     for k,_ in cache.items():
         cache[k] = font.render(k, True, RGB_WHITE)
@@ -254,6 +253,10 @@ def run_game_state_machine(game_state, scene_graph):
             abs(math.sin(angle)) * 3, 0)
         if angle <= math.pi/2:
             game_state["cur_frame"] += 1
+        else:
+            game_state["state"] = GS_GAME_OVER
+    elif game_state["state"] == GS_GAME_OVER:
+        pass
 
 def draw_centered_text(surface, font_cache, string, pos):
     """Draw text centered at position"""
@@ -263,17 +266,16 @@ def draw_centered_text(surface, font_cache, string, pos):
 
 def draw_game_state(surface, font_cache, game_state, scene_graph):
     """Draw and animate the scene graph and anything else related to the game"""
-    title_pos = (SCR_WIDTH/2, SCR_HEIGHT/3)
+    title_pos = (SCR_WIDTH/2, SCR_HEIGHT/6)
     if game_state["state"] == GS_WAIT_FOR_START:
         draw_centered_text(surface, font_cache, "Click left button to start", title_pos)
-    elif game_state["state"] == GS_SHOW_PEA_START:
-        pass
-    elif game_state["state"] == GS_SWAPPING:
-        pass
     elif game_state["state"] == GS_WAIT_FOR_CHOICE:
-        pass
-    elif game_state["state"] == GS_REVEAL:
-        pass
+        draw_centered_text(surface, font_cache, "Click on the shell hiding the pea", title_pos)
+    elif game_state["state"] == GS_GAME_OVER:
+        if game_state["pea_loc"] == game_state["selected_shell_idx"]:
+            draw_centered_text(surface, font_cache, "Correct! Click left button to play again", title_pos)
+        else:
+            draw_centered_text(surface, font_cache, "Sorry, wrong! Click left button to play again", title_pos)
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph,
