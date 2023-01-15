@@ -158,7 +158,7 @@ def create_game_state():
         "rotate_speeds": ROTATE_SPEEDS[1],
         "remaining_swaps": 3,
         "pea_loc": 0,
-        "start_pressed": False,
+        "button_pressed": False,
         "selected_shell": None,
         "selected_shell_idx": None
     }
@@ -216,9 +216,10 @@ def animate_shell_swapping(scene_graph, game_state):
 def run_game_state_machine(game_state, scene_graph):
     """Run the game logic and animate scene graph"""
     if game_state["state"] == GS_WAIT_FOR_START:
-        if game_state["start_pressed"]:
+        if game_state["button_pressed"]:
             enable_pea(scene_graph, True)
             set_pea_pos(scene_graph, 0, 0)
+            game_state["button_pressed"] = False
             game_state["state"] = GS_SHOW_PEA_START
     elif game_state["state"] == GS_SHOW_PEA_START:
         angle = 5 * vecmat.deg_to_rad(game_state["cur_frame"] * 1.95)
@@ -256,7 +257,12 @@ def run_game_state_machine(game_state, scene_graph):
         else:
             game_state["state"] = GS_GAME_OVER
     elif game_state["state"] == GS_GAME_OVER:
-        pass
+        if game_state["button_pressed"]:
+            new_game_state = create_game_state()
+            for k,v in new_game_state.items():
+                game_state[k] = v
+            reset_shell_positions(scene_graph)
+            game_state["state"] = GS_WAIT_FOR_START
 
 def draw_centered_text(surface, font_cache, string, pos):
     """Draw text centered at position"""
@@ -288,8 +294,8 @@ def on_left_down(pos, game_state, scene_graph):
     if game_state["state"] == GS_WAIT_FOR_CHOICE:
         game_state["selected_shell"] = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
             vecmat.get_simple_camera_m(CAMERA))
-    elif game_state["state"] == GS_WAIT_FOR_START:
-        game_state["start_pressed"] = True
+    elif game_state["state"] == GS_WAIT_FOR_START or game_state["state"] == GS_GAME_OVER:
+        game_state["button_pressed"] = True
 
 def main_function():
     """Main"""
