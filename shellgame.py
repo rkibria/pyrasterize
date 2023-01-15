@@ -183,15 +183,15 @@ NEW_SWAP_TABLE = {
     SWAP_12: [SWAP_01, SWAP_02],
 }
 
-def set_new_swap(game_state):
-    """
-    Set state to start of a new random swap
-    Pea location is set to where it would be at END of this swap
-    """
+def init_swap(game_state):
+    """Set state to start of a new random swap"""
     game_state["cur_swap"] = NEW_SWAP_TABLE[game_state["cur_swap"]][random.randint(0, 1)]
     game_state["swap_clockwise"] = random.randint(0, 1)
     game_state["cur_frame"] = 0
     game_state["swap_done"] = False
+
+def perform_swap(game_state):
+    """Perform the swap indicated by current state"""
     new_loc = get_new_pea_loc(game_state["pea_loc"], game_state["cur_swap"])
     print(f"pea from {game_state['pea_loc']} to {new_loc}")
     game_state["pea_loc"] = new_loc
@@ -216,9 +216,9 @@ def animate_shell_swapping(scene_graph, game_state):
 def run_game_state_machine(game_state, scene_graph):
     """Run the game logic and animate scene graph"""
     if game_state["state"] == GS_WAIT_FOR_START:
+        set_pea_pos(scene_graph, game_state['pea_loc'], 0)
+        enable_pea(scene_graph, True)
         if game_state["button_pressed"]:
-            enable_pea(scene_graph, True)
-            set_pea_pos(scene_graph, 0, 0)
             game_state["button_pressed"] = False
             game_state["state"] = GS_SHOW_PEA_START
     elif game_state["state"] == GS_SHOW_PEA_START:
@@ -227,19 +227,18 @@ def run_game_state_machine(game_state, scene_graph):
         game_state["cur_frame"] += 1
         if angle >= math.pi:
             game_state["cur_frame"] = 0
-            enable_pea(scene_graph, False)
+            # enable_pea(scene_graph, False)
             game_state["state"] = GS_SWAPPING
     elif game_state["state"] == GS_SWAPPING:
         if animate_shell_swapping(scene_graph, game_state):
-            reset_shell_positions(scene_graph)
+            perform_swap(game_state)
             set_pea_pos(scene_graph, game_state["pea_loc"])
+            reset_shell_positions(scene_graph)
             if game_state["remaining_swaps"] > 0:
                 game_state["remaining_swaps"] -= 1
-                set_new_swap(game_state)
+                init_swap(game_state)
                 animate_shell_swapping(scene_graph, game_state)
             else:
-                enable_pea(scene_graph, True)
-                set_pea_pos(scene_graph, game_state["pea_loc"])
                 game_state["state"] = GS_WAIT_FOR_CHOICE
     elif game_state["state"] == GS_WAIT_FOR_CHOICE:
         if game_state["selected_shell"] is not None:
@@ -258,11 +257,12 @@ def run_game_state_machine(game_state, scene_graph):
             game_state["state"] = GS_GAME_OVER
     elif game_state["state"] == GS_GAME_OVER:
         if game_state["button_pressed"]:
+            reset_shell_positions(scene_graph)
             new_game_state = create_game_state()
             for k,v in new_game_state.items():
                 game_state[k] = v
-            reset_shell_positions(scene_graph)
-            game_state["state"] = GS_WAIT_FOR_START
+            init_swap(game_state)
+            set_pea_pos(scene_graph, game_state["pea_loc"])
 
 def draw_centered_text(surface, font_cache, string, pos):
     """Draw text centered at position"""
@@ -310,7 +310,7 @@ def main_function():
 
     scene_graph = create_scene_graph()
     game_state = create_game_state()
-    set_new_swap(game_state)
+    init_swap(game_state)
 
     font = pygame.font.Font(None, 30)
     font_cache = create_font_cache(font)
