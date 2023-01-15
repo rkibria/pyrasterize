@@ -51,10 +51,6 @@ def get_new_pea_loc(pea_loc, n_swap):
 SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 800, 600
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
-RGB_WHITE = (255, 255, 255)
-RGB_GREEN = (0, 255, 0)
-
 CAMERA = { "pos": [0, 4, 7],
     "rot": [vecmat.deg_to_rad(-20), 0, 0],
     "fov": 90,
@@ -174,7 +170,7 @@ def create_font_cache(font):
         "Sorry, wrong! Click left button to play again": None
     }
     for k,_ in cache.items():
-        cache[k] = font.render(k, True, RGB_WHITE)
+        cache[k] = font.render(k, True, (255, 255, 255))
     return cache
 
 # Possible new swaps depending on old swap, make a binary choice
@@ -329,7 +325,7 @@ def main_function():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_left_down(pygame.mouse.get_pos(), game_state, scene_graph)
 
-        screen.fill(RGB_BLACK)
+        screen.fill((0, 0, 0))
 
         run_game_state_machine(game_state, scene_graph)
         draw_game_state(screen, font_cache, game_state, scene_graph)
