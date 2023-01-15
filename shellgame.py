@@ -15,8 +15,6 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 
-# GAME LOGIC
-#
 # SHELL GAME https://en.wikipedia.org/wiki/Shell_game
 #
 # Shell  Shell  Shell
@@ -26,17 +24,12 @@ from pyrasterize import meshes
 # |   |  |   |  |   |
 # |   |  |   |  |   |
 #
-#   O <-- Pea location
+#   O <-- Pea location = 0/1/2
 #
-# Game state: pea location = 0/1/2
-#
-# Possible shell swaps/game operations:
+# Possible shell swaps:
 # 0-1, 1-2, 0-2
 # - each move can be animated clockwise or counter-clockwise,
 #   but has the same result.
-# - a swap swaps the position of the pea if the pea is in
-#   either one of the affected shell positions.
-#
 
 SWAP_01 = 0
 SWAP_12 = 1
@@ -147,11 +140,12 @@ ROTATE_SPEEDS = {
 }
 
 # All game states
-GS_WAIT_FOR_START = 0  # Waiting for player to press start
+GS_WAIT_FOR_START = 0  # Waiting for player to click to start game
 GS_SHOW_PEA_START = 1  # Player started, showing pea start location
 GS_SWAPPING = 2        # Swapping shells until done
 GS_WAIT_FOR_CHOICE = 3 # Waiting for player to choose shell
 GS_REVEAL = 4          # Lift shell the player chose
+GS_GAME_OVER = 5       # Game over, restart if player clicks
 
 def create_game_state():
     """Generate new game state dict"""
@@ -168,6 +162,20 @@ def create_game_state():
         "selected_shell": None
     }
     return game_state
+
+def create_font_cache(font):
+    """Create prerendered font images"""
+    cache = {
+        "Click left button to start": None,
+        "Click on shell where the pea is": None,
+        "Correct!": None,
+        "Sorry, wrong!": None,
+        "Game Over": None,
+        "Click left button to play again": None
+    }
+    for k,_ in cache.items():
+        cache[k] = font.render(k, True, RGB_WHITE)
+    return cache
 
 # Possible new swaps depending on old swap, make a binary choice
 NEW_SWAP_TABLE = {
@@ -206,7 +214,7 @@ def animate_shell_swapping(scene_graph, game_state):
         game_state["swap_done"] = True
     return game_state["swap_done"]
 
-def run_game_state_machine(scene_graph, frame, game_state):
+def run_game_state_machine(game_state, scene_graph):
     """Run the game logic and animate scene graph"""
     if game_state["state"] == GS_WAIT_FOR_START:
         if game_state["start_pressed"]:
@@ -247,8 +255,26 @@ def run_game_state_machine(scene_graph, frame, game_state):
         if angle <= math.pi/2:
             game_state["cur_frame"] += 1
 
-def draw_scene_graph(surface, _, scene_graph):
-    """Draw and animate the scene graph"""
+def draw_centered_text(surface, font_cache, string, pos):
+    """Draw text centered at position"""
+    text = font_cache[string]
+    text_rect = text.get_rect(center=pos)
+    surface.blit(text, text_rect)
+
+def draw_game_state(surface, font_cache, game_state, scene_graph):
+    """Draw and animate the scene graph and anything else related to the game"""
+    title_pos = (SCR_WIDTH/2, SCR_HEIGHT/3)
+    if game_state["state"] == GS_WAIT_FOR_START:
+        draw_centered_text(surface, font_cache, "Click left button to start", title_pos)
+    elif game_state["state"] == GS_SHOW_PEA_START:
+        pass
+    elif game_state["state"] == GS_SWAPPING:
+        pass
+    elif game_state["state"] == GS_WAIT_FOR_CHOICE:
+        pass
+    elif game_state["state"] == GS_REVEAL:
+        pass
+
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph,
         vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
@@ -261,8 +287,7 @@ def on_left_down(pos, game_state, scene_graph):
         game_state["selected_shell"] = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
             vecmat.get_simple_camera_m(CAMERA))
     elif game_state["state"] == GS_WAIT_FOR_START:
-        if pos[0] < 100 and pos[1] < 100:
-            game_state["start_pressed"] = True
+        game_state["start_pressed"] = True
 
 def main_function():
     """Main"""
@@ -279,7 +304,8 @@ def main_function():
     game_state = create_game_state()
     set_new_swap(game_state)
 
-    # font = pygame.font.Font(None, 30)
+    font = pygame.font.Font(None, 30)
+    font_cache = create_font_cache(font)
 
     frame = 0
     done = False
@@ -293,10 +319,8 @@ def main_function():
 
         screen.fill(RGB_BLACK)
 
-        run_game_state_machine(scene_graph, frame, game_state)
-        draw_scene_graph(screen, frame, scene_graph)
-
-        pygame.draw.rect(screen, (0, 200, 0), (0, 0, 100, 100))
+        run_game_state_machine(game_state, scene_graph)
+        draw_game_state(screen, font_cache, game_state, scene_graph)
 
         pygame.display.flip()
         frame += 1
