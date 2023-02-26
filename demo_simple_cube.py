@@ -64,17 +64,25 @@ def main_function():
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
-    title_1 = font.render("Left button toggles drawing solid/wireframe with culling/wireframe", True, TEXT_COLOR)
+    title_1 = font.render("Left button toggles phong / solid / culled wireframe / wireframe", True, TEXT_COLOR)
 
     drawing_mode = 0
+
+    def set_draw_mode():
+        """Set the cube instance's drawing parameters according to current mode"""
+        nonlocal drawing_mode
+        nonlocal cube_inst
+        cube_inst["phongShaded"] = (drawing_mode == 0)
+        cube_inst["wireframe"] = (drawing_mode == 2 or drawing_mode == 3)
+        cube_inst["noCulling"] = (drawing_mode == 3)
+
     def on_left_down():
         """Handle left button down"""
         nonlocal drawing_mode
-        drawing_mode = drawing_mode + 1 if drawing_mode < 2 else 0
-        # Set the cube instance's drawing parameters according to current mode
-        nonlocal cube_inst
-        cube_inst["wireframe"] = (drawing_mode != 0)
-        cube_inst["noCulling"] = (drawing_mode == 2)
+        drawing_mode = drawing_mode + 1 if drawing_mode < 3 else 0
+        set_draw_mode()
+
+    set_draw_mode()
 
     frame = 0
     done = False

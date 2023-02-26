@@ -13,9 +13,10 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary
     Optional keys:
-    * wireframe (boolean): draw this as wireframe instead of filled polygons
-    * bound_sph_r (float): radius of the bounding sphere of this model, can check for e.g. selection
-    * noCulling (boolean): don't cull back face triangles
+    * wireframe (boolean):   draw model as wireframe instead of filled triangles
+    * bound_sph_r (float):   sets radius of the bounding sphere of this model, can check for e.g. selection
+    * noCulling (boolean):   don't cull back face triangles when drawing this model
+    * phongShaded (boolean): draw model with Phong shaded triangles
     """
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
@@ -30,6 +31,10 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
         "xform_m4": xform_m4,
         "children": children
         }
+
+DRAW_MODE_WIREFRAME = 0
+DRAW_MODE_SOLID = 1
+DRAW_MODE_PHONG = 2
 
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     """Render the scene graph
@@ -48,6 +53,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
     proj_light_dir = get_proj_light_dir()
 
+    # Collect all visible triangles. Elements are tuples:
+    # (average z depth, screen points of triangle, lighted color, draw mode)
+    # Sorted by depth before drawing, draw mode overrides order so wireframes come last
     scene_triangles = []
 
     def project_to_screen(view_v):
@@ -116,6 +124,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         no_culling = ("noCulling" in instance) and instance["noCulling"]
         model_colors = model["colors"]
         model_tris = model["tris"]
+        draw_phong_shaded = ("phongShaded" in instance) and instance["phongShaded"]
 
         idcs,normals,screen_verts = get_visible_instance_tris(model_tris, view_verts, no_culling)
         screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x),
@@ -134,9 +143,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 lighted_color = (intensity * color[0], intensity * color[1], intensity * color[2])
             else:
                 lighted_color = model_colors[idx]
+            draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_PHONG if draw_phong_shaded else DRAW_MODE_SOLID)
             scene_triangles.append((
                 (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3,
-                points, lighted_color, draw_as_wireframe))
+                points, lighted_color, draw_mode))
 
     def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
@@ -150,12 +160,15 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                     traverse_scene_graph(instance["children"], pass_m)
 
     traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
-    # Wireframe lines are always drawn last
-    scene_triangles.sort(key=lambda x: (1 if x[3] else 0, x[0]), reverse=False)
-    for _,points,color,draw_as_wireframe in scene_triangles:
-        if not draw_as_wireframe:
+    # Wireframe triangles should be drawn last, they have 1 as first element of tuple, filled triangles have 0
+    scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
+    for _,points,color,draw_mode in scene_triangles:
+        if draw_mode == DRAW_MODE_PHONG:
+            # pygame.draw.polygon(surface, color, points)
+            pass
+        elif draw_mode == DRAW_MODE_SOLID:
             pygame.draw.polygon(surface, color, points)
-        else:
+        elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color, True, points)
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
