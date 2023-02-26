@@ -166,7 +166,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     for _,points,color,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_PHONG:
             px_array = pygame.PixelArray(surface)
-            drawing.draw_triangle_2d(px_array, color, points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1])
+            for x,y in drawing.get_triangle_2d_points(points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1]):
+                px_array[x, y] = color
             del px_array
         elif draw_mode == DRAW_MODE_SOLID:
             pygame.draw.polygon(surface, color, points)

@@ -30,6 +30,11 @@ class MockPixelArray:
         return "\n" + text + "\n"
 
 
+def draw_triangle(array, color, x1, y1, x2, y2, x3, y3):
+    for x,y in drawing.get_triangle_2d_points(x1, y1, x2, y2, x3, y3):
+        array[x, y] = color
+
+
 # Positive y is down. peak, lower right, lower left
 TRIANGLE_FLAT_BOTTOM = [25, 20, 27, 22, 23, 22]
 
@@ -44,7 +49,7 @@ EXPECTED_FLAT_BOTTOM_TRIANGLE= """
 def test_draw_flat_bottom_triangle():
     """A flat bottom triangle is drawn"""
     array = MockPixelArray()
-    drawing.draw_triangle_2d(array, TRIANGLE_COLOR, *TRIANGLE_FLAT_BOTTOM)
+    draw_triangle(array, TRIANGLE_COLOR, *TRIANGLE_FLAT_BOTTOM)
     actual = array.get_text(22, 19, 28, 23)
     assert(EXPECTED_FLAT_BOTTOM_TRIANGLE == actual)
 
@@ -62,6 +67,9 @@ EXPECTED_FLAT_TOP_TRIANGLE= """
 def test_draw_flat_top_triangle():
     """A flat top triangle is drawn"""
     array = MockPixelArray()
-    drawing.draw_triangle_2d(array, TRIANGLE_COLOR, *TRIANGLE_FLAT_TOP)
+    draw_triangle(array, TRIANGLE_COLOR, *TRIANGLE_FLAT_TOP)
     actual = array.get_text(22, 19, 28, 23)
     assert(EXPECTED_FLAT_TOP_TRIANGLE == actual)
+
+if __name__ == "__main__":
+    pass
