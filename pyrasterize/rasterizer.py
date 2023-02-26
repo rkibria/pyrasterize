@@ -8,6 +8,7 @@
 import pygame
 
 from . import vecmat
+from . import drawing
 
 def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
@@ -164,8 +165,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
     for _,points,color,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_PHONG:
-            # pygame.draw.polygon(surface, color, points)
-            pass
+            px_array = pygame.PixelArray(surface)
+            drawing.draw_triangle_2d(px_array, color, points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1])
+            del px_array
         elif draw_mode == DRAW_MODE_SOLID:
             pygame.draw.polygon(surface, color, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
