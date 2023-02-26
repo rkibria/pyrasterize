@@ -54,7 +54,23 @@ def _draw_flat_bottom_triangle_2d(array, color, x1, y1, x2, y2, x3, y3):
     """
     Draw flat bottom triangle
     """
-    pass
+    if x3 < x2:
+        x3, x2 = x2, x3
+    
+    height = y3 - y1
+
+    dx_left  = (x2 - x1) / height
+    dx_right = (x3 - x1) / height
+
+    xs = x1
+    xe = x1
+
+    for y in range(int(y1), int(y3 + 1)):
+        for x in range(int(xs), int(xe) + 1):
+            array[x, y] = color
+        xs += dx_left
+        xe += dx_right
+
 
 def draw_triangle_2d(array, color, x1, y1, x2, y2, x3, y3):
     """
