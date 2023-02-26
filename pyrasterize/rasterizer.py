@@ -14,10 +14,10 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary
     Optional keys:
-    * wireframe (boolean):   draw model as wireframe instead of filled triangles
-    * bound_sph_r (float):   sets radius of the bounding sphere of this model, can check for e.g. selection
-    * noCulling (boolean):   don't cull back face triangles when drawing this model
-    * phongShaded (boolean): draw model with Phong shaded triangles
+    * wireframe (boolean): draw model as wireframe instead of filled triangles
+    * bound_sph_r (float): sets radius of the bounding sphere of this model, can check for e.g. selection
+    * noCulling (boolean): don't cull back face triangles when drawing this model
+    * gouraud (boolean):   draw model with Gouraud shaded triangles
     """
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
@@ -34,8 +34,8 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
         }
 
 DRAW_MODE_WIREFRAME = 0
-DRAW_MODE_SOLID = 1
-DRAW_MODE_PHONG = 2
+DRAW_MODE_FLAT = 1
+DRAW_MODE_GOURAUD = 2
 
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     """Render the scene graph
@@ -125,7 +125,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         no_culling = ("noCulling" in instance) and instance["noCulling"]
         model_colors = model["colors"]
         model_tris = model["tris"]
-        draw_phong_shaded = ("phongShaded" in instance) and instance["phongShaded"]
+        draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
 
         idcs,normals,screen_verts = get_visible_instance_tris(model_tris, view_verts, no_culling)
         screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x),
@@ -144,7 +144,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 lighted_color = (intensity * color[0], intensity * color[1], intensity * color[2])
             else:
                 lighted_color = model_colors[idx]
-            draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_PHONG if draw_phong_shaded else DRAW_MODE_SOLID)
+            draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
             scene_triangles.append((
                 (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3,
                 points, lighted_color, draw_mode))
@@ -164,12 +164,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     # Wireframe triangles should be drawn last, they have 1 as first element of tuple, filled triangles have 0
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
     for _,points,color,draw_mode in scene_triangles:
-        if draw_mode == DRAW_MODE_PHONG:
+        if draw_mode == DRAW_MODE_GOURAUD:
             px_array = pygame.PixelArray(surface)
             for x,y in drawing.get_triangle_2d_points(points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1]):
                 px_array[x, y] = color
             del px_array
-        elif draw_mode == DRAW_MODE_SOLID:
+        elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color, True, points)

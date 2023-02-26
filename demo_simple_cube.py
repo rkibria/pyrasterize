@@ -68,7 +68,7 @@ def main_function():
 
     drawing_mode = 0
 
-    drawing_mode_names = ["Phong shaded", "Solid", "Wireframe with backface culling", "Wireframe"]
+    drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
 
     def set_draw_mode_title():
         nonlocal font
@@ -80,7 +80,7 @@ def main_function():
         """Set the cube instance's drawing parameters according to current mode"""
         nonlocal drawing_mode
         nonlocal cube_inst
-        cube_inst["phongShaded"] = (drawing_mode == 0)
+        cube_inst["gouraud"] = (drawing_mode == 0)
         cube_inst["wireframe"] = (drawing_mode == 2 or drawing_mode == 3)
         cube_inst["noCulling"] = (drawing_mode == 3)
 
