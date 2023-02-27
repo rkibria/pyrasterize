@@ -7,6 +7,20 @@ Vectors, matrices and other math
 
 import math
 
+def sub_vec3(v_1, v_2):
+    """Return v1 - v2"""
+    return [v_1[0] - v_2[0], v_1[1] - v_2[1], v_1[2] - v_2[2]]
+
+def cross_vec3(a, b):
+    """Return vec3 result of cross product of 2 vec3's"""
+    return [a[1]*b[2] - a[2]*b[1],
+        a[2]*b[0] - a[0]*b[2],
+        a[0]*b[1] - a[1]*b[0]]
+
+def mag_vec3(v_3):
+    """Return magnitude of vec3"""
+    return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]) ** 0.5
+
 def norm_vec3(v_3):
     """Return normalized vec3"""
     mag = v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]

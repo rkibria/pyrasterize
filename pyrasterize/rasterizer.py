@@ -166,8 +166,21 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     for _,points,color,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
             px_array = pygame.PixelArray(surface)
-            for x,y in drawing.get_triangle_2d_points(points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1]):
-                px_array[x, y] = color
+            def area(a, b, c):
+                """Area of triangle formed by 3 vec3s"""
+                t = vecmat.cross_vec3(vecmat.sub_vec3(b, a), vecmat.sub_vec3(c, a))
+                return 0.5 * vecmat.mag_vec3(t)
+            p0 = (points[0][0], points[0][1], 0)
+            p1 = (points[1][0], points[1][1], 0)
+            p2 = (points[2][0], points[2][1], 0)
+            area_full = area(p0, p1, p2)
+            if area_full != 0:
+                for x,y in drawing.get_triangle_2d_points(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1]):
+                    p = (x, y, 0)
+                    b0 = min(1, area(p, p1, p2) / area_full)
+                    b1 = min(1, area(p0, p, p2) / area_full)
+                    b2 = min(1, area(p0, p1, p) / area_full)
+                    px_array[x, y] = (int(b0 * 255), int(b1 * 255), int(b2 * 255))
             del px_array
         elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color, points)
