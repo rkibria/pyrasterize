@@ -12,6 +12,7 @@ import pygame.cursors
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
+from pyrasterize import model_file_io
 
 # CONSTANTS
 
@@ -59,6 +60,12 @@ def main_function():
         ["Cube", rasterizer.get_model_instance(meshes.get_cube_mesh())],
         ["Sphere", rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 20, 10))],
     ]
+    try:
+        teapot_model = model_file_io.get_model_from_obj_file("teapot-low.obj")
+        instances.append(["Utah teapot", rasterizer.get_model_instance(teapot_model, vecmat.get_scal_m4(0.1, 0.1, 0.1))])
+    except:
+        pass
+
     for name,model in instances:
         scene_graph["root"]["children"][name] = model
     cur_inst = 0
