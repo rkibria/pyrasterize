@@ -234,33 +234,51 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     px_array = pygame.PixelArray(surface)
     for _,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
+            # color_data = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+            # pygame.draw.lines(surface, (255, 0, 0), True, points)
+            v_a = (points[0][0], points[0][1], 0)
+            v_b = (points[1][0], points[1][1], 0)
+            v_c = (points[2][0], points[2][1], 0)
+
+            v_ab = vecmat.sub_vec3(v_b, v_a)
+            v_ac = vecmat.sub_vec3(v_c, v_a)
+            v_n = vecmat.cross_vec3(v_ab, v_ac)
+
             # color_data is one color for each vertex rather than just one for the whole triangle
-            p0 = (points[0][0], points[0][1], 0)
-            p1 = (points[1][0], points[1][1], 0)
-            p2 = (points[2][0], points[2][1], 0)
+            # p0 = (points[0][0], points[0][1], 0)
+            # p1 = (points[1][0], points[1][1], 0)
+            # p2 = (points[2][0], points[2][1], 0)
             # Compute barycentric coordinates of each point inside triangle
-            area_full = area(p0, p1, p2)
-            if area_full > 0:
-                rgb = (0, 0, 0)
-                for x,y in drawing.get_triangle_2d_points(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1]):
+            # area_full = area(p0, p1, p2)
+            area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
+            if area_full_sq > 0:
+                for x,y in drawing.get_triangle_2d_points(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                     p = (x, y, 0)
-                    a0 = area(p, p1, p2)
-                    u = a0 / area_full
+                    v_bc = vecmat.sub_vec3(v_c, v_b)
+                    v_bp = vecmat.sub_vec3(p, v_b)
+                    v_n1 = vecmat.cross_vec3(v_bc, v_bp)
+                    u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
+                    # a0 = area(p, p1, p2)
+                    # u = a0 / area_full
                     # Check point is inside triangle
-                    point_drawn = False
-                    if (u >= 0 and u <= 1):
-                        a1 = area(p0, p, p2)
-                        v = a1 / area_full
-                        w = 1 - u - v
-                        if (v >= 0 and v <= 1) and (w >= 0 and w <= 1):
-                            rgb = (
-                                min(255, color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w),
-                                min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
-                                min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),)
-                            px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
-                            point_drawn = True
+                    # point_drawn = False
+                    # if (u >= 0 and u <= 1):
+                    # a1 = area(p0, p, p2)
+                    # v = a1 / area_full
+                    v_ca = vecmat.sub_vec3(v_a, v_c)
+                    v_cp = vecmat.sub_vec3(p, v_c)
+                    v_n2 = vecmat.cross_vec3(v_ca, v_cp)
+                    v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
+                    w = 1 - u - v
+                    if (u >= 0 and u <= 1) and (v >= 0 and v <= 1) and (w >= 0 and w <= 1):
+                        rgb = (
+                            min(255, color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w),
+                            min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
+                            min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),)
+                        px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+                        point_drawn = True
                     if not point_drawn:
-                        px_array[x, y] = (255, 0, 0)
+                        px_array[x, y] = (255, 255, 255)
             # else: # happens rarely
             #     pygame.draw.polygon(surface, (0, 255, 0), points)
         elif draw_mode == DRAW_MODE_FLAT:
