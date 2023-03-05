@@ -238,21 +238,31 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             p0 = (points[0][0], points[0][1], 0)
             p1 = (points[1][0], points[1][1], 0)
             p2 = (points[2][0], points[2][1], 0)
+            # Compute barycentric coordinates of each point inside triangle
             area_full = area(p0, p1, p2)
-            if area_full != 0:
+            if area_full > 0:
+                rgb = (0, 0, 0)
                 for x,y in drawing.get_triangle_2d_points(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1]):
                     p = (x, y, 0)
                     a0 = area(p, p1, p2)
-                    a1 = area(p0, p, p2)
-                    u = min(1, a0 / area_full)
-                    v = min(1, a1 / area_full)
-                    w = max(0, 1 - u - v)
-                    rgb = (
-                        min(255, color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w),
-                        min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
-                        min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),
-                    )
-                    px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+                    u = a0 / area_full
+                    # Check point is inside triangle
+                    point_drawn = False
+                    if (u >= 0 and u <= 1):
+                        a1 = area(p0, p, p2)
+                        v = a1 / area_full
+                        w = 1 - u - v
+                        if (v >= 0 and v <= 1) and (w >= 0 and w <= 1):
+                            rgb = (
+                                min(255, color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w),
+                                min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
+                                min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),)
+                            px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+                            point_drawn = True
+                    if not point_drawn:
+                        px_array[x, y] = (255, 0, 0)
+            # else: # happens rarely
+            #     pygame.draw.polygon(surface, (0, 255, 0), points)
         elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
