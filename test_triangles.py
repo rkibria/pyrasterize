@@ -38,7 +38,7 @@ def draw_triangle(array, color, x1, y1, x2, y2, x3, y3):
 # Positive y is down. peak, lower right, lower left
 TRIANGLE_FLAT_BOTTOM = [25, 20, 27, 22, 23, 22]
 
-EXPECTED_FLAT_BOTTOM_TRIANGLE= """
+EXPECTED_FLAT_BOTTOM_TRIANGLE = """
 .......
 ...x...
 ..xxx..
@@ -56,7 +56,7 @@ def test_draw_flat_bottom_triangle():
 
 TRIANGLE_FLAT_TOP = [23, 20, 27, 20, 25, 22]
 
-EXPECTED_FLAT_TOP_TRIANGLE= """
+EXPECTED_FLAT_TOP_TRIANGLE = """
 .......
 .xxxxx.
 ..xxx..
@@ -70,6 +70,25 @@ def test_draw_flat_top_triangle():
     draw_triangle(array, TRIANGLE_COLOR, *TRIANGLE_FLAT_TOP)
     actual = array.get_text(22, 19, 28, 23)
     assert(EXPECTED_FLAT_TOP_TRIANGLE == actual)
+
+
+TRIANGLE_FLAT_TOP_RIGHT_ANGLE = [23, 20, 37, 20, 23, 22]
+
+EXPECTED_FLAT_TOP_TRIANGLE_RIGHT_ANGLE = """
+.................
+.xxxxxxxxxxxxxxx.
+.xxxxxxxx........
+.x...............
+.................
+"""
+
+def test_draw_flat_top_triangle_right_angle():
+    """A flat top triangle is drawn"""
+    array = MockPixelArray()
+    draw_triangle(array, TRIANGLE_COLOR, *TRIANGLE_FLAT_TOP_RIGHT_ANGLE)
+    actual = array.get_text(22, 19, 38, 23)
+    assert(EXPECTED_FLAT_TOP_TRIANGLE_RIGHT_ANGLE == actual)
+
 
 if __name__ == "__main__":
     pass
