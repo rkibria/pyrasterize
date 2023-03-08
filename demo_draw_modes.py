@@ -76,6 +76,7 @@ def main_function():
     textblock_model = font.render("", True, TEXT_COLOR)
 
     drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
+    OVERLAY_DRAWING_MODE = 2
     drawing_mode = 0
 
     def regenerate_textblocks():
@@ -110,10 +111,12 @@ def main_function():
     regenerate_textblocks()
 
     frame = 0
+    do_overlay = False
     done = False
     textblock_fps = font.render("", True, TEXT_COLOR)
 
     offscreen = pygame.Surface(RASTER_SCR_SIZE)
+    offscreen_2 = pygame.Surface(RASTER_SCR_SIZE)
 
     while not done:
         clock.tick(30)
@@ -122,9 +125,23 @@ def main_function():
                 done = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_mouse_button_down(event)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_o:
+                    do_overlay = not do_overlay
 
         offscreen.fill(RGB_BLACK)
         draw_scene_graph(offscreen, frame, scene_graph)
+
+        if do_overlay:
+            offscreen_2.fill(RGB_BLACK)
+            saved_draw_mode = drawing_mode
+            drawing_mode = OVERLAY_DRAWING_MODE
+            set_draw_mode()
+            draw_scene_graph(offscreen_2, frame, scene_graph)
+            drawing_mode = saved_draw_mode
+            offscreen_2.set_alpha(250)
+            offscreen.blit(offscreen_2, (0,0), special_flags = pygame.BLEND_RGBA_SUB)
+            set_draw_mode()
 
         screen.blit(pygame.transform.scale(offscreen, PYGAME_SCR_SIZE), (0,0))
         screen.blit(textblock_drawmode, (30, 20))
