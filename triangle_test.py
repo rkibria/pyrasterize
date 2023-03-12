@@ -30,12 +30,16 @@ def main_function():
 
     x0 = 30
     y0 = 30
-    x1 = 60
-    y1 = 30
-    x2 = 45
-    y2 = 45
+    x1 = 30
+    y1 = 60
+    x2 = 60
+    y2 = 30
+    x3 = 60
+    y3 = 60
 
+    frame = 0
     while not done:
+        frame += 1
         clock.tick(30)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -61,8 +65,32 @@ def main_function():
                     x1 += 1
 
         offscreen.fill(RGB_BLACK)
+        cols = [(255, 0, 0), (0, 128, 0), (255, 255, 0), (0, 255, 255)]
+        # if int(frame / 10) % 2 == 0:
+        #     cols = [(255, 0, 0), (0, 128, 0), (255, 255, 0), (0, 255, 255)]
+        # else:
+        #     cols = [(255, 255, 0), (0, 255, 255), (255, 0, 0), (0, 128, 0),]
+        t = 0
+        # print("------")
         for x,y in drawing.get_triangle_2d_points(x0, y0, x1, y1, x2, y2):
-            px_array[x, y] = (255, 255, 255)
+            f = cols[0] if t else cols[1]
+            px_array[x, y] = f
+            # print(x,y)
+        # for x,y,t in drawing.get_triangle_2d_points(x1, y1, x3, y3, x2, y2):
+        #     f = cols[2] if t else cols[3]
+        #     px_array[x, y] = f
+        px_array[x0, y0] = (0, 0, 255)
+        px_array[x1, y1] = (0, 0, 255)
+        px_array[x2, y2] = (0, 0, 255)
+        # px_array[x3, y3] = (0, 0, 255)
+
+        # if int(frame / 10) % 2 == 0:
+        #     for x,y in drawing.bresenham(x0, y0, x1, y1):
+        #         px_array[x, y] = (255, 0, 255)
+        #     for x,y in drawing.bresenham(x0, y0, x2, y2):
+        #         px_array[x, y] = (255, 0, 255)
+        #     for x,y in drawing.bresenham(x1, y1, x2, y2):
+        #         px_array[x, y] = (255, 0, 255)
 
         screen.blit(pygame.transform.scale(offscreen, PYGAME_SCR_SIZE), (0,0))
         pygame.display.flip()
