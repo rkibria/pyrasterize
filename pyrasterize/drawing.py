@@ -72,19 +72,31 @@ def get_triangle_2d_points(x1, y1, x2, y2, x3, y3):
                     break
 
     def flat_bottom_triangle(x1, y1, x2, y2, x3, y3):
-        return
         if x3 < x2:
             x3, x2 = x2, x3
-        height = y3 - y1
-        dx_left  = (x2 - x1) / height
-        dx_right = (x3 - x1) / height
-        xs = x1
-        xe = x1
-        for y in range(int(y1), int(y3 + 1)):
-            for x in range(int(xs), int(xe) + 1):
-                yield (x, y)
-            xs += dx_left
-            xe += dx_right
+        # x1,y1 is top point
+        # x2,y2 is lower left point
+        # x3,y3 is lower right point (and y2 == y3)
+        lb = bresenham(x1, y1, x2, y2)
+        rb = bresenham(x1, y1, x3, y3)
+        cur_y = None
+        while True:
+            lx,ly = next(lb, (None, None))
+            if lx is None:
+                break
+            if cur_y is None:
+                cur_y = ly
+            else:
+                if ly == cur_y:
+                    continue
+                else:
+                    cur_y = ly
+            while True:
+                rx,ry = next(rb, (None, None))
+                if ry == cur_y:
+                    for x in range(lx, rx+1):
+                        yield x,cur_y
+                    break
 
     if (x1 == x2 and x2 == x3) or (y1 == y2 and y2 == y3):
         return
