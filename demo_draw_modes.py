@@ -16,8 +16,10 @@ from pyrasterize import model_file_io
 
 # CONSTANTS
 
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 320, 240
+# RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 320, 240
+RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 1800, 1600
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
+PYGAME_SCR_SIZE = RASTER_SCR_SIZE # (800, 600)
 
 RGB_BLACK = (0, 0, 0)
 
@@ -45,7 +47,6 @@ def main_function():
     """Main"""
     pygame.init()
 
-    PYGAME_SCR_SIZE = (800, 600)
     screen = pygame.display.set_mode(PYGAME_SCR_SIZE)
     pygame.display.set_caption("pyrasterize drawing modes demo")
     clock = pygame.time.Clock()
@@ -114,6 +115,7 @@ def main_function():
     do_overlay = False
     done = False
     textblock_fps = font.render("", True, TEXT_COLOR)
+    paused = False
 
     offscreen = pygame.Surface(RASTER_SCR_SIZE)
     offscreen_2 = pygame.Surface(RASTER_SCR_SIZE)
@@ -128,6 +130,12 @@ def main_function():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_o:
                     do_overlay = not do_overlay
+                elif event.key == pygame.K_p:
+                    paused = not paused
+                elif event.key == pygame.K_b and paused:
+                    frame -= 1
+                elif event.key == pygame.K_n and paused:
+                    frame += 1
 
         offscreen.fill(RGB_BLACK)
         draw_scene_graph(offscreen, frame, scene_graph)
@@ -149,7 +157,7 @@ def main_function():
         screen.blit(textblock_fps, (30, 80))
 
         pygame.display.flip()
-        frame += 1
+        frame += 1 if not paused else 0
         if frame % 30 == 0:
             textblock_fps = font.render(f"{round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
 

@@ -119,6 +119,6 @@ def get_triangle_2d_points(x1, y1, x2, y2, x3, y3):
         if y2 == y3:
             yield from flat_bottom_triangle(x1, y1, x2, y2, x3, y3)
         else:
-            new_x = x1 + int(0.5 + (y2 - y1) * (x3 - x1) / (y3 - y1))
+            new_x = x1 + int((y2 - y1) * (x3 - x1) / (y3 - y1))
             yield from flat_bottom_triangle(x1, y1, new_x, y2, x2, y2)
             yield from flat_top_triangle(x2, y2, new_x, y2, x3, y3)

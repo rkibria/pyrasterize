@@ -7,6 +7,8 @@
 
 import pygame
 
+DEBUG_FONT = None
+
 from . import vecmat
 from . import drawing
 
@@ -41,6 +43,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
+    global DEBUG_FONT
+    if DEBUG_FONT is None:
+        DEBUG_FONT = pygame.font.Font(None, 16)
+
     scr_origin_x = screen_area[0] + screen_area[2] / 2
     scr_origin_y = screen_area[1] + screen_area[3] / 2
 
@@ -244,6 +250,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             v_ac = vecmat.sub_vec3(v_c, v_a)
             v_n = vecmat.cross_vec3(v_ab, v_ac)
 
+            px_array = pygame.PixelArray(surface)
+            for x,y in drawing.get_triangle_2d_points(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                rgb = (255, 0, 0)
+                px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+            continue
+
             # color_data is one color for each vertex rather than just one for the whole triangle
             # p0 = (points[0][0], points[0][1], 0)
             # p1 = (points[1][0], points[1][1], 0)
@@ -253,6 +265,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
             if area_full_sq > 0:
                 for x,y in drawing.get_triangle_2d_points(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                    rgb = (255, 0, 0)
+                    px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+                    continue
                     p = (x, y, 0)
                     v_bc = vecmat.sub_vec3(v_c, v_b)
                     v_bp = vecmat.sub_vec3(p, v_b)
@@ -275,10 +290,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                             min(255, color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w),
                             min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
                             min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),)
+                        rgb = (255, 0, 0)
                         px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
                         point_drawn = True
                     if not point_drawn:
-                        px_array[x, y] = (255, 255, 255)
+                        px_array[x, y] = (255, 0, 255)
             # else: # happens rarely
             #     pygame.draw.polygon(surface, (0, 255, 0), points)
         elif draw_mode == DRAW_MODE_FLAT:
@@ -286,6 +302,20 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
     del px_array
+    for _,points,color_data,draw_mode in scene_triangles:
+        v_a = (points[0][0], points[0][1])
+        v_b = (points[1][0], points[1][1])
+        v_c = (points[2][0], points[2][1])
+
+        cx = (v_a[0] + v_b[0] + v_c[0]) / 3
+        cy = (v_a[1] + v_b[1] + v_c[1]) / 3
+
+        note = DEBUG_FONT.render(f"{v_a[0], v_a[1]},", True, (0, 255, 0))
+        surface.blit(note, (cx, cy))
+        note = DEBUG_FONT.render(f"{v_b[0], v_b[1]},", True, (0, 255, 0))
+        surface.blit(note, (cx, cy + 15))
+        note = DEBUG_FONT.render(f"{v_c[0], v_c[1]}", True, (0, 255, 0))
+        surface.blit(note, (cx, cy + 30))
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""
