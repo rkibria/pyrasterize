@@ -27,6 +27,23 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
         xform_m4 = vecmat.get_unit_m4()
     if children is None:
         children = {}
+
+    if model is not None and "normals" not in model:
+        normals = []
+        verts = model["verts"]
+        for tri in model["tris"]:
+            i_0 = tri[0]
+            i_1 = tri[1]
+            i_2 = tri[2]
+            v_0 = verts[i_0]
+            v_1 = verts[i_1]
+            v_2 = verts[i_2]
+            v_a = vecmat.sub_vec3(v_1, v_0)
+            v_b = vecmat.sub_vec3(v_2, v_0)
+            normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
+            normals.append(normal)
+        model["normals"] = normals
+
     return {
         "enabled" : True,
         "model": model,
@@ -76,7 +93,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     near_clip = -0.5
     far_clip = -100
 
-    def get_visible_instance_tris(tris, view_verts, no_culling, get_vert_normals):
+    def get_visible_instance_tris(tris, view_verts, view_normals, no_culling, get_vert_normals):
         """
         Compute the triangles we can see, i.e. are not back facing or outside view frustum
         Also returns triangle normals and screen projections of all vertices
@@ -86,7 +103,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             [screen verts of visible tris])
         """
         visible_tri_idcs = []
-        tri_normals = []
         screen_verts = list(map(project_to_screen, view_verts))
         # Sum the normals that touch the respective vertex and normalize at the end
         sum_normals = [[0, 0, 0] for _ in range(len(view_verts))] if get_vert_normals else None
@@ -106,7 +122,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             # clip near/far plane
             if ( (v_0[2] >= near_clip or v_1[2] >= near_clip or v_2[2] >= near_clip)
             or (v_0[2] <= far_clip  or v_1[2] <= far_clip  or v_2[2] <= far_clip)):
-                tri_normals.append(None)
                 continue
 
             # clip left/right/top/bottom
@@ -118,16 +133,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 or ((sv_1[0] >= -1 and sv_1[0] <= 1) and (sv_1[1] >= -1 and sv_1[1] <= 1))
                 or ((sv_2[0] >= -1 and sv_2[0] <= 1) and (sv_2[1] >= -1 and sv_2[1] <= 1)))
             if not one_scr_v_visible:
-                tri_normals.append(None)
                 continue
 
-            # normal = cross_product(v_1 - v_0, v_2 - v_0)
-            sub10 = (v_1[0] - v_0[0], v_1[1] - v_0[1], v_1[2] - v_0[2])
-            sub20 = (v_2[0] - v_0[0], v_2[1] - v_0[1], v_2[2] - v_0[2])
-            normal = (sub10[1]*sub20[2] - sub10[2]*sub20[1],
-                sub10[2]*sub20[0] - sub10[0]*sub20[2],
-                    sub10[0]*sub20[1] - sub10[1]*sub20[0])
-            tri_normals.append(normal)
+            normal = view_normals[i]
 
             if get_vert_normals:
                 n_x = normal[0]
@@ -151,7 +159,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         if get_vert_normals:
             vert_normals = list(map(vecmat.norm_vec3, sum_normals))
 
-        return (visible_tri_idcs, tri_normals, screen_verts, vert_normals)
+        return (visible_tri_idcs, screen_verts, vert_normals)
 
     def get_screen_tris_for_instance(instance, model_m):
         """Get (lighted) triangles from this instance and insert them into scene_triangles"""
@@ -164,16 +172,22 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
         view_verts = list(map(project_to_view, model["verts"]))
 
+        def project_normals_to_view(model_n):
+            normal_vec4 = (model_n[0], model_n[1], model_n[2], 0)
+            return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
+        view_normals = list(map(project_normals_to_view, model["normals"]))
+
         draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
         no_culling = ("noCulling" in instance) and instance["noCulling"]
         model_colors = model["colors"]
         model_tris = model["tris"]
         draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
 
-        visible_tri_idcs,tri_normals,screen_verts,vert_normals = get_visible_instance_tris(model_tris,
-                                                                                           view_verts,
-                                                                                           no_culling,
-                                                                                           draw_gouraud_shaded)
+        visible_tri_idcs,screen_verts,vert_normals = get_visible_instance_tris(model_tris,
+                                                                               view_verts,
+                                                                               view_normals,
+                                                                               no_culling,
+                                                                               draw_gouraud_shaded)
         screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) for v_2 in screen_verts]
 
         draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
@@ -195,11 +209,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
         for tri_idx in visible_tri_idcs:
             tri = model_tris[tri_idx]
+            normal = view_normals[tri_idx]
 
             if draw_mode == DRAW_MODE_WIREFRAME:
                 color_data = model_colors[tri_idx]
             elif draw_mode == DRAW_MODE_FLAT:
-                normal = vecmat.norm_vec3(tri_normals[tri_idx])
                 color = model_colors[tri_idx]
                 dot_prd = max(0, proj_light_dir[0] * normal[0]
                     + proj_light_dir[1] * normal[1]
