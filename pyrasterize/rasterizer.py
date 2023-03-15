@@ -265,30 +265,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                         min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
                         min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),)
                     px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
-                    # else:
-                    #     px_array[x, y] = (255, 0, 255)
-            else: # happens rarely
-                pygame.draw.polygon(surface, (0, 255, 0), points)
         elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
     del px_array
-
-    # for _,points,color_data,draw_mode in scene_triangles:
-    #     v_a = (points[0][0], points[0][1])
-    #     v_b = (points[1][0], points[1][1])
-    #     v_c = (points[2][0], points[2][1])
-
-    #     cx = (v_a[0] + v_b[0] + v_c[0]) / 3
-    #     cy = (v_a[1] + v_b[1] + v_c[1]) / 3
-
-    #     note = DEBUG_FONT.render(f"{v_a[0], v_a[1]},", True, (0, 255, 0))
-    #     surface.blit(note, (cx, cy))
-    #     note = DEBUG_FONT.render(f"{v_b[0], v_b[1]},", True, (0, 255, 0))
-    #     surface.blit(note, (cx, cy + 15))
-    #     note = DEBUG_FONT.render(f"{v_c[0], v_c[1]}", True, (0, 255, 0))
-    #     surface.blit(note, (cx, cy + 30))
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""
