@@ -232,11 +232,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     # Sort triangles in ascending z order but wireframe triangles should be drawn last
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
 
-    def area(a, b, c):
-        """Area of triangle formed by 3 vec3s"""
-        t = vecmat.cross_vec3(vecmat.sub_vec3(b, a), vecmat.sub_vec3(c, a))
-        return 0.5 * vecmat.mag_vec3(t)
-
     px_array = pygame.PixelArray(surface)
     for _,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:

@@ -210,3 +210,14 @@ def get_simple_camera_m(cam):
     camera_m = mat4_mat4_mul(get_rot_y_m4(-cam_rot[1]), camera_m)
     camera_m = mat4_mat4_mul(get_rot_x_m4(-cam_rot[0]), camera_m)
     return camera_m
+
+def get_triangle_area(a, b, c):
+    """Area of triangle formed by 3 vec3s"""
+    t = cross_vec3(sub_vec3(b, a), sub_vec3(c, a))
+    return 0.5 * mag_vec3(t)
+
+def get_vec2_triangle_centroid(v_a, v_b, v_c):
+    """Get centroid point of a two-dimensional triangle"""
+    cx = (v_a[0] + v_b[0] + v_c[0]) / 3
+    cy = (v_a[1] + v_b[1] + v_c[1]) / 3
+    return (cx, cy)
