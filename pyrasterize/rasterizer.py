@@ -31,6 +31,7 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     if model is not None and "normals" not in model:
         normals = []
         verts = model["verts"]
+        sum_normals = [[0, 0, 0] for _ in range(len(verts))]
         for tri in model["tris"]:
             i_0 = tri[0]
             i_1 = tri[1]
@@ -42,7 +43,23 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
             v_b = vecmat.sub_vec3(v_2, v_0)
             normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
             normals.append(normal)
+
+            n_x = normal[0]
+            n_y = normal[1]
+            n_z = normal[2]
+            sum_normals[i_0][0] += n_x
+            sum_normals[i_0][1] += n_y
+            sum_normals[i_0][2] += n_z
+            sum_normals[i_1][0] += n_x
+            sum_normals[i_1][1] += n_y
+            sum_normals[i_1][2] += n_z
+            sum_normals[i_2][0] += n_x
+            sum_normals[i_2][1] += n_y
+            sum_normals[i_2][2] += n_z
+
         model["normals"] = normals
+        vert_normals = list(map(vecmat.norm_vec3, sum_normals))
+        model["vert_normals"] = vert_normals
 
     return {
         "enabled" : True,
@@ -93,19 +110,16 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     near_clip = -0.5
     far_clip = -100
 
-    def get_visible_instance_tris(tris, view_verts, view_normals, no_culling, get_vert_normals):
+    def get_visible_instance_tris(tris, view_verts, view_normals, no_culling):
         """
         Compute the triangles we can see, i.e. are not back facing or outside view frustum
-        Also returns triangle normals and screen projections of all vertices
+        Also returns screen projections of all vertices
         Returns (
             [indices of visible triangles],
-            [normals of all tris],
             [screen verts of visible tris])
         """
         visible_tri_idcs = []
         screen_verts = list(map(project_to_screen, view_verts))
-        # Sum the normals that touch the respective vertex and normalize at the end
-        sum_normals = [[0, 0, 0] for _ in range(len(view_verts))] if get_vert_normals else None
 
         i = -1
         for tri in tris:
@@ -137,29 +151,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
             normal = view_normals[i]
 
-            if get_vert_normals:
-                n_x = normal[0]
-                n_y = normal[1]
-                n_z = normal[2]
-                sum_normals[i_0][0] += n_x
-                sum_normals[i_0][1] += n_y
-                sum_normals[i_0][2] += n_z
-                sum_normals[i_1][0] += n_x
-                sum_normals[i_1][1] += n_y
-                sum_normals[i_1][2] += n_z
-                sum_normals[i_2][0] += n_x
-                sum_normals[i_2][1] += n_y
-                sum_normals[i_2][2] += n_z
-
             # Back-face culling: visible if dot_product(v_0, normal) < 0
             if no_culling or (v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0:
                 visible_tri_idcs.append(i)
 
-        vert_normals = None
-        if get_vert_normals:
-            vert_normals = list(map(vecmat.norm_vec3, sum_normals))
-
-        return (visible_tri_idcs, screen_verts, vert_normals)
+        return (visible_tri_idcs, screen_verts)
 
     def get_screen_tris_for_instance(instance, model_m):
         """Get (lighted) triangles from this instance and insert them into scene_triangles"""
@@ -183,11 +179,14 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         model_tris = model["tris"]
         draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
 
-        visible_tri_idcs,screen_verts,vert_normals = get_visible_instance_tris(model_tris,
-                                                                               view_verts,
-                                                                               view_normals,
-                                                                               no_culling,
-                                                                               draw_gouraud_shaded)
+        vert_normals = None
+        if draw_gouraud_shaded:
+            vert_normals = list(map(project_normals_to_view, model["vert_normals"]))
+
+        visible_tri_idcs,screen_verts = get_visible_instance_tris(model_tris,
+                                                                 view_verts,
+                                                                 view_normals,
+                                                                 no_culling)
         screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) for v_2 in screen_verts]
 
         draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)

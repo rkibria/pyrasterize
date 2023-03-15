@@ -26,13 +26,19 @@ def test_instance_contains_expected_entries():
     assert("colors" in model)
 
 def test_instance_creates_normals():
-    """Making an instance adds normals to the model if they don't exist"""
+    """Making an instance adds triangle and vertex normals to the model if they don't exist"""
     instance = rasterizer.get_model_instance(meshes.get_test_triangle_mesh())
     model = instance["model"]
     assert("normals" in model)
     normals = model["normals"]
     assert(len(normals) == 1)
     assert(normals[0] == [0, 0, 1])
+    assert("vert_normals" in model)
+    vert_normals = model["vert_normals"]
+    assert(len(vert_normals) == 3)
+    assert(vert_normals[0] == [0,0,1])
+    assert(vert_normals[1] == [0,0,1])
+    assert(vert_normals[2] == [0,0,1])
 
 if __name__ == "__main__":
     pass
