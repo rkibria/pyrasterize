@@ -245,7 +245,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
             area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
             if area_full_sq > 0:
-                for x,y in drawing.get_triangle_2d_points(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                     p = (x, y, 0)
                     v_bc = vecmat.sub_vec3(v_c, v_b)
                     v_bp = vecmat.sub_vec3(p, v_b)

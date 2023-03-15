@@ -31,7 +31,7 @@ class MockPixelArray:
 
 
 def draw_triangle(array, color, x1, y1, x2, y2, x3, y3):
-    for x,y in drawing.get_triangle_2d_points(x1, y1, x2, y2, x3, y3):
+    for x,y in drawing.triangle(x1, y1, x2, y2, x3, y3):
         array[x, y] = color
 
 

@@ -39,7 +39,7 @@ def bresenham(x0, y0, x1, y1):
             D -= 2*dx
         D += 2*dy
 
-def get_triangle_2d_points(x1, y1, x2, y2, x3, y3):
+def triangle(x1, y1, x2, y2, x3, y3):
     """
     Generator for points of a triangle in 2d coordinates.
     Positive y is down.

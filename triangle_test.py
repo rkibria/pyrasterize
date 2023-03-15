@@ -81,11 +81,11 @@ def main_function():
         #     cols = [(255, 255, 0), (0, 255, 255), (255, 0, 0), (0, 128, 0),]
         t = 0
         # print("------")
-        for x,y in drawing.get_triangle_2d_points(x0, y0, x1, y1, x2, y2):
+        for x,y in drawing.triangle(x0, y0, x1, y1, x2, y2):
             f = cols[0] if t else cols[1]
             px_array[x, y] = f
             # print(x,y)
-        for x,y in drawing.get_triangle_2d_points(x0, y0, x3, y3, x1, y1):
+        for x,y in drawing.triangle(x0, y0, x3, y3, x1, y1):
             f = cols[2] if t else cols[3]
             px_array[x, y] = f
 
