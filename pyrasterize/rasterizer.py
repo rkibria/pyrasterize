@@ -281,16 +281,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                     v_n2 = v_ca[0] * v_cp[1] - v_ca[1] * v_cp[0]
                     # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
                     v = (v_n * v_n2) / area_full_sq
-
-                    u = min(1, max(u, 0))
-                    v = min(1, max(v, 0))
                     w = 1 - u - v
-                    w = min(1, max(w, 0))
-                    rgb = (
-                        min(255, color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w),
-                        min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
-                        min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),)
-                    px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+                    r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
+                    g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
+                    b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
+                    px_array[x, y] = (r, g, b)
         elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
