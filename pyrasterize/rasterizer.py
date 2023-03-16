@@ -248,9 +248,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     px_array = pygame.PixelArray(surface)
     for _,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
-            v_a = (points[0][0], points[0][1], 0)
-            v_b = (points[1][0], points[1][1], 0)
-            v_c = (points[2][0], points[2][1], 0)
+            v_a = (points[0][0], points[0][1])
+            v_b = (points[1][0], points[1][1])
+            v_c = (points[2][0], points[2][1])
 
             # v_ab = vecmat.sub_vec3(v_b, v_a)
             v_ab = (v_b[0] - v_a[0], v_b[1] - v_a[1])
