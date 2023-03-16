@@ -263,11 +263,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
             if area_full_sq > 0:
                 for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
-                    p = (x, y, 0)
+                    # p = (x, y, 0)
                     # v_bc = vecmat.sub_vec3(v_c, v_b)
                     v_bc = (v_c[0] - v_b[0], v_c[1] - v_b[1], 0)
                     # v_bp = vecmat.sub_vec3(p, v_b)
-                    v_bp = (p[0] - v_b[0], p[1] - v_b[1], 0)
+                    v_bp = (x - v_b[0], y - v_b[1], 0)
                     # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
                     v_n1 = v_bc[0] * v_bp[1] - v_bc[1] * v_bp[0]
                     # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
@@ -276,7 +276,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                     # v_ca = vecmat.sub_vec3(v_a, v_c)
                     v_ca = (v_a[0] - v_c[0], v_a[1] - v_c[1], 0)
                     # v_cp = vecmat.sub_vec3(p, v_c)
-                    v_cp = (p[0] - v_c[0], p[1] - v_c[1], 0)
+                    v_cp = (x - v_c[0], y - v_c[1], 0)
                     # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
                     v_n2 = v_ca[0] * v_cp[1] - v_ca[1] * v_cp[0]
                     # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
