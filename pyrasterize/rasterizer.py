@@ -252,22 +252,35 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             v_b = (points[1][0], points[1][1], 0)
             v_c = (points[2][0], points[2][1], 0)
 
-            v_ab = vecmat.sub_vec3(v_b, v_a)
-            v_ac = vecmat.sub_vec3(v_c, v_a)
-            v_n = vecmat.cross_vec3(v_ab, v_ac)
+            # v_ab = vecmat.sub_vec3(v_b, v_a)
+            v_ab = (v_b[0] - v_a[0], v_b[1] - v_a[1], 0)
+            # v_ac = vecmat.sub_vec3(v_c, v_a)
+            v_ac = (v_c[0] - v_a[0], v_c[1] - v_a[1], 0)
+            # v_n = vecmat.cross_vec3(v_ab, v_ac)
+            v_n = (0, 0, v_ab[0] * v_ac[1] - v_ab[1] * v_ac[0])
+            # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
+            area_full_sq = v_n[0] * v_n[0] + v_n[1] * v_n[1] + v_n[2] * v_n[2]
 
-            area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
             if area_full_sq > 0:
                 for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                     p = (x, y, 0)
-                    v_bc = vecmat.sub_vec3(v_c, v_b)
-                    v_bp = vecmat.sub_vec3(p, v_b)
-                    v_n1 = vecmat.cross_vec3(v_bc, v_bp)
-                    u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
-                    v_ca = vecmat.sub_vec3(v_a, v_c)
-                    v_cp = vecmat.sub_vec3(p, v_c)
-                    v_n2 = vecmat.cross_vec3(v_ca, v_cp)
-                    v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
+                    # v_bc = vecmat.sub_vec3(v_c, v_b)
+                    v_bc = (v_c[0] - v_b[0], v_c[1] - v_b[1], 0)
+                    # v_bp = vecmat.sub_vec3(p, v_b)
+                    v_bp = (p[0] - v_b[0], p[1] - v_b[1], 0)
+                    # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
+                    v_n1 = (0, 0, v_bc[0] * v_bp[1] - v_bc[1] * v_bp[0])
+                    # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
+                    u = (v_n[0]*v_n1[0] + v_n[1]*v_n1[1] + v_n[2]*v_n1[2]) / area_full_sq
+
+                    # v_ca = vecmat.sub_vec3(v_a, v_c)
+                    v_ca = (v_a[0] - v_c[0], v_a[1] - v_c[1], 0)
+                    # v_cp = vecmat.sub_vec3(p, v_c)
+                    v_cp = (p[0] - v_c[0], p[1] - v_c[1], 0)
+                    # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
+                    v_n2 = (0, 0, v_ca[0] * v_cp[1] - v_ca[1] * v_cp[0])
+                    # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
+                    v = (v_n[0]*v_n2[0] + v_n[1]*v_n2[1] + v_n[2]*v_n2[2]) / area_full_sq
 
                     u = min(1, max(u, 0))
                     v = min(1, max(v, 0))
