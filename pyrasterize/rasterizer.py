@@ -7,15 +7,19 @@
 
 import pygame
 
+DEBUG_FONT = None
+
 from . import vecmat
+from . import drawing
 
 def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary
     Optional keys:
-    * wireframe (boolean): draw this as wireframe instead of filled polygons
-    * bound_sph_r (float): radius of the bounding sphere of this model, can check for e.g. selection
-    * noCulling (boolean): don't cull back face triangles
+    * wireframe (boolean): draw model as wireframe instead of filled triangles
+    * bound_sph_r (float): sets radius of the bounding sphere of this model, can check for e.g. selection
+    * noCulling (boolean): don't cull back face triangles when drawing this model
+    * gouraud (boolean):   draw model with Gouraud shaded triangles
     """
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
@@ -23,6 +27,40 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
         xform_m4 = vecmat.get_unit_m4()
     if children is None:
         children = {}
+
+    if model is not None and "normals" not in model:
+        normals = []
+        verts = model["verts"]
+        sum_normals = [[0, 0, 0] for _ in range(len(verts))]
+        for tri in model["tris"]:
+            i_0 = tri[0]
+            i_1 = tri[1]
+            i_2 = tri[2]
+            v_0 = verts[i_0]
+            v_1 = verts[i_1]
+            v_2 = verts[i_2]
+            v_a = vecmat.sub_vec3(v_1, v_0)
+            v_b = vecmat.sub_vec3(v_2, v_0)
+            normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
+            normals.append(normal)
+
+            n_x = normal[0]
+            n_y = normal[1]
+            n_z = normal[2]
+            sum_normals[i_0][0] += n_x
+            sum_normals[i_0][1] += n_y
+            sum_normals[i_0][2] += n_z
+            sum_normals[i_1][0] += n_x
+            sum_normals[i_1][1] += n_y
+            sum_normals[i_1][2] += n_z
+            sum_normals[i_2][0] += n_x
+            sum_normals[i_2][1] += n_y
+            sum_normals[i_2][2] += n_z
+
+        model["normals"] = normals
+        vert_normals = list(map(vecmat.norm_vec3, sum_normals))
+        model["vert_normals"] = vert_normals
+
     return {
         "enabled" : True,
         "model": model,
@@ -31,10 +69,18 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
         "children": children
         }
 
+DRAW_MODE_WIREFRAME = 0
+DRAW_MODE_FLAT = 1
+DRAW_MODE_GOURAUD = 2
+
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
+    # global DEBUG_FONT
+    # if DEBUG_FONT is None:
+    #     DEBUG_FONT = pygame.font.Font(None, 16)
+
     scr_origin_x = screen_area[0] + screen_area[2] / 2
     scr_origin_y = screen_area[1] + screen_area[3] / 2
 
@@ -48,6 +94,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
     proj_light_dir = get_proj_light_dir()
 
+    # Collect all visible triangles. Elements are tuples:
+    # (average z depth, screen points of triangle, lighted color, draw mode)
+    # Sorted by depth before drawing, draw mode overrides order so wireframes come last
     scene_triangles = []
 
     def project_to_screen(view_v):
@@ -58,48 +107,55 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
             return [screen_v[0]/minus_z, screen_v[1]/minus_z]
 
-    def get_visible_instance_tris(tris, view_verts, no_culling, clip_planes=(-0.5,-100)):
-        """Returns ([indices of visible triangles],
-            [normals of all tris],
-            [screen verts of visible tris])"""
-        idcs = []
-        normals = []
+    near_clip = -0.5
+    far_clip = -100
+
+    def get_visible_instance_tris(tris, view_verts, view_normals, no_culling):
+        """
+        Compute the triangles we can see, i.e. are not back facing or outside view frustum
+        Also returns screen projections of all vertices
+        Returns (
+            [indices of visible triangles],
+            [screen verts of visible tris])
+        """
+        visible_tri_idcs = []
         screen_verts = list(map(project_to_screen, view_verts))
+
         i = -1
-        near_clip = clip_planes[0]
-        far_clip = clip_planes[1]
         for tri in tris:
             i += 1
-            v_0 = view_verts[tri[0]]
-            v_1 = view_verts[tri[1]]
-            v_2 = view_verts[tri[2]]
+
+            i_0 = tri[0]
+            i_1 = tri[1]
+            i_2 = tri[2]
+
+            v_0 = view_verts[i_0]
+            v_1 = view_verts[i_1]
+            v_2 = view_verts[i_2]
+
             # clip near/far plane
             if ( (v_0[2] >= near_clip or v_1[2] >= near_clip or v_2[2] >= near_clip)
             or (v_0[2] <= far_clip  or v_1[2] <= far_clip  or v_2[2] <= far_clip)):
-                normals.append(None)
                 continue
+
             # clip left/right/top/bottom
-            sv_0 = screen_verts[tri[0]]
-            sv_1 = screen_verts[tri[1]]
-            sv_2 = screen_verts[tri[2]]
+            sv_0 = screen_verts[i_0]
+            sv_1 = screen_verts[i_1]
+            sv_2 = screen_verts[i_2]
             one_scr_v_visible = (
                    ((sv_0[0] >= -1 and sv_0[0] <= 1) and (sv_0[1] >= -1 and sv_0[1] <= 1))
                 or ((sv_1[0] >= -1 and sv_1[0] <= 1) and (sv_1[1] >= -1 and sv_1[1] <= 1))
                 or ((sv_2[0] >= -1 and sv_2[0] <= 1) and (sv_2[1] >= -1 and sv_2[1] <= 1)))
             if not one_scr_v_visible:
-                normals.append(None)
                 continue
-            # normal = cross_product(v_1 - v_0, v_2 - v_0)
-            sub10 = (v_1[0] - v_0[0], v_1[1] - v_0[1], v_1[2] - v_0[2])
-            sub20 = (v_2[0] - v_0[0], v_2[1] - v_0[1], v_2[2] - v_0[2])
-            normal = (sub10[1]*sub20[2] - sub10[2]*sub20[1],
-                sub10[2]*sub20[0] - sub10[0]*sub20[2],
-                    sub10[0]*sub20[1] - sub10[1]*sub20[0])
-            normals.append(normal)
+
+            normal = view_normals[i]
+
             # Back-face culling: visible if dot_product(v_0, normal) < 0
             if no_culling or (v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0:
-                idcs.append(i)
-        return (idcs, normals, screen_verts)
+                visible_tri_idcs.append(i)
+
+        return (visible_tri_idcs, screen_verts)
 
     def get_screen_tris_for_instance(instance, model_m):
         """Get (lighted) triangles from this instance and insert them into scene_triangles"""
@@ -112,31 +168,65 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
         view_verts = list(map(project_to_view, model["verts"]))
 
+        def project_normals_to_view(model_n):
+            normal_vec4 = (model_n[0], model_n[1], model_n[2], 0)
+            return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
+        view_normals = list(map(project_normals_to_view, model["normals"]))
+
         draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
         no_culling = ("noCulling" in instance) and instance["noCulling"]
         model_colors = model["colors"]
         model_tris = model["tris"]
+        draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
 
-        idcs,normals,screen_verts = get_visible_instance_tris(model_tris, view_verts, no_culling)
-        screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x),
-            int(scr_origin_y - v_2[1] * scr_origin_y)) for v_2 in screen_verts]
+        vert_normals = None
+        if draw_gouraud_shaded:
+            vert_normals = list(map(project_normals_to_view, model["vert_normals"]))
 
-        for idx in idcs:
-            tri = model_tris[idx]
-            points = [screen_verts[tri[i]] for i in range(3)]
-            if not draw_as_wireframe:
-                normal = vecmat.norm_vec3(normals[idx])
-                color = model_colors[idx]
+        visible_tri_idcs,screen_verts = get_visible_instance_tris(model_tris,
+                                                                 view_verts,
+                                                                 view_normals,
+                                                                 no_culling)
+        screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) for v_2 in screen_verts]
+
+        draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
+
+        # Compute colors for each required vertex for Gouraud shading
+        vert_colors = [None] * len(view_verts)
+        if draw_gouraud_shaded:
+            for tri_idx in visible_tri_idcs:
+                tri_color = model_colors[tri_idx]
+                tri = model_tris[tri_idx]
+                for vert_idx in tri:
+                    if vert_colors[vert_idx] is None:
+                        normal = vert_normals[vert_idx]
+                        dot_prd = max(0, proj_light_dir[0] * normal[0]
+                            + proj_light_dir[1] * normal[1]
+                            + proj_light_dir[2] * normal[2])
+                        intensity = min(1, max(0, ambient + diffuse * dot_prd))
+                        vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
+
+        for tri_idx in visible_tri_idcs:
+            tri = model_tris[tri_idx]
+            normal = view_normals[tri_idx]
+
+            if draw_mode == DRAW_MODE_WIREFRAME:
+                color_data = model_colors[tri_idx]
+            elif draw_mode == DRAW_MODE_FLAT:
+                color = model_colors[tri_idx]
                 dot_prd = max(0, proj_light_dir[0] * normal[0]
                     + proj_light_dir[1] * normal[1]
                     + proj_light_dir[2] * normal[2])
                 intensity = min(1, max(0, ambient + diffuse * dot_prd))
-                lighted_color = (intensity * color[0], intensity * color[1], intensity * color[2])
-            else:
-                lighted_color = model_colors[idx]
+                color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
+            else: # draw_mode == DRAW_MODE_GOURAUD
+                color_data = [vert_colors[vert_idx] for vert_idx in tri]
+
             scene_triangles.append((
                 (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3,
-                points, lighted_color, draw_as_wireframe))
+                [screen_verts[tri[i]] for i in range(3)],
+                color_data,
+                draw_mode))
 
     def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
@@ -149,14 +239,63 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)
 
+    # Traverse the scene graph and build scene_triangles values
     traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
-    # Wireframe lines are always drawn last
-    scene_triangles.sort(key=lambda x: (1 if x[3] else 0, x[0]), reverse=False)
-    for _,points,color,draw_as_wireframe in scene_triangles:
-        if not draw_as_wireframe:
-            pygame.draw.polygon(surface, color, points)
-        else:
-            pygame.draw.lines(surface, color, True, points)
+
+    # Sort triangles in ascending z order but wireframe triangles should be drawn last
+    scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
+
+    px_array = pygame.PixelArray(surface)
+    for _,points,color_data,draw_mode in scene_triangles:
+        if draw_mode == DRAW_MODE_GOURAUD:
+            v_a = (points[0][0], points[0][1], 0)
+            v_b = (points[1][0], points[1][1], 0)
+            v_c = (points[2][0], points[2][1], 0)
+
+            # v_ab = vecmat.sub_vec3(v_b, v_a)
+            v_ab = (v_b[0] - v_a[0], v_b[1] - v_a[1], 0)
+            # v_ac = vecmat.sub_vec3(v_c, v_a)
+            v_ac = (v_c[0] - v_a[0], v_c[1] - v_a[1], 0)
+            # v_n = vecmat.cross_vec3(v_ab, v_ac)
+            v_n = (0, 0, v_ab[0] * v_ac[1] - v_ab[1] * v_ac[0])
+            # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
+            area_full_sq = v_n[0] * v_n[0] + v_n[1] * v_n[1] + v_n[2] * v_n[2]
+
+            if area_full_sq > 0:
+                for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                    p = (x, y, 0)
+                    # v_bc = vecmat.sub_vec3(v_c, v_b)
+                    v_bc = (v_c[0] - v_b[0], v_c[1] - v_b[1], 0)
+                    # v_bp = vecmat.sub_vec3(p, v_b)
+                    v_bp = (p[0] - v_b[0], p[1] - v_b[1], 0)
+                    # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
+                    v_n1 = (0, 0, v_bc[0] * v_bp[1] - v_bc[1] * v_bp[0])
+                    # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
+                    u = (v_n[0]*v_n1[0] + v_n[1]*v_n1[1] + v_n[2]*v_n1[2]) / area_full_sq
+
+                    # v_ca = vecmat.sub_vec3(v_a, v_c)
+                    v_ca = (v_a[0] - v_c[0], v_a[1] - v_c[1], 0)
+                    # v_cp = vecmat.sub_vec3(p, v_c)
+                    v_cp = (p[0] - v_c[0], p[1] - v_c[1], 0)
+                    # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
+                    v_n2 = (0, 0, v_ca[0] * v_cp[1] - v_ca[1] * v_cp[0])
+                    # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
+                    v = (v_n[0]*v_n2[0] + v_n[1]*v_n2[1] + v_n[2]*v_n2[2]) / area_full_sq
+
+                    u = min(1, max(u, 0))
+                    v = min(1, max(v, 0))
+                    w = 1 - u - v
+                    w = min(1, max(w, 0))
+                    rgb = (
+                        min(255, color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w),
+                        min(255, color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w),
+                        min(255, color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w),)
+                    px_array[x, y] = (int(rgb[0]), int(rgb[1]), int(rgb[2]))
+        elif draw_mode == DRAW_MODE_FLAT:
+            pygame.draw.polygon(surface, color_data, points)
+        elif draw_mode == DRAW_MODE_WIREFRAME:
+            pygame.draw.lines(surface, color_data, True, points)
+    del px_array
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""

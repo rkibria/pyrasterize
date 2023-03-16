@@ -7,6 +7,24 @@ Vectors, matrices and other math
 
 import math
 
+def sub_vec3(v_1, v_2):
+    """Return v1 - v2"""
+    return [v_1[0] - v_2[0], v_1[1] - v_2[1], v_1[2] - v_2[2]]
+
+def cross_vec3(a, b):
+    """Return vec3 result of cross product of 2 vec3's"""
+    return [a[1]*b[2] - a[2]*b[1],
+        a[2]*b[0] - a[0]*b[2],
+        a[0]*b[1] - a[1]*b[0]]
+
+def dot_product_vec3(a, b):
+    """Return dot product of vec3"""
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+
+def mag_vec3(v_3):
+    """Return magnitude of vec3"""
+    return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]) ** 0.5
+
 def norm_vec3(v_3):
     """Return normalized vec3"""
     mag = v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]
@@ -192,3 +210,14 @@ def get_simple_camera_m(cam):
     camera_m = mat4_mat4_mul(get_rot_y_m4(-cam_rot[1]), camera_m)
     camera_m = mat4_mat4_mul(get_rot_x_m4(-cam_rot[0]), camera_m)
     return camera_m
+
+def get_triangle_area(a, b, c):
+    """Area of triangle formed by 3 vec3s"""
+    t = cross_vec3(sub_vec3(b, a), sub_vec3(c, a))
+    return 0.5 * mag_vec3(t)
+
+def get_vec2_triangle_centroid(v_a, v_b, v_c):
+    """Get centroid point of a two-dimensional triangle"""
+    cx = (v_a[0] + v_b[0] + v_c[0]) / 3
+    cy = (v_a[1] + v_b[1] + v_c[1]) / 3
+    return (cx, cy)
