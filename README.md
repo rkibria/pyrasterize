@@ -14,6 +14,8 @@ Mouse selection video https://imgur.com/a/YxD0HCn
 
 Shell game demo made with pygbag on itch.io https://pelicanicious.itch.io/pyrasterize-shellgame
 
+Gouraud shading / draw modes demo video https://i.imgur.com/XC3njax.mp4
+
 --
 
 Utah teapot obj files available at https://graphics.cs.utah.edu/courses/cs6620/fall2017/?prj=5
