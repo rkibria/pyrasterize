@@ -203,7 +203,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                         dot_prd = max(0, proj_light_dir[0] * normal[0]
                             + proj_light_dir[1] * normal[1]
                             + proj_light_dir[2] * normal[2])
-                        intensity = min(1, max(0, ambient + diffuse * dot_prd))
+                        intensity = min(1, 0, ambient + diffuse * dot_prd)
                         vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
 
         for tri_idx in visible_tri_idcs:
