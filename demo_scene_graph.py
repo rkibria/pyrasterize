@@ -151,6 +151,13 @@ def main_function():
     clock = pygame.time.Clock()
 
     scene_graph = create_scene_graph()
+    sum_triangles = 0
+    def acc_tris(_,instance):
+        nonlocal sum_triangles
+        if instance["model"]:
+            sum_triangles += len(instance["model"]["tris"])
+    rasterizer.visit_instances(scene_graph, acc_tris)
+    print(f"total triangles in scene: {sum_triangles}")
 
     font = pygame.font.Font(None, 30)
     title1 = font.render("A SCENE GRAPH organizes 3D objects as a tree structure,", True, RGB_WHITE)
