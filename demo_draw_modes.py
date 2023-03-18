@@ -61,8 +61,8 @@ def main_function():
 
     # The root has the various geometric objects as children
     instances = [
+        ["Sphere", rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 200, 100))],
         ["Cube", rasterizer.get_model_instance(meshes.get_cube_mesh())],
-        ["Sphere", rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 20, 10))],
     ]
     try:
         teapot_model = model_file_io.get_model_from_obj_file("teapot-low.obj")
@@ -75,8 +75,9 @@ def main_function():
     except:
         pass
 
-    for name,model in instances:
-        scene_graph["root"]["children"][name] = model
+    for name,instance in instances:
+        scene_graph["root"]["children"][name] = instance
+        print(f"- {name}: {len(instance['model']['tris'])} triangles")
     cur_inst = 0
 
     font = pygame.font.Font(None, 30)
@@ -86,7 +87,7 @@ def main_function():
 
     drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
     OVERLAY_DRAWING_MODE = 2
-    drawing_mode = 0
+    drawing_mode = 1
 
     def regenerate_textblocks():
         nonlocal textblock_drawmode
