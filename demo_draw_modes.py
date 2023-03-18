@@ -61,8 +61,8 @@ def main_function():
 
     # The root has the various geometric objects as children
     instances = [
-        ["Sphere", rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 200, 100))],
         ["Cube", rasterizer.get_model_instance(meshes.get_cube_mesh())],
+        ["Sphere", rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 20, 10))],
     ]
     try:
         teapot_model = model_file_io.get_model_from_obj_file("teapot-low.obj")
