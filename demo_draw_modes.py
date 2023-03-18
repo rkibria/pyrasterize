@@ -2,7 +2,7 @@
 Demonstrates drawing various geometry with different shading algorithms
 """
 
-import math
+import time
 
 import pygame
 import pygame.gfxdraw
@@ -39,8 +39,12 @@ def draw_scene_graph(surface, frame, scene_graph):
             vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5))))
     # Get perspective matrix and render the scene
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
+    t = time.perf_counter()
     rasterizer.render(surface, RASTER_SCR_AREA, scene_graph,
         vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+    elapsed_time = time.perf_counter() - t
+    if frame % 30 == 0:
+        print(f"render time: {round(elapsed_time, 3)} s")
 
 def main_function():
     """Main"""
@@ -65,9 +69,15 @@ def main_function():
         instances.append(["Utah teapot", rasterizer.get_model_instance(teapot_model, vecmat.get_scal_m4(0.1, 0.1, 0.1))])
     except:
         pass
+    try:
+        teapot_model = model_file_io.get_model_from_obj_file("teapot.obj")
+        instances.append(["Utah teapot (hi poly)", rasterizer.get_model_instance(teapot_model, vecmat.get_scal_m4(0.1, 0.1, 0.1))])
+    except:
+        pass
 
-    for name,model in instances:
-        scene_graph["root"]["children"][name] = model
+    for name,instance in instances:
+        scene_graph["root"]["children"][name] = instance
+        print(f"- {name}: {len(instance['model']['tris'])} triangles")
     cur_inst = 0
 
     font = pygame.font.Font(None, 30)

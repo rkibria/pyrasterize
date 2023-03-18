@@ -5,11 +5,11 @@ Filled polygons with simple lighting rasterizer demo using pygame
 import math
 import pygame
 import random
+import time
 
 import pyrasterize.vecmat as vecmat
 import pyrasterize.rasterizer as rasterizer
 import pyrasterize.meshes as meshes
-import pyrasterize.model_file_io as model_file_io
 
 # CONSTANTS
 
@@ -81,17 +81,17 @@ def create_scene_graph():
         face = scene_graph["cubeRoot"]["children"][face_name]
         face["children"]["sprite"] = get_sprite_instance()
 
-    fish_model = model_file_io.get_model_from_obj_file("Goldfish_01.obj") # https://poly.pizza/m/52s3JpUSjmX
-    scene_graph["fishRoot"] = rasterizer.get_model_instance(None)
-    scene_graph["fishRoot"]["children"]["fish_1"] = rasterizer.get_model_instance(fish_model,
+    orbiter_model = meshes.get_sphere_mesh(3, 10, 5)
+    scene_graph["orbiterRoot"] = rasterizer.get_model_instance(None)
+    scene_graph["orbiterRoot"]["children"]["orbiter_1"] = rasterizer.get_model_instance(orbiter_model,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(11,0,0),
             vecmat.mat4_mat4_mul(vecmat.get_scal_m4(0.5, 0.5, 0.5),
-                vecmat.get_transl_m4(*meshes.get_model_centering_offset(fish_model)))))
-    scene_graph["fishRoot"]["children"]["fish_2"] = rasterizer.get_model_instance(fish_model,
+                vecmat.get_transl_m4(*meshes.get_model_centering_offset(orbiter_model)))))
+    scene_graph["orbiterRoot"]["children"]["orbiter_2"] = rasterizer.get_model_instance(orbiter_model,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-11,0,0),
             vecmat.mat4_mat4_mul(vecmat.get_scal_m4(0.5, 0.5, 0.5),
                 vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(180)),
-                    vecmat.get_transl_m4(*meshes.get_model_centering_offset(fish_model))))))
+                    vecmat.get_transl_m4(*meshes.get_model_centering_offset(orbiter_model))))))
 
     return scene_graph
 
@@ -130,11 +130,15 @@ def draw_scene_graph(surface, frame, scene_graph):
     cube_m = vecmat.mat4_mat4_mul(vecmat.get_rot_z_m4(angle * 0.4), cube_m)
     scene_graph["cubeRoot"]["xform_m4"] = cube_m
 
-    scene_graph["fishRoot"]["xform_m4"] = vecmat.get_rot_y_m4(-angle)
+    scene_graph["orbiterRoot"]["xform_m4"] = vecmat.get_rot_y_m4(-angle)
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(90), SCR_WIDTH/SCR_HEIGHT)
 
+    t = time.perf_counter()
     rasterizer.render(surface, SCR_AREA, scene_graph, camera_m, persp_m, LIGHTING)
+    elapsed_time = time.perf_counter() - t
+    if frame % 30 == 0:
+        print(f"render time: {round(elapsed_time, 3)} s")
 
 # MAIN
 
@@ -147,6 +151,13 @@ def main_function():
     clock = pygame.time.Clock()
 
     scene_graph = create_scene_graph()
+    sum_triangles = 0
+    def acc_tris(_,instance):
+        nonlocal sum_triangles
+        if instance["model"]:
+            sum_triangles += len(instance["model"]["tris"])
+    rasterizer.visit_instances(scene_graph, acc_tris)
+    print(f"total triangles in scene: {sum_triangles}")
 
     font = pygame.font.Font(None, 30)
     title1 = font.render("A SCENE GRAPH organizes 3D objects as a tree structure,", True, RGB_WHITE)
@@ -173,7 +184,7 @@ def main_function():
         pygame.display.flip()
         frame += 1
         if frame % 30 == 0:
-            print(f"{clock.get_fps()} fps")
+            print(f"{round(clock.get_fps(), 2)} fps")
 
 if __name__ == '__main__':
     main_function()

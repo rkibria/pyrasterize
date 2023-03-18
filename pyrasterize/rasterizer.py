@@ -69,6 +69,18 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
         "children": children
         }
 
+
+def visit_instances(scene_graph, func, enabled_only=False):
+    """
+    Call func(name, instance) on all instances of the scene graph
+    """
+    for name,instance in scene_graph.items():
+        if not enabled_only or instance["enabled"]:
+            func(name, instance)
+            if instance["children"]:
+                visit_instances(instance["children"], func, enabled_only)
+
+
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
