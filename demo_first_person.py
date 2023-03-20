@@ -23,7 +23,7 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0, 1, 0], "rot": [0,0,0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0, 1, 0], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
@@ -59,20 +59,47 @@ def main_function():
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
 
-    def on_mouse_button_down(event):
-        """Handle mouse button down"""
-
     frame = 0
     done = False
     paused = False
+    move_dir = [0, 0, 0] # xyz delta relative to camera direction
 
     textblock_fps = None
     def update_hud():
         global CAMERA
         nonlocal textblock_fps
         pos = [round(p, 2) for p in CAMERA['pos']]
-        textblock_fps = font.render(f"pos: {pos} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
+        textblock_fps = font.render(f"pos: {pos} - mov: {move_dir} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
     update_hud()
+
+    pygame.mouse.set_visible(False)
+    pygame.event.set_grab(True)
+
+    def on_mouse_button_down(event):
+        """Handle mouse button down"""
+
+    def on_mouse_movement(x, y):
+        """Handle mouse movement"""
+        global CAMERA
+        CAMERA["rot"][0] -= vecmat.deg_to_rad(y * 0.2)
+        CAMERA["rot"][1] -= vecmat.deg_to_rad(x * 0.2)
+
+    def on_key_down(key):
+        """"""
+        if key == pygame.K_w:
+            move_dir[2] = -1
+            return True
+        return False
+
+    def on_key_up(key):
+        """"""
+        if key == pygame.K_w:
+            move_dir[0] = 0
+            move_dir[1] = 0
+            move_dir[2] = 0
+
+    def do_movement():
+        """"""
 
     while not done:
         clock.tick(30)
@@ -82,13 +109,21 @@ def main_function():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_mouse_button_down(event)
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_o:
-                    pass
+                if not on_key_down(event.key):
+                    if event.key == pygame.K_ESCAPE:
+                        done = True
+            elif event.type == pygame.KEYUP:
+                on_key_up(event.key)
+            elif event.type == pygame.MOUSEMOTION:
+                mouse_position = pygame.mouse.get_rel()
+                on_mouse_movement(mouse_position[0], mouse_position[1])
+
+        do_movement()
 
         screen.fill(RGB_BLACK)
         draw_scene_graph(screen, frame, scene_graph)
 
-        if frame % 10 == 0:
+        if frame % 3 == 0:
             update_hud()
         screen.blit(textblock_fps, (30, 30))
 
