@@ -13,7 +13,6 @@ import pygame.cursors
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
-from pyrasterize import model_file_io
 
 # CONSTANTS
 
@@ -100,6 +99,24 @@ def main_function():
 
     def do_movement():
         """"""
+        # forward movement:
+        # add vector pointing in the direction of the camera to pos.
+        # strafing:
+        # add vector perpendicular to camera direction to pos.
+        #
+        # The camera direction for movement is in the x/z plane (y=0).
+        # The relevant rotation axis is Y
+        global CAMERA
+        nonlocal move_dir
+        if move_dir == [0, 0, 0]:
+            return
+        cam_rot_y = CAMERA["rot"][1]
+        move_scale = 0.1
+        cam_v_forward = [move_scale * math.sin(cam_rot_y), 0, move_scale * math.cos(cam_rot_y)]
+        cam_pos = CAMERA["pos"]
+        forward_factor = move_dir[2]
+        cam_pos[0] += cam_v_forward[0] * forward_factor
+        cam_pos[2] += cam_v_forward[2] * forward_factor
 
     while not done:
         clock.tick(30)
