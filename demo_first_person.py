@@ -88,35 +88,47 @@ def main_function():
         if key == pygame.K_w:
             move_dir[2] = -1
             return True
+        elif key == pygame.K_s:
+            move_dir[2] = 1
+            return True
+        elif key == pygame.K_a:
+            move_dir[0] = -1
+            return True
+        elif key == pygame.K_d:
+            move_dir[0] = 1
+            return True
         return False
 
     def on_key_up(key):
         """"""
-        if key == pygame.K_w:
-            move_dir[0] = 0
-            move_dir[1] = 0
-            move_dir[2] = 0
+        move_dir[0] = 0
+        move_dir[1] = 0
+        move_dir[2] = 0
 
     def do_movement():
         """"""
-        # forward movement:
-        # add vector pointing in the direction of the camera to pos.
-        # strafing:
-        # add vector perpendicular to camera direction to pos.
-        #
-        # The camera direction for movement is in the x/z plane (y=0).
-        # The relevant rotation axis is Y
         global CAMERA
         nonlocal move_dir
         if move_dir == [0, 0, 0]:
             return
+        # forward movement:
+        # add vector pointing in the direction of the camera to pos.
+        #
+        # The camera direction for movement is in the x/z plane (y=0).
+        # The relevant rotation axis is Y
         cam_rot_y = CAMERA["rot"][1]
         move_scale = 0.1
         cam_v_forward = [move_scale * math.sin(cam_rot_y), 0, move_scale * math.cos(cam_rot_y)]
         cam_pos = CAMERA["pos"]
-        forward_factor = move_dir[2]
-        cam_pos[0] += cam_v_forward[0] * forward_factor
-        cam_pos[2] += cam_v_forward[2] * forward_factor
+        speed = move_dir[2]
+        cam_pos[0] += cam_v_forward[0] * speed
+        cam_pos[2] += cam_v_forward[2] * speed
+        # strafing:
+        # add vector perpendicular to camera direction to pos.
+        cam_v_right = [-cam_v_forward[2], 0, cam_v_forward[0]] # 90 deg rotate: (-y, x)
+        speed = move_dir[0]
+        cam_pos[0] -= cam_v_right[0] * speed
+        cam_pos[2] -= cam_v_right[2] * speed
 
     while not done:
         clock.tick(30)
