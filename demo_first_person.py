@@ -52,8 +52,10 @@ def main_function():
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     scene_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((10, 10), (10, 10), ((255,0,0), (0,255,0))),
-        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))
-        )
+        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+    scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(
+        meshes.get_cube_mesh(),
+        xform_m4=vecmat.get_transl_m4(0, 10, 0))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -80,8 +82,11 @@ def main_function():
     def on_mouse_movement(x, y):
         """Handle mouse movement"""
         global CAMERA
-        CAMERA["rot"][0] -= vecmat.deg_to_rad(y * 0.2)
-        CAMERA["rot"][1] -= vecmat.deg_to_rad(x * 0.2)
+        rot = CAMERA["rot"]
+        rot[0] -= vecmat.deg_to_rad(y * 0.2)
+        rot[1] -= vecmat.deg_to_rad(x * 0.2)
+        # limit up/down rotation around x-axis to straight up/down at most
+        rot[0] = min(math.pi/2, max(-math.pi/2, rot[0]))
 
     def on_key_down(key):
         """"""
