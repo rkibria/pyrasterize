@@ -227,8 +227,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 print("back_1", back_point_1)
                 print("back_2", back_point_2)
                 front_point_z = front_point[2]
-                intersect_t_1 = near_clip - front_point_z / (back_point_1[2] - front_point_z)
-                intersect_t_2 = near_clip - front_point_z / (back_point_2[2] - front_point_z)
+                intersect_t_1 = (near_clip - front_point_z) / (back_point_1[2] - front_point_z)
+                intersect_t_2 = (near_clip - front_point_z) / (back_point_2[2] - front_point_z)
                 new_back_1 = [
                     front_point[0] + intersect_t_1 * (back_point_1[0] - front_point[0]),
                     front_point[1] + intersect_t_1 * (back_point_1[1] - front_point[1]),
