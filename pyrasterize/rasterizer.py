@@ -81,6 +81,23 @@ def visit_instances(scene_graph, func, enabled_only=False):
                 visit_instances(instance["children"], func, enabled_only)
 
 
+def project_model_vert_to_view(model_v, model_m):
+    """
+    Model vertices are vec3 so need a conversion
+    Return vec4
+    """
+    return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
+
+
+def project_normal_to_view(model_n, model_m):
+    """
+    Gets normal vector transformed to current view
+    Returns vec3
+    """
+    normal_vec4 = (model_n[0], model_n[1], model_n[2], 0)
+    return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
+
+
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
@@ -112,6 +129,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     scene_triangles = []
 
     def project_to_screen(view_v):
+        """
+        Takes vec4
+        Returns vec2 or None
+        """
         minus_z = -view_v[2]
         if minus_z == 0:
             return None
@@ -225,7 +246,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 # Add the new vertices to the end of the list
                 new_verts_idx = len(view_verts)
                 view_verts.append(new_back_1)
+                screen_verts.append(project_to_screen(new_back_1))
                 view_verts.append(new_back_2)
+                screen_verts.append(project_to_screen(new_back_2))
                 visible_tri_idcs.append(len(tris))
                 tris.append((front_point_i, new_verts_idx, new_verts_idx + 1))
                 colors.append(colors[tri_idx])
@@ -249,15 +272,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         if not model:
             return
 
-        def project_to_view(model_v):
-            """Return vec4"""
-            return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
-        view_verts = list(map(project_to_view, model["verts"]))
-
-        def project_normals_to_view(model_n):
-            normal_vec4 = (model_n[0], model_n[1], model_n[2], 0)
-            return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
-        view_normals = list(map(project_normals_to_view, model["normals"]))
+        view_verts = list(map(lambda x: project_model_vert_to_view(x, model_m), model["verts"]))
+        view_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["normals"]))
 
         draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
         no_culling = ("noCulling" in instance) and instance["noCulling"]
@@ -268,7 +284,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
         vert_normals = None
         if draw_gouraud_shaded:
-            vert_normals = list(map(project_normals_to_view, model["vert_normals"]))
+            vert_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["vert_normals"]))
 
         # This function may add temporary triangles due to clipping
         # We reset the model's triangle list to its original size after processing
