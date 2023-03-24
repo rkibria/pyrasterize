@@ -42,13 +42,26 @@ def main_function():
         { "root": rasterizer.get_model_instance(None) }
     ]
 
+    # Ground graph
     scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((10, 10), (10, 10), ((180, 180, 180), (60, 60, 60))),
+        meshes.get_rect_mesh((11, 11), (11, 11), ((180, 180, 180), (60, 60, 60))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
 
-    scene_graphs[1]["root"]["children"]["cube"] = rasterizer.get_model_instance(
-        meshes.get_cube_mesh((180, 0, 0)),
-        xform_m4=vecmat.get_transl_m4(0, 0.5, 0))
+    # Interiors graph
+    scene_graphs[1]["root"]["children"]["pedestal"] = rasterizer.get_model_instance(
+        meshes.get_cylinder_mesh(0.5, 0.5, 5, (100, 100, 110), True, False),
+        xform_m4=vecmat.get_transl_m4(0, 0.25, 0))
+
+    scene_graphs[1]["root"]["children"]["sphere"] = rasterizer.get_model_instance(
+        meshes.get_sphere_mesh(0.25, 20, 10, (0, 0, 200)),
+        xform_m4=vecmat.get_transl_m4(0, 0.75, 0))
+    scene_graphs[1]["root"]["children"]["sphere"]["gouraud"] = True
+
+    column_positions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
+    for x,y in column_positions:
+        scene_graphs[1]["root"]["children"][f"column_{y}_{x}"] = rasterizer.get_model_instance(
+            meshes.get_cylinder_mesh(5, 0.5, 10, (100, 100, 110), False, False),
+            xform_m4=vecmat.get_transl_m4(y, 2.5, x))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
