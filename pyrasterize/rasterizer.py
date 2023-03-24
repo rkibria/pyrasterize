@@ -145,7 +145,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
             return [screen_v[0]/minus_z, screen_v[1]/minus_z]
 
-    def get_visible_instance_tris(model, view_verts, view_normals, no_culling):
+    def get_visible_instance_tris(model, view_verts, view_normals, vert_normals, no_culling):
         """
         Compute the triangles we can see, i.e. are not back facing or outside view frustum
         - Also returns screen projections of all vertices
@@ -201,16 +201,22 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     back_point_1 = v_1
                     back_point_2 = v_2
                     front_point_i = i_0
+                    back_point_1_i = i_1
+                    back_point_2_i = i_2
                 elif not v_1_behind:
                     front_point = v_1
                     back_point_1 = v_0
                     back_point_2 = v_2
                     front_point_i = i_1
+                    back_point_1_i = i_0
+                    back_point_2_i = i_2
                 else:
                     front_point = v_2
                     back_point_1 = v_0
                     back_point_2 = v_1
                     front_point_i = i_2
+                    back_point_1_i = i_0
+                    back_point_2_i = i_1
                 front_point_z = front_point[2]
                 # t = (near - v0.z) / (v1.z - v0.z)
                 intersect_t_1 = (near_clip - front_point_z) / (back_point_1[2] - front_point_z)
@@ -233,8 +239,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 screen_verts.append(project_to_screen(new_back_1))
                 view_verts.append(new_back_2)
                 screen_verts.append(project_to_screen(new_back_2))
-                # Copy the normal of the original triangle
+                # Copy the normals of the original triangle and vertices
                 view_normals.append(view_normals[tri_idx])
+                if vert_normals is not None:
+                    vert_normals.append(vert_normals[back_point_1_i])
+                    vert_normals.append(vert_normals[back_point_2_i])
                 # Add the new triangle
                 visible_tri_idcs.append(len(tris))
                 tris.append((front_point_i, new_verts_idx, new_verts_idx + 1))
@@ -281,9 +290,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 screen_verts.append(project_to_screen(new_front_1))
                 view_verts.append(new_front_2)
                 screen_verts.append(project_to_screen(new_front_2))
-                # Copy the normal of the original triangle
+                # Copy the normals of the original triangle and vertices
                 view_normals.append(view_normals[tri_idx])
                 view_normals.append(view_normals[tri_idx])
+                if vert_normals is not None:
+                    vert_normals.append(vert_normals[front_point_i_1])
+                    vert_normals.append(vert_normals[front_point_i_2])
                 # Add the two new triangles
                 visible_tri_idcs.append(len(tris))
                 tris.append((front_point_i_1, front_point_i_2, new_verts_idx))
@@ -323,7 +335,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
         # We reset the model's triangle list to its original size after processing
         num_orig_model_tris = len(model_tris)
         num_orig_model_verts = len(model_verts)
-        visible_tri_idcs,screen_verts = get_visible_instance_tris(model, view_verts, view_normals, no_culling)
+        visible_tri_idcs,screen_verts = get_visible_instance_tris(model, view_verts, view_normals, vert_normals, no_culling)
         screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
 
         draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
