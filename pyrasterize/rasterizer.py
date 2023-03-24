@@ -457,15 +457,19 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, billb
         del px_array
 
     # Draw billboards
-    for pos,img in billboards:
+    for pos,size,img in billboards:
         cam_pos = vecmat.vec4_mat4_mul(pos, camera_m)
-        if cam_pos[2] > near_clip:
+        cur_z = cam_pos[2]
+        if cur_z > near_clip:
             continue
         scr_pos = project_to_screen(cam_pos)
         if scr_pos is not None:
-            scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - img.get_width()/2),
-                       int(scr_origin_y - scr_pos[1] * scr_origin_y - img.get_height()/2))
-            surface.blit(img, scr_pos)
+            inv_z = 1.0 / abs(cur_z)
+            proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[0])
+            scale_img = pygame.transform.scale(img, proj_size)
+            scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - scale_img.get_width()/2),
+                       int(scr_origin_y - scr_pos[1] * scr_origin_y - scale_img.get_height()/2))
+            surface.blit(pygame.transform.scale(scale_img, proj_size), scr_pos)
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""

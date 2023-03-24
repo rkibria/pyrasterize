@@ -132,7 +132,8 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     img = pygame.image.load("sprite.png").convert_alpha()
     billboards = [
-        [[0, 1, 0, 1], img]
+        # position vec4, width and height at distance 1, image surface
+        [[0, 1, 0, 1], [1, 1], img]
     ]
 
     while not done:
