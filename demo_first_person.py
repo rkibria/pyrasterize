@@ -22,7 +22,7 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0, 1, 0], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0, 1, 5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
@@ -53,6 +53,7 @@ def main_function():
     scene_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((10, 10), (10, 10), ((255,0,0), (0,255,0))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+    # scene_graph["root"]["children"]["ground"]["wireframe"] = True
     scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(),
         xform_m4=vecmat.get_transl_m4(0, 10, 0))

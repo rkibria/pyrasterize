@@ -81,11 +81,28 @@ def visit_instances(scene_graph, func, enabled_only=False):
                 visit_instances(instance["children"], func, enabled_only)
 
 
+def project_model_vert_to_view(model_v, model_m):
+    """
+    Model vertices are vec3 so need a conversion
+    Return vec4
+    """
+    return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
+
+
+def project_normal_to_view(model_n, model_m):
+    """
+    Gets normal vector transformed to current view
+    Returns vec3
+    """
+    normal_vec4 = (model_n[0], model_n[1], model_n[2], 0)
+    return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
+
+
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
+def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -112,6 +129,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
     scene_triangles = []
 
     def project_to_screen(view_v):
+        """
+        Takes vec4
+        Returns vec2 or None
+        """
         minus_z = -view_v[2]
         if minus_z == 0:
             return None
@@ -119,23 +140,25 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
             return [screen_v[0]/minus_z, screen_v[1]/minus_z]
 
-    near_clip = -0.5
-    far_clip = -100
-
-    def get_visible_instance_tris(tris, view_verts, view_normals, no_culling):
+    def get_visible_instance_tris(model, view_verts, view_normals, no_culling):
         """
         Compute the triangles we can see, i.e. are not back facing or outside view frustum
-        Also returns screen projections of all vertices
+        - Also returns screen projections of all vertices
+        - Also may create new triangles due to clipping which should be removed when done
         Returns (
             [indices of visible triangles],
-            [screen verts of visible tris])
+            [screen verts of visible tris]
+            )
         """
         visible_tri_idcs = []
         screen_verts = list(map(project_to_screen, view_verts))
 
-        i = -1
-        for tri in tris:
-            i += 1
+        # May add new triangles as we loop
+        tris = model["tris"]
+        colors = model["colors"]
+        num_orig_tris = len(tris)
+        for tri_idx in range(num_orig_tris):
+            tri = tris[tri_idx]
 
             i_0 = tri[0]
             i_1 = tri[1]
@@ -145,27 +168,129 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             v_1 = view_verts[i_1]
             v_2 = view_verts[i_2]
 
-            # clip near/far plane
-            if ( (v_0[2] >= near_clip or v_1[2] >= near_clip or v_2[2] >= near_clip)
-            or (v_0[2] <= far_clip  or v_1[2] <= far_clip  or v_2[2] <= far_clip)):
-                continue
-
             # clip left/right/top/bottom
             sv_0 = screen_verts[i_0]
             sv_1 = screen_verts[i_1]
             sv_2 = screen_verts[i_2]
-            one_scr_v_visible = (
-                   ((sv_0[0] >= -1 and sv_0[0] <= 1) and (sv_0[1] >= -1 and sv_0[1] <= 1))
-                or ((sv_1[0] >= -1 and sv_1[0] <= 1) and (sv_1[1] >= -1 and sv_1[1] <= 1))
-                or ((sv_2[0] >= -1 and sv_2[0] <= 1) and (sv_2[1] >= -1 and sv_2[1] <= 1)))
-            if not one_scr_v_visible:
+
+            if sv_0 is None or sv_1 is None or sv_2 is None:
                 continue
 
-            normal = view_normals[i]
+            v_0_behind = v_0[2] > near_clip
+            v_1_behind = v_1[2] > near_clip
+            v_2_behind = v_2[2] > near_clip
+            num_behind = (1 if v_0_behind else 0) + (1 if v_1_behind else 0) + (1 if v_2_behind else 0)
+            if num_behind == 3:
+                # Clip triangles totally behind near clip plane
+                continue
 
             # Back-face culling: visible if dot_product(v_0, normal) < 0
-            if no_culling or (v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0:
-                visible_tri_idcs.append(i)
+            normal = view_normals[tri_idx]
+            if not (no_culling or (v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0):
+                continue
+
+            # Check if triangle extends behind near clip plane
+            if num_behind == 2:
+                if not v_0_behind:
+                    front_point = v_0
+                    back_point_1 = v_1
+                    back_point_2 = v_2
+                    front_point_i = i_0
+                elif not v_1_behind:
+                    front_point = v_1
+                    back_point_1 = v_0
+                    back_point_2 = v_2
+                    front_point_i = i_1
+                else:
+                    front_point = v_2
+                    back_point_1 = v_0
+                    back_point_2 = v_1
+                    front_point_i = i_2
+                front_point_z = front_point[2]
+                # t = (near - v0.z) / (v1.z - v0.z)
+                intersect_t_1 = (near_clip - front_point_z) / (back_point_1[2] - front_point_z)
+                intersect_t_2 = (near_clip - front_point_z) / (back_point_2[2] - front_point_z)
+                new_back_1 = [
+                    front_point[0] + intersect_t_1 * (back_point_1[0] - front_point[0]),
+                    front_point[1] + intersect_t_1 * (back_point_1[1] - front_point[1]),
+                    front_point[2] + intersect_t_1 * (back_point_1[2] - front_point[2]),
+                    1.0
+                ]
+                new_back_2 = [
+                    front_point[0] + intersect_t_2 * (back_point_2[0] - front_point[0]),
+                    front_point[1] + intersect_t_2 * (back_point_2[1] - front_point[1]),
+                    front_point[2] + intersect_t_2 * (back_point_2[2] - front_point[2]),
+                    1.0
+                ]
+                # Add the new vertices and their screen projections to the end of the list
+                new_verts_idx = len(view_verts)
+                view_verts.append(new_back_1)
+                screen_verts.append(project_to_screen(new_back_1))
+                view_verts.append(new_back_2)
+                screen_verts.append(project_to_screen(new_back_2))
+                # Copy the normal of the original triangle
+                view_normals.append(view_normals[tri_idx])
+                # Add the new triangle
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i, new_verts_idx, new_verts_idx + 1))
+                # Copy the color of the original triangle
+                colors.append(colors[tri_idx])
+                continue
+            elif num_behind == 1:
+                if v_0_behind:
+                    back_point = v_0
+                    front_point_1 = v_1
+                    front_point_2 = v_2
+                    front_point_i_1 = i_1
+                    front_point_i_2 = i_2
+                elif v_1_behind:
+                    back_point = v_1
+                    front_point_1 = v_0
+                    front_point_2 = v_2
+                    front_point_i_1 = i_0
+                    front_point_i_2 = i_2
+                else:
+                    back_point = v_2
+                    front_point_1 = v_0
+                    front_point_2 = v_1
+                    front_point_i_1 = i_0
+                    front_point_i_2 = i_1
+                back_point_z = back_point[2]
+                intersect_t_1 = (near_clip - back_point_z) / (front_point_1[2] - back_point_z)
+                intersect_t_2 = (near_clip - back_point_z) / (front_point_2[2] - back_point_z)
+                new_front_1 = [
+                    back_point[0] + intersect_t_1 * (front_point_1[0] - back_point[0]),
+                    back_point[1] + intersect_t_1 * (front_point_1[1] - back_point[1]),
+                    back_point[2] + intersect_t_1 * (front_point_1[2] - back_point[2]),
+                    1.0
+                ]
+                new_front_2 = [
+                    back_point[0] + intersect_t_2 * (front_point_2[0] - back_point[0]),
+                    back_point[1] + intersect_t_2 * (front_point_2[1] - back_point[1]),
+                    back_point[2] + intersect_t_2 * (front_point_2[2] - back_point[2]),
+                    1.0
+                ]
+                # Add the new vertices and their screen projections to the end of the list
+                new_verts_idx = len(view_verts)
+                view_verts.append(new_front_1)
+                screen_verts.append(project_to_screen(new_front_1))
+                view_verts.append(new_front_2)
+                screen_verts.append(project_to_screen(new_front_2))
+                # Copy the normal of the original triangle
+                view_normals.append(view_normals[tri_idx])
+                view_normals.append(view_normals[tri_idx])
+                # Add the two new triangles
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i_1, front_point_i_2, new_verts_idx))
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i_2, new_verts_idx + 1, new_verts_idx))
+                # Copy the colors of the original triangle
+                colors.append(colors[tri_idx])
+                colors.append(colors[tri_idx])
+                continue
+
+            # Append a non-clipped visible triangle
+            visible_tri_idcs.append(tri_idx)
 
         return (visible_tri_idcs, screen_verts)
 
@@ -175,30 +300,25 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
         if not model:
             return
 
-        def project_to_view(model_v):
-            """Return vec4"""
-            return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
-        view_verts = list(map(project_to_view, model["verts"]))
-
-        def project_normals_to_view(model_n):
-            normal_vec4 = (model_n[0], model_n[1], model_n[2], 0)
-            return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
-        view_normals = list(map(project_normals_to_view, model["normals"]))
+        view_verts = list(map(lambda x: project_model_vert_to_view(x, model_m), model["verts"]))
+        view_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["normals"]))
 
         draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
         no_culling = ("noCulling" in instance) and instance["noCulling"]
+        model_verts = model["verts"]
         model_colors = model["colors"]
         model_tris = model["tris"]
         draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
 
         vert_normals = None
         if draw_gouraud_shaded:
-            vert_normals = list(map(project_normals_to_view, model["vert_normals"]))
+            vert_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["vert_normals"]))
 
-        visible_tri_idcs,screen_verts = get_visible_instance_tris(model_tris,
-                                                                 view_verts,
-                                                                 view_normals,
-                                                                 no_culling)
+        # This function may add temporary triangles due to clipping
+        # We reset the model's triangle list to its original size after processing
+        num_orig_model_tris = len(model_tris)
+        num_orig_model_verts = len(model_verts)
+        visible_tri_idcs,screen_verts = get_visible_instance_tris(model, view_verts, view_normals, no_culling)
         screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
 
         draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
@@ -220,12 +340,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
         for tri_idx in visible_tri_idcs:
             tri = model_tris[tri_idx]
-            normal = view_normals[tri_idx]
 
             if draw_mode == DRAW_MODE_WIREFRAME:
                 color_data = model_colors[tri_idx]
             elif draw_mode == DRAW_MODE_FLAT:
                 color = model_colors[tri_idx]
+                normal = view_normals[tri_idx]
                 dot_prd = max(0, proj_light_dir[0] * normal[0]
                     + proj_light_dir[1] * normal[1]
                     + proj_light_dir[2] * normal[2])
@@ -239,6 +359,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 [screen_verts[tri[i]] for i in range(3)],
                 color_data,
                 draw_mode))
+
+        # Remove temporary triangles
+        if num_orig_model_tris != len(model_tris):
+            del model_verts[num_orig_model_verts:]
+            del model_tris[num_orig_model_tris:]
+            del model_colors[num_orig_model_tris:]
 
     def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
