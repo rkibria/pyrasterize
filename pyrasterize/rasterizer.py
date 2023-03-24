@@ -326,7 +326,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 size = model["size"]
                 img = model["img"]
                 inv_z = 1.0 / abs(cur_z)
-                proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[0])
+                proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
                 scale_img = pygame.transform.scale(img, proj_size)
                 scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - scale_img.get_width()/2),
                         int(scr_origin_y - scr_pos[1] * scr_origin_y - scale_img.get_height()/2))
