@@ -1,5 +1,5 @@
 """
-Demonstrates drawing various geometry with different shading algorithms
+Demonstrates movement in a first person view environment
 """
 
 import time
