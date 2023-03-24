@@ -143,9 +143,10 @@ def main_function():
 
     def on_key_up(key):
         """"""
-        move_dir[0] = 0
-        move_dir[1] = 0
-        move_dir[2] = 0
+        if key == pygame.K_w or key == pygame.K_s:
+            move_dir[2] = 0
+        elif key == pygame.K_a or key == pygame.K_d:
+            move_dir[0] = 0
 
     def do_movement():
         """"""
