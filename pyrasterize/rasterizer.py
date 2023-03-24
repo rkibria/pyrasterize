@@ -238,6 +238,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 screen_verts.append(project_to_screen(new_back_1))
                 view_verts.append(new_back_2)
                 screen_verts.append(project_to_screen(new_back_2))
+                # Copy the normal of the original triangle
+                view_normals.append(view_normals[tri_idx])
                 # Add the new triangle
                 visible_tri_idcs.append(len(tris))
                 tris.append((front_point_i, new_verts_idx, new_verts_idx + 1))
@@ -284,6 +286,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                 screen_verts.append(project_to_screen(new_front_1))
                 view_verts.append(new_front_2)
                 screen_verts.append(project_to_screen(new_front_2))
+                # Copy the normal of the original triangle
+                view_normals.append(view_normals[tri_idx])
+                view_normals.append(view_normals[tri_idx])
                 # Add the two new triangles
                 visible_tri_idcs.append(len(tris))
                 tris.append((front_point_i_1, front_point_i_2, new_verts_idx))
