@@ -38,10 +38,17 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # Use separate scene graphs for ground and other objects to avoid problems with overlapping
     scene_graph = { "root": rasterizer.get_model_instance(None) }
-    # Ground and ceiling graph
+
+    # Ground and ceiling
     scene_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((11, 11), (11, 11), ((180, 180, 180), (60, 60, 60))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+
+    # Billboard object
+    img = pygame.image.load("sprite.png").convert_alpha()
+    scene_graph["root"]["children"]["billboard_1"] = rasterizer.get_model_instance(
+        meshes.get_billboard(0, 0, 0, 1, 1, img)
+    )
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -130,12 +137,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
     pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
 
-    img = pygame.image.load("sprite.png").convert_alpha()
-    billboards = [
-        # position vec4, width and height at distance 1, image surface
-        [[0, 1, 0, 1], [1, 1], img]
-    ]
-
     while not done:
         clock.tick(30)
         for event in pygame.event.get():
@@ -160,7 +161,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         t = time.perf_counter()
         rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-            vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING, billboards=billboards)
+            vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
         elapsed_time = time.perf_counter() - t
         if frame % 30 == 0:
             print(f"render time: {round(elapsed_time, 3)} s")

@@ -28,7 +28,7 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     if children is None:
         children = {}
 
-    if model is not None and "normals" not in model:
+    if model is not None and "billboard" not in model and "normals" not in model:
         normals = []
         verts = model["verts"]
         sum_normals = [[0, 0, 0] for _ in range(len(verts))]
@@ -101,8 +101,9 @@ def project_normal_to_view(model_n, model_m):
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
+DRAW_MODE_BILLBOARD = 3
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, billboards, near_clip=-0.5):
+def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -315,6 +316,27 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, billb
         if not model:
             return
 
+        if "billboard" in model:
+            cam_pos = project_model_vert_to_view(model["translate"], model_m)
+            cur_z = cam_pos[2]
+            if cur_z > near_clip:
+                return
+            scr_pos = project_to_screen(cam_pos)
+            if scr_pos is not None:
+                size = model["size"]
+                img = model["img"]
+                inv_z = 1.0 / abs(cur_z)
+                proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[0])
+                scale_img = pygame.transform.scale(img, proj_size)
+                scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - scale_img.get_width()/2),
+                        int(scr_origin_y - scr_pos[1] * scr_origin_y - scale_img.get_height()/2))
+                scene_triangles.append((
+                    cur_z,
+                    scr_pos,
+                    scale_img,
+                    DRAW_MODE_BILLBOARD))
+            return
+
         view_verts = list(map(lambda x: project_model_vert_to_view(x, model_m), model["verts"]))
         view_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["normals"]))
 
@@ -453,23 +475,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, billb
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
+        elif draw_mode == DRAW_MODE_BILLBOARD:
+            surface.blit(color_data, points)
     if px_array is not None:
         del px_array
-
-    # Draw billboards
-    for pos,size,img in billboards:
-        cam_pos = vecmat.vec4_mat4_mul(pos, camera_m)
-        cur_z = cam_pos[2]
-        if cur_z > near_clip:
-            continue
-        scr_pos = project_to_screen(cam_pos)
-        if scr_pos is not None:
-            inv_z = 1.0 / abs(cur_z)
-            proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[0])
-            scale_img = pygame.transform.scale(img, proj_size)
-            scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - scale_img.get_width()/2),
-                       int(scr_origin_y - scr_pos[1] * scr_origin_y - scale_img.get_height()/2))
-            surface.blit(pygame.transform.scale(scale_img, proj_size), scr_pos)
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""
