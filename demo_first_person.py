@@ -129,7 +129,13 @@ def main_function():
         cam_pos[2] -= cam_v_right[2] * speed
 
 
-    rgb_cross = (255, 255, 255)
+    cross_size = 20
+    cross_width = 2
+    rgb_cross = (255, 255, 255, 100)
+    cross_surface = pygame.Surface((2 * cross_size, 2 * cross_size))
+    pygame.gfxdraw.box(cross_surface, (cross_size - cross_width, 0, cross_width * 2, cross_size * 2), rgb_cross)
+    pygame.gfxdraw.box(cross_surface, (0, cross_size - cross_width, cross_size * 2, cross_width * 2), rgb_cross)
+    pygame.gfxdraw.box(cross_surface, (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4), (0, 0, 0))
 
     while not done:
         clock.tick(30)
@@ -161,12 +167,7 @@ def main_function():
         if frame % 30 == 0:
             print(f"render time: {round(elapsed_time, 3)} s")
 
-        cross_size = 20
-        cross_width = 2
-        # Vertical bar
-        pygame.gfxdraw.box(screen, (RASTER_SCR_WIDTH // 2 - cross_width, RASTER_SCR_HEIGHT // 2 - cross_size, cross_width * 2, cross_size * 2), rgb_cross)
-        # Horizontal bar
-        pygame.gfxdraw.box(screen, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_width, cross_size * 2, cross_width * 2), rgb_cross)
+        screen.blit(cross_surface, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_size), special_flags=pygame.BLEND_RGBA_ADD)
 
         if frame % 3 == 0:
             update_hud()
