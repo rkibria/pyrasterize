@@ -367,8 +367,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             else: # draw_mode == DRAW_MODE_GOURAUD
                 color_data = [vert_colors[vert_idx] for vert_idx in tri]
 
+            z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
             scene_triangles.append((
-                (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3,
+                z_order,
                 [screen_verts[tri[i]] for i in range(3)],
                 color_data,
                 draw_mode))
