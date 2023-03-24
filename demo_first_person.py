@@ -2,11 +2,12 @@
 Demonstrates movement in a first person view environment
 """
 
+# import asyncio # PYGBAG
+
 import time
 import math
 
 import pygame
-import pygame.gfxdraw
 import pygame.mouse
 import pygame.cursors
 
@@ -28,7 +29,7 @@ CAMERA = { "pos": [0, 1, 2.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WID
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 
-def main_function():
+def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     pygame.init()
 
@@ -188,9 +189,9 @@ def main_function():
     cross_width = 2
     rgb_cross = (255, 255, 255, 100)
     cross_surface = pygame.Surface((2 * cross_size, 2 * cross_size))
-    pygame.gfxdraw.box(cross_surface, (cross_size - cross_width, 0, cross_width * 2, cross_size * 2), rgb_cross)
-    pygame.gfxdraw.box(cross_surface, (0, cross_size - cross_width, cross_size * 2, cross_width * 2), rgb_cross)
-    pygame.gfxdraw.box(cross_surface, (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4), (0, 0, 0))
+    pygame.draw.rect(cross_surface, rgb_cross, (cross_size - cross_width, 0, cross_width * 2, cross_size * 2))
+    pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
+    pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
 
     while not done:
         clock.tick(30)
@@ -231,6 +232,8 @@ def main_function():
 
         pygame.display.flip()
         frame += 1 if not paused else 0
+        # await asyncio.sleep(0) # PYGBAG
 
 if __name__ == '__main__':
+    # asyncio.run(main_function()) # PYGBAG
     main_function()

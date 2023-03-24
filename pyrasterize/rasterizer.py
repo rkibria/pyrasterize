@@ -6,7 +6,6 @@
 """
 
 import pygame
-import pygame.gfxdraw
 
 DEBUG_FONT = None
 
@@ -397,9 +396,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     # Sort triangles in ascending z order but wireframe triangles should be drawn last
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
 
-    px_array = pygame.PixelArray(surface)
+    px_array = None
     for _,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
+            if px_array is None:
+                px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
+
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
@@ -448,10 +450,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
                     px_array[x, y] = (r << 16) | (g << 8) | b
         elif draw_mode == DRAW_MODE_FLAT:
-            pygame.gfxdraw.filled_polygon(surface, points, color_data)
+            pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
-            pygame.gfxdraw.polygon(surface, points, color_data)
-    del px_array
+            pygame.draw.lines(surface, color_data, True, points)
+    if px_array is not None:
+        del px_array
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""
