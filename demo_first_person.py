@@ -27,16 +27,6 @@ CAMERA = { "pos": [0, 1, 5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
-def draw_scene_graph(surface, frame, scene_graph):
-    """Draw and animate the scene graph"""
-    # Get perspective matrix and render the scene
-    persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
-    t = time.perf_counter()
-    rasterizer.render(surface, RASTER_SCR_AREA, scene_graph,
-        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
-    elapsed_time = time.perf_counter() - t
-    if frame % 30 == 0:
-        print(f"render time: {round(elapsed_time, 3)} s")
 
 def main_function():
     """Main"""
@@ -46,17 +36,19 @@ def main_function():
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
-    pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+    # Use separate scene graphs for ground and other objects to avoid problems with overlapping
+    scene_graphs = [
+        { "root": rasterizer.get_model_instance(None) },
+        { "root": rasterizer.get_model_instance(None) }
+    ]
 
-    # The scene graph's top element is the "root" element which has no geometry of its own
-    scene_graph = { "root": rasterizer.get_model_instance(None) }
-    scene_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((10, 10), (10, 10), ((255,0,0), (0,255,0))),
+    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((10, 10), (10, 10), ((180, 180, 180), (60, 60, 60))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
-    # scene_graph["root"]["children"]["ground"]["wireframe"] = True
-    scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(
-        meshes.get_cube_mesh(),
-        xform_m4=vecmat.get_transl_m4(0, 10, 0))
+
+    scene_graphs[1]["root"]["children"]["cube"] = rasterizer.get_model_instance(
+        meshes.get_cube_mesh((180, 0, 0)),
+        xform_m4=vecmat.get_transl_m4(0, 0.5, 0))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -159,7 +151,15 @@ def main_function():
         do_movement()
 
         screen.fill(RGB_BLACK)
-        draw_scene_graph(screen, frame, scene_graph)
+
+        persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
+        t = time.perf_counter()
+        for scene_graph in scene_graphs:
+            rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
+                vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+        elapsed_time = time.perf_counter() - t
+        if frame % 30 == 0:
+            print(f"render time: {round(elapsed_time, 3)} s")
 
         cross_size = 20
         cross_width = 2
