@@ -9,6 +9,15 @@ import math
 
 MESH_DEFAULT_COLOR = (200, 200, 200)
 
+def get_billboard(dx, dy, dz, sx, sy, img):
+    """Create a billboard object"""
+    return {
+        "billboard": True,
+        "translate": [dx, dy, dz],
+        "size": [sx, sy],
+        "img": img,
+    }
+
 def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {

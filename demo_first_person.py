@@ -95,6 +95,13 @@ def main_function(): # PYGBAG: decorate with 'async'
         vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90)),
         xform_m4=vecmat.get_transl_m4(5.5, 2.5, 0))
 
+    # Interior: billboards
+    img = pygame.image.load("assets/LampStand.png").convert_alpha()
+    lamp_positions = [(-5, 0), (5, 0), (0, -5), (0, 5)]
+    for x,y in lamp_positions:
+        scene_graphs[1]["root"]["children"][f"billboard_{x}_{y}"] = rasterizer.get_model_instance(
+            meshes.get_billboard(x, 1, y, 3.5, 3.5, img))
+
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
 
