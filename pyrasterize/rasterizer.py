@@ -102,7 +102,7 @@ DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
+def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -140,9 +140,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
             return [screen_v[0]/minus_z, screen_v[1]/minus_z]
 
-    near_clip = -1.5
-    # far_clip = -100 # not clipping far plane atm
-
     def get_visible_instance_tris(model, view_verts, view_normals, no_culling):
         """
         Compute the triangles we can see, i.e. are not back facing or outside view frustum
@@ -177,13 +174,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
             sv_2 = screen_verts[i_2]
 
             if sv_0 is None or sv_1 is None or sv_2 is None:
-                continue
-
-            one_scr_v_visible = (
-                   ((sv_0[0] >= -1 and sv_0[0] <= 1) and (sv_0[1] >= -1 and sv_0[1] <= 1))
-                or ((sv_1[0] >= -1 and sv_1[0] <= 1) and (sv_1[1] >= -1 and sv_1[1] <= 1))
-                or ((sv_2[0] >= -1 and sv_2[0] <= 1) and (sv_2[1] >= -1 and sv_2[1] <= 1)))
-            if not one_scr_v_visible:
                 continue
 
             v_0_behind = v_0[2] > near_clip

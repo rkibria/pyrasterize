@@ -51,9 +51,9 @@ def main_function():
     # The scene graph's top element is the "root" element which has no geometry of its own
     scene_graph = { "root": rasterizer.get_model_instance(None) }
     scene_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((1, 1), (1, 1), ((255,0,0), (0,255,0))),
+        meshes.get_rect_mesh((10, 10), (10, 10), ((255,0,0), (0,255,0))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
-    scene_graph["root"]["children"]["ground"]["wireframe"] = True
+    # scene_graph["root"]["children"]["ground"]["wireframe"] = True
     scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(
         meshes.get_cube_mesh(),
         xform_m4=vecmat.get_transl_m4(0, 10, 0))
