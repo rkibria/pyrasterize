@@ -201,32 +201,23 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
 
             # Check if triangle extends behind near clip plane
             if num_behind == 2:
-                print("2 behind", v_0, v_1, v_2,)
                 if not v_0_behind:
                     front_point = v_0
                     back_point_1 = v_1
                     back_point_2 = v_2
                     front_point_i = i_0
-                    back_point_1_i = i_1
-                    back_point_2_i = i_2
                 elif not v_1_behind:
                     front_point = v_1
                     back_point_1 = v_0
                     back_point_2 = v_2
                     front_point_i = i_1
-                    back_point_1_i = i_0
-                    back_point_2_i = i_2
                 else:
                     front_point = v_2
                     back_point_1 = v_0
                     back_point_2 = v_1
                     front_point_i = i_2
-                    back_point_1_i = i_0
-                    back_point_2_i = i_1
-                print("front", front_point)
-                print("back_1", back_point_1)
-                print("back_2", back_point_2)
                 front_point_z = front_point[2]
+                # t = (near - v0.z) / (v1.z - v0.z)
                 intersect_t_1 = (near_clip - front_point_z) / (back_point_1[2] - front_point_z)
                 intersect_t_2 = (near_clip - front_point_z) / (back_point_2[2] - front_point_z)
                 new_back_1 = [
@@ -241,25 +232,67 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting):
                     front_point[2] + intersect_t_2 * (back_point_2[2] - front_point[2]),
                     1.0
                 ]
-                print("new_back_1", new_back_1,)
-                print("new_back_2", new_back_2,)
-                # Add the new vertices to the end of the list
+                # Add the new vertices and their screen projections to the end of the list
                 new_verts_idx = len(view_verts)
                 view_verts.append(new_back_1)
                 screen_verts.append(project_to_screen(new_back_1))
                 view_verts.append(new_back_2)
                 screen_verts.append(project_to_screen(new_back_2))
+                # Add the new triangle
                 visible_tri_idcs.append(len(tris))
                 tris.append((front_point_i, new_verts_idx, new_verts_idx + 1))
+                # Copy the color of the original triangle
                 colors.append(colors[tri_idx])
-                continue ###
-            elif num_behind == 1:
-                # print("1 behind", v_0, v_1, v_2,)
                 continue
-
-            # if ((v_0[2] >= near_clip or v_1[2] >= near_clip or v_2[2] >= near_clip)):
-            #     print(v_0, v_1, v_2, )
-            #     continue
+            elif num_behind == 1:
+                if v_0_behind:
+                    back_point = v_0
+                    front_point_1 = v_1
+                    front_point_2 = v_2
+                    front_point_i_1 = i_1
+                    front_point_i_2 = i_2
+                elif v_1_behind:
+                    back_point = v_1
+                    front_point_1 = v_0
+                    front_point_2 = v_2
+                    front_point_i_1 = i_0
+                    front_point_i_2 = i_2
+                else:
+                    back_point = v_2
+                    front_point_1 = v_0
+                    front_point_2 = v_1
+                    front_point_i_1 = i_0
+                    front_point_i_2 = i_1
+                back_point_z = back_point[2]
+                intersect_t_1 = (near_clip - back_point_z) / (front_point_1[2] - back_point_z)
+                intersect_t_2 = (near_clip - back_point_z) / (front_point_2[2] - back_point_z)
+                new_front_1 = [
+                    back_point[0] + intersect_t_1 * (front_point_1[0] - back_point[0]),
+                    back_point[1] + intersect_t_1 * (front_point_1[1] - back_point[1]),
+                    back_point[2] + intersect_t_1 * (front_point_1[2] - back_point[2]),
+                    1.0
+                ]
+                new_front_2 = [
+                    back_point[0] + intersect_t_2 * (front_point_2[0] - back_point[0]),
+                    back_point[1] + intersect_t_2 * (front_point_2[1] - back_point[1]),
+                    back_point[2] + intersect_t_2 * (front_point_2[2] - back_point[2]),
+                    1.0
+                ]
+                # Add the new vertices and their screen projections to the end of the list
+                new_verts_idx = len(view_verts)
+                view_verts.append(new_front_1)
+                screen_verts.append(project_to_screen(new_front_1))
+                view_verts.append(new_front_2)
+                screen_verts.append(project_to_screen(new_front_2))
+                # Add the two new triangles
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i_1, front_point_i_2, new_verts_idx))
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i_2, new_verts_idx + 1, new_verts_idx))
+                # Copy the colors of the original triangle
+                colors.append(colors[tri_idx])
+                colors.append(colors[tri_idx])
+                continue
 
             # Append a non-clipped visible triangle
             visible_tri_idcs.append(tri_idx)
