@@ -102,7 +102,7 @@ DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5):
+def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, billboards, near_clip=-0.5):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -455,6 +455,17 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             pygame.draw.lines(surface, color_data, True, points)
     if px_array is not None:
         del px_array
+
+    # Draw billboards
+    for pos,img in billboards:
+        cam_pos = vecmat.vec4_mat4_mul(pos, camera_m)
+        if cam_pos[2] > near_clip:
+            continue
+        scr_pos = project_to_screen(cam_pos)
+        if scr_pos is not None:
+            scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - img.get_width()/2),
+                       int(scr_origin_y - scr_pos[1] * scr_origin_y - img.get_height()/2))
+            surface.blit(img, scr_pos)
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """Return closest instance"""
