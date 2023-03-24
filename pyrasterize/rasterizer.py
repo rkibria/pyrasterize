@@ -149,11 +149,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
         """
         Compute the triangles we can see, i.e. are not back facing or outside view frustum
         - Also returns screen projections of all vertices
-        - Also may create new triangles due to clipping which should be removed when done
-        Returns (
-            [indices of visible triangles],
-            [screen verts of visible tris]
-            )
+        - Also may create new triangles due to clipping.
+        Returns: ([indices of visible triangles], [screen verts of visible tris])
+        SIDE EFFECTS: model's tris and colors get new entries which should be removed immediately!
         """
         visible_tri_idcs = []
         screen_verts = list(map(project_to_screen, view_verts))
@@ -322,7 +320,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
         draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
         no_culling = ("noCulling" in instance) and instance["noCulling"]
-        model_verts = model["verts"]
         model_colors = model["colors"]
         model_tris = model["tris"]
         draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
@@ -332,9 +329,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             vert_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["vert_normals"]))
 
         # This function may add temporary triangles due to clipping
-        # We reset the model's triangle list to its original size after processing
+        # We reset the model's lists to their original size after processing
         num_orig_model_tris = len(model_tris)
-        num_orig_model_verts = len(model_verts)
         visible_tri_idcs,screen_verts = get_visible_instance_tris(model, view_verts, view_normals, vert_normals, no_culling)
         screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
 
@@ -379,7 +375,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
         # Remove temporary triangles
         if num_orig_model_tris != len(model_tris):
-            del model_verts[num_orig_model_verts:]
             del model_tris[num_orig_model_tris:]
             del model_colors[num_orig_model_tris:]
 
