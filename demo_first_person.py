@@ -51,16 +51,24 @@ def main_function():
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(90)),
         vecmat.get_transl_m4(0, 5, 0))
 
-    # Interiors graph
+    # Interior: pedestal and spheres
     scene_graphs[1]["root"]["children"]["pedestal"] = rasterizer.get_model_instance(
         meshes.get_cylinder_mesh(0.5, 0.5, 5, (100, 100, 110), True, False),
         xform_m4=vecmat.get_transl_m4(0, 0.25, 0))
 
-    scene_graphs[1]["root"]["children"]["sphere"] = rasterizer.get_model_instance(
-        meshes.get_sphere_mesh(0.25, 20, 10, (0, 0, 200)),
-        xform_m4=vecmat.get_transl_m4(0, 0.75, 0))
-    # scene_graphs[1]["root"]["children"]["sphere"]["gouraud"] = True
+    scene_graphs[1]["root"]["children"]["blue_sphere"] = rasterizer.get_model_instance(
+        meshes.get_sphere_mesh(0.2, 20, 10, (0, 0, 200)))
+    blue_sphere = scene_graphs[1]["root"]["children"]["blue_sphere"]
 
+    blue_sphere["children"]["red_sphere"] = rasterizer.get_model_instance(
+        meshes.get_sphere_mesh(0.1, 10, 5, (200, 0, 0)))
+    red_sphere = blue_sphere["children"]["red_sphere"]
+
+    red_sphere["children"]["green_sphere"] = rasterizer.get_model_instance(
+        meshes.get_sphere_mesh(0.05, 10, 5, (0, 200, 0)),
+        xform_m4=vecmat.get_transl_m4(0.15, 0, 0))
+
+    # Interior: columns
     column_positions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
     for x,y in column_positions:
         scene_graphs[1]["root"]["children"][f"column_{y}_{x}"] = rasterizer.get_model_instance(
@@ -164,6 +172,16 @@ def main_function():
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
 
+    def do_animation():
+        nonlocal frame
+        nonlocal blue_sphere
+        rot_m = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5))
+        m = vecmat.get_transl_m4(0, 1.25, 0)
+        m = vecmat.mat4_mat4_mul(m, rot_m)
+        blue_sphere["xform_m4"] = m
+        m = vecmat.get_transl_m4(0.5, 0, 0)
+        m = vecmat.mat4_mat4_mul(m, rot_m)
+        red_sphere["xform_m4"] = m
 
     cross_size = 20
     cross_width = 2
@@ -190,6 +208,7 @@ def main_function():
                 mouse_position = pygame.mouse.get_rel()
                 on_mouse_movement(mouse_position[0], mouse_position[1])
 
+        do_animation()
         do_movement()
 
         screen.fill(RGB_BLACK)
