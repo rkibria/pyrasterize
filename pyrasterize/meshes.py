@@ -56,8 +56,11 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
         }
 
 def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
-    """Return 2D rectangle mesh of given size and subdivision
-    with checkerboard coloring"""
+    """
+    Return 2D rectangle mesh of given size and subdivision with checkerboard coloring
+    The rectangle is created in the x/y plane facing toward z, i.e.
+    an observer near origin looking to -z would see a "wall"
+    """
     mesh = { "verts": [], "tris": [], "colors": []}
     d_x,d_y = r_divs
 
