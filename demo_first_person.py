@@ -42,10 +42,14 @@ def main_function():
         { "root": rasterizer.get_model_instance(None) }
     ]
 
-    # Ground graph
+    # Ground and ceiling graph
     scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((11, 11), (11, 11), ((180, 180, 180), (60, 60, 60))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+    scene_graphs[0]["root"]["children"]["ceiling"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((11, 11), (1, 1), ((180, 180, 180), (60, 60, 60))),
+        vecmat.get_rot_x_m4(vecmat.deg_to_rad(90)),
+        vecmat.get_transl_m4(0, 5, 0))
 
     # Interiors graph
     scene_graphs[1]["root"]["children"]["pedestal"] = rasterizer.get_model_instance(
@@ -55,13 +59,32 @@ def main_function():
     scene_graphs[1]["root"]["children"]["sphere"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(0.25, 20, 10, (0, 0, 200)),
         xform_m4=vecmat.get_transl_m4(0, 0.75, 0))
-    scene_graphs[1]["root"]["children"]["sphere"]["gouraud"] = True
+    # scene_graphs[1]["root"]["children"]["sphere"]["gouraud"] = True
 
     column_positions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
     for x,y in column_positions:
         scene_graphs[1]["root"]["children"][f"column_{y}_{x}"] = rasterizer.get_model_instance(
             meshes.get_cylinder_mesh(5, 0.5, 10, (100, 100, 110), False, False),
             xform_m4=vecmat.get_transl_m4(y, 2.5, x))
+
+    # Interior: walls
+    wall_color_1 = (130, 130, 140)
+    wall_color_2 = (120, 120, 120)
+    scene_graphs[1]["root"]["children"]["north_wall"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((11,5), (1,1), (wall_color_1, wall_color_1)),
+        xform_m4=vecmat.get_transl_m4(0, 2.5, -5.5))
+    scene_graphs[1]["root"]["children"]["south_wall"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((11,5), (1,1), (wall_color_1, wall_color_1)),
+        vecmat.get_rot_y_m4(vecmat.deg_to_rad(180)),
+        xform_m4=vecmat.get_transl_m4(0, 2.5, 5.5))
+    scene_graphs[1]["root"]["children"]["west_wall"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((11,5), (1,1), (wall_color_2, wall_color_2)),
+        vecmat.get_rot_y_m4(vecmat.deg_to_rad(90)),
+        xform_m4=vecmat.get_transl_m4(-5.5, 2.5, 0))
+    scene_graphs[1]["root"]["children"]["east_wall"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((11,5), (1,1), (wall_color_2, wall_color_2)),
+        vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90)),
+        xform_m4=vecmat.get_transl_m4(5.5, 2.5, 0))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
