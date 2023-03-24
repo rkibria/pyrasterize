@@ -6,6 +6,7 @@
 """
 
 import pygame
+import pygame.gfxdraw
 
 DEBUG_FONT = None
 
@@ -447,9 +448,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
                     px_array[x, y] = (r << 16) | (g << 8) | b
         elif draw_mode == DRAW_MODE_FLAT:
-            pygame.draw.polygon(surface, color_data, points)
+            pygame.gfxdraw.filled_polygon(surface, points, color_data)
         elif draw_mode == DRAW_MODE_WIREFRAME:
-            pygame.draw.lines(surface, color_data, True, points)
+            pygame.gfxdraw.polygon(surface, points, color_data)
     del px_array
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
