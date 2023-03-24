@@ -136,6 +136,9 @@ def main_function():
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
 
+
+    rgb_cross = (255, 255, 255)
+
     while not done:
         clock.tick(30)
         for event in pygame.event.get():
@@ -157,6 +160,13 @@ def main_function():
 
         screen.fill(RGB_BLACK)
         draw_scene_graph(screen, frame, scene_graph)
+
+        cross_size = 20
+        cross_width = 2
+        # Vertical bar
+        pygame.gfxdraw.box(screen, (RASTER_SCR_WIDTH // 2 - cross_width, RASTER_SCR_HEIGHT // 2 - cross_size, cross_width * 2, cross_size * 2), rgb_cross)
+        # Horizontal bar
+        pygame.gfxdraw.box(screen, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_width, cross_size * 2, cross_width * 2), rgb_cross)
 
         if frame % 3 == 0:
             update_hud()
