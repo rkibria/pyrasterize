@@ -113,6 +113,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scr_origin_x = screen_area[0] + screen_area[2] / 2
     scr_origin_y = screen_area[1] + screen_area[3] / 2
 
+    scr_min_x = screen_area[0]
+    scr_max_x = screen_area[0] + screen_area[2] - 1
+    scr_min_y = screen_area[1]
+    scr_max_y = screen_area[1] + screen_area[3] - 1
+
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
 
@@ -410,6 +415,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 v_ca_0 = v_a[0] - v_c[0]
                 v_ca_1 = v_a[1] - v_c[1]
                 for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                    if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
+                        continue
                     # v_bp = vecmat.sub_vec3(p, v_b)
                     v_bp_0 = x - v_b[0]
                     v_bp_1 = y - v_b[1]
