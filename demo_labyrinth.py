@@ -81,11 +81,16 @@ def main_function(): # PYGBAG: decorate with 'async'
                 xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
             cell_inst = scene_graphs[1]["root"]["children"][cell_name]
             cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh(), vecmat.get_scal_m4(0.1, 0.1, 0.1))
-            # if cell[WALL_NORTH]:
-            if row == 0 and col == 0:
+            if cell[WALL_NORTH]:
                 cell_inst["children"]["north_wall"] = rasterizer.get_model_instance(
                     wall_mesh,
-                    vecmat.get_transl_m4(0, cell_height / 2, 0))
+                    vecmat.get_transl_m4(cell_size / 2, cell_height / 2, -cell_size))
+            elif cell[WALL_SOUTH]:
+            # if row == 0 and col == 0:
+                cell_inst["children"]["south_wall"] = rasterizer.get_model_instance(
+                    wall_mesh,
+                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, cell_height / 2, 0),
+                                            vecmat.get_rot_y_m4(vecmat.deg_to_rad(180))))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
