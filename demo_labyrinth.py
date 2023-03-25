@@ -15,7 +15,7 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 
-from labyrinth_gen import make_labyrinth, labyrinth_to_string
+from labyrinth_gen import make_labyrinth, labyrinth_to_string, WALL_NORTH, WALL_SOUTH, WALL_EAST, WALL_WEST
 
 # CONSTANTS
 
@@ -25,7 +25,7 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0, 1, 2.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0, 1, 0], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
@@ -44,6 +44,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     lab_cols = 5
     labyrinth = make_labyrinth(lab_rows, lab_cols, 20)
     print(labyrinth_to_string(labyrinth))
+    import pprint
+    pp = pprint.PrettyPrinter(indent=2)
+    pp.pprint(labyrinth)
 
     # Use separate scene graphs for ground and other objects to avoid problems with overlapping
     scene_graphs = [
@@ -53,12 +56,36 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # Ground and ceiling graph
 
-    # Each labyrinth cell is a cube with this side length
+    # Each labyrinth cell's area is a cube with this side length
     cell_size = 3
+    # Height of cell walls
+    cell_height = 3
 
     scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((180, 180, 180), (0, 0, 0))),
-        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
+                             vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+
+    # Interior: walls
+    wall_color_1 = (130, 130, 140)
+    wall_color_2 = (120, 120, 120)
+    wall_mesh = meshes.get_rect_mesh((cell_size, cell_height), (1, 1), (wall_color_1, wall_color_1))
+
+    cells = labyrinth["cells"]
+    for row in range(lab_rows):
+        row_cells = cells[row]
+        for col in range(lab_cols):
+            cell = row_cells[col]
+            cell_name = f"cell_{row}_{col}"
+            scene_graphs[1]["root"]["children"][cell_name] = rasterizer.get_model_instance(None,
+                xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
+            cell_inst = scene_graphs[1]["root"]["children"][cell_name]
+            cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh(), vecmat.get_scal_m4(0.1, 0.1, 0.1))
+            # if cell[WALL_NORTH]:
+            if row == 0 and col == 0:
+                cell_inst["children"]["north_wall"] = rasterizer.get_model_instance(
+                    wall_mesh,
+                    vecmat.get_transl_m4(0, cell_height / 2, 0))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
