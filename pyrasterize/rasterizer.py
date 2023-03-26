@@ -389,7 +389,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             else: # draw_mode == DRAW_MODE_GOURAUD
                 color_data = [vert_colors[vert_idx] for vert_idx in tri]
 
-            z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
+            # Using the minimum tends to look glitchier in a lot of cases,
+            # but also works better for placement of billboards and big triangles
+            # z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
+            z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
             scene_triangles.append((
                 z_order,
                 [screen_verts[tri[i]] for i in range(3)],
