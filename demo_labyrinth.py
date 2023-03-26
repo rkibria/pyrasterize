@@ -25,7 +25,7 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0, 1, 0], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
@@ -60,6 +60,10 @@ def main_function(): # PYGBAG: decorate with 'async'
     cell_size = 3
     # Height of cell walls
     cell_height = 3
+
+    CAMERA["pos"][0] = cell_size / 2
+    CAMERA["pos"][1] = cell_height / 2
+    CAMERA["pos"][2] = cell_size / 2
 
     scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
