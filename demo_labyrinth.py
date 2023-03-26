@@ -69,7 +69,11 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: walls
     wall_color_1 = (130, 130, 140)
     wall_color_2 = (120, 120, 120)
-    wall_mesh = meshes.get_rect_mesh((cell_size, cell_height), (1, 1), (wall_color_1, wall_color_1))
+
+    # Reuse the same wall mesh
+    # wall_mesh = meshes.get_rect_mesh((cell_size, cell_height), (1, 1), (wall_color_1, wall_color_1))
+    wall_mesh = meshes.get_cube_mesh()
+    meshes.scale_vertices(wall_mesh, cell_size, cell_height, 0.1)
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
