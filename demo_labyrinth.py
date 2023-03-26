@@ -109,7 +109,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     frame = 0
     done = False
     paused = False
-    move_dir = [0, 0, 0] # xyz delta relative to camera direction
+    # xyz delta relative to camera direction / xyz camera rotation
+    move_dir = [0, 0, 0, 0, 0, 0]
 
     textblock_fps = None
     def update_hud():
@@ -134,34 +135,37 @@ def main_function(): # PYGBAG: decorate with 'async'
         # limit up/down rotation around x-axis to straight up/down at most
         rot[0] = min(math.pi/2, max(-math.pi/2, rot[0]))
 
+    # key: (index, value)
+    key_moves = {
+        # WASD
+        pygame.K_w: (2, -1),
+        pygame.K_s: (2, 1),
+        pygame.K_a: (0, -1),
+        pygame.K_d: (0, 1),
+        # Camera rotation
+        pygame.K_SEMICOLON: (4, 1),
+        pygame.K_HASH: (4, -1),
+    }
+
     def on_key_down(key):
         """"""
-        if key == pygame.K_w:
-            move_dir[2] = -1
-            return True
-        elif key == pygame.K_s:
-            move_dir[2] = 1
-            return True
-        elif key == pygame.K_a:
-            move_dir[0] = -1
-            return True
-        elif key == pygame.K_d:
-            move_dir[0] = 1
+        if key in key_moves:
+            index, value = key_moves[key]
+            move_dir[index] = value
             return True
         return False
 
     def on_key_up(key):
         """"""
-        if key == pygame.K_w or key == pygame.K_s:
-            move_dir[2] = 0
-        elif key == pygame.K_a or key == pygame.K_d:
-            move_dir[0] = 0
+        if key in key_moves:
+            index, _ = key_moves[key]
+            move_dir[index] = 0
 
     def do_movement():
         """"""
         global CAMERA
         nonlocal move_dir
-        if move_dir == [0, 0, 0]:
+        if not any(move_dir):
             return
         # forward movement:
         # add vector pointing in the direction of the camera to pos.
@@ -181,6 +185,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         speed = move_dir[0]
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
+        # Camera rotation
+        y_rot_amount = move_dir[4]
+        CAMERA["rot"][1] += y_rot_amount * 0.05
 
     cross_size = 20
     cross_width = 2
