@@ -71,9 +71,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     wall_color_2 = (120, 120, 120)
 
     # Reuse the same wall mesh
-    # wall_mesh = meshes.get_rect_mesh((cell_size, cell_height), (1, 1), (wall_color_1, wall_color_1))
-    wall_mesh = meshes.get_cube_mesh()
-    meshes.scale_vertices(wall_mesh, cell_size, cell_height, 0.1)
+    wall_mesh = meshes.get_rect_mesh((cell_size, cell_height), (4, 4), (wall_color_1, wall_color_2))
+    # wall_mesh = meshes.get_cube_mesh()
+    # meshes.scale_vertices(wall_mesh, cell_size, cell_height, 0.1)
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -147,8 +147,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         pygame.K_a: (0, -1),
         pygame.K_d: (0, 1),
         # Camera rotation
-        pygame.K_SEMICOLON: (4, 1),
-        pygame.K_HASH: (4, -1),
+        pygame.K_v: (4, 1),
+        pygame.K_n: (4, -1),
+        pygame.K_g: (3, 1),
+        pygame.K_b: (3, -1),
     }
 
     def on_key_down(key):
@@ -190,8 +192,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
         # Camera rotation
-        y_rot_amount = move_dir[4]
-        CAMERA["rot"][1] += y_rot_amount * 0.05
+        rot_scale = 0.05
+        CAMERA["rot"][0] += move_dir[3] * rot_scale
+        CAMERA["rot"][1] += move_dir[4] * rot_scale
 
     cross_size = 20
     cross_width = 2
