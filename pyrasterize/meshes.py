@@ -9,6 +9,16 @@ import math
 
 MESH_DEFAULT_COLOR = (200, 200, 200)
 
+def scale_vertices(model, s_x, s_y, s_z):
+    """
+    Mulitply the coordinates of every vertex
+    by the given constants
+    """
+    for v in model["verts"]:
+        v[0] *= s_x
+        v[1] *= s_y
+        v[2] *= s_z
+
 def get_billboard(dx, dy, dz, sx, sy, img):
     """Create a billboard object"""
     return {
@@ -22,9 +32,9 @@ def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {
         "verts" : [
-            (0, 0, 0),
-            (1, 0, 0),
-            (1, 1, 0),
+            [0, 0, 0],
+            [1, 0, 0],
+            [1, 1, 0],
         ],
         "tris" : [(0, 1, 2)],
         "colors" : [MESH_DEFAULT_COLOR]
@@ -38,14 +48,14 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
     """
     return {
         "verts" : [
-            ( 0.5,  0.5, 0.5),  # front top right     0
-            ( 0.5, -0.5, 0.5),  # front bottom right  1
-            (-0.5, -0.5, 0.5),  # front bottom left   2
-            (-0.5,  0.5, 0.5),  # front top left      3
-            ( 0.5,  0.5, -0.5), # back top right      4
-            ( 0.5, -0.5, -0.5), # back bottom right   5
-            (-0.5, -0.5, -0.5), # back bottom left    6
-            (-0.5,  0.5, -0.5)  # back top left       7
+            [ 0.5,  0.5, 0.5],  # front top right     0
+            [ 0.5, -0.5, 0.5],  # front bottom right  1
+            [-0.5, -0.5, 0.5],  # front bottom left   2
+            [-0.5,  0.5, 0.5],  # front top left      3
+            [ 0.5,  0.5, -0.5], # back top right      4
+            [ 0.5, -0.5, -0.5], # back bottom right   5
+            [-0.5, -0.5, -0.5], # back bottom left    6
+            [-0.5,  0.5, -0.5]  # back top left       7
             ],
         "tris" : [ # CCW winding order
             (0, 3, 1), # front face
