@@ -230,18 +230,23 @@ def main_function(): # PYGBAG: decorate with 'async'
         # The camera direction for movement is in the x/z plane (y=0).
         # The relevant rotation axis is Y
         cam_rot_y = CAMERA["rot"][1]
-        move_scale = 0.1
-        cam_v_forward = [move_scale * math.sin(cam_rot_y), 0, move_scale * math.cos(cam_rot_y)]
-        cam_pos = CAMERA["pos"]
+        cam_v_forward = [math.sin(cam_rot_y), 0, math.cos(cam_rot_y)]
         speed = move_dir[2]
-        cam_pos[0] += cam_v_forward[0] * speed
-        cam_pos[2] += cam_v_forward[2] * speed
+        total_movement = [0.0, 0.0, 0.0]
+        total_movement[0] += cam_v_forward[0] * speed
+        total_movement[2] += cam_v_forward[2] * speed
         # strafing:
         # add vector perpendicular to camera direction to pos.
         cam_v_right = [-cam_v_forward[2], 0, cam_v_forward[0]] # 90 deg rotate: (-y, x)
         speed = move_dir[0]
-        cam_pos[0] -= cam_v_right[0] * speed
-        cam_pos[2] -= cam_v_right[2] * speed
+        total_movement[0] -= cam_v_right[0] * speed
+        total_movement[2] -= cam_v_right[2] * speed
+        # normalize the movement vector so moving diagonally isn't faster than straight moves
+        total_movement = vecmat.norm_vec3(total_movement)
+        cam_pos = CAMERA["pos"]
+        move_scale = 0.1
+        cam_pos[0] += total_movement[0] * move_scale
+        cam_pos[2] += total_movement[2] * move_scale
         # Camera rotation
         rot_scale = 0.05
         CAMERA["rot"][0] += move_dir[3] * rot_scale
