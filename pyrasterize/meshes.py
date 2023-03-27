@@ -83,7 +83,15 @@ def get_block_instance(sx, sy, sz, front_divs, side_divs, top_divs, colors=(MESH
     """
     inst = rasterizer.get_model_instance(None)
     front_mesh = get_rect_mesh((sx, sy), front_divs, colors)
-    inst["children"]["front"] = rasterizer.get_model_instance(front_mesh, vecmat.get_transl_m4(0, 0, -sz/2))
+    inst["children"]["front"] = rasterizer.get_model_instance(front_mesh, vecmat.get_transl_m4(0, 0, sz/2))
+    inst["children"]["back"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -sz/2), vecmat.get_rot_x_m4(vecmat.deg_to_rad(180))))
+    side_mesh = get_rect_mesh((sz, sy), side_divs, colors)
+    inst["children"]["left"] = rasterizer.get_model_instance(side_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-sx/2, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["right"] = rasterizer.get_model_instance(side_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(sx/2, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))))
+    # TODO top
     return inst
 
 def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):

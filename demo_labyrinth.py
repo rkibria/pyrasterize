@@ -83,7 +83,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # wall_mesh = meshes.get_cube_mesh()
     # meshes.scale_vertices(wall_mesh, cell_d_i, cell_height, cell_d_o) # broad side along x-axis
-    wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
+    wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (1, 1), (2, 2), wall_colors)
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -127,26 +127,23 @@ def main_function(): # PYGBAG: decorate with 'async'
             cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh(), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
             if wall_n:
-                cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(
-                    None,
-                    None,
+                cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
                     vecmat.get_transl_m4(cell_d_o + cell_d_i / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
-                    {"wall": wall_mesh}
-                    )
-            # if wall_s:
-            #     cell_inst["children"]["wall_s"] = rasterizer.get_model_instance(
-            #         wall_mesh,
-            #         vecmat.get_transl_m4(cell_d_o + cell_d_i / 2, cell_height / 2, -cell_d_o / 2))
-            # if wall_w:
-            #     cell_inst["children"]["wall_w"] = rasterizer.get_model_instance(
-            #         wall_mesh,
-            #         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_size / 2),
-            #                                 vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))))
-            # if wall_e:
-            #     cell_inst["children"]["wall_e"] = rasterizer.get_model_instance(
-            #         wall_mesh,
-            #         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_size / 2),
-            #                                 vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))))
+                    {"wall": wall_mesh})
+            if wall_s:
+                cell_inst["children"]["wall_s"] = rasterizer.get_model_instance(None, None,
+                    vecmat.get_transl_m4(cell_d_o + cell_d_i / 2, cell_height / 2, -cell_d_o / 2),
+                    {"wall": wall_mesh})
+            if wall_w:
+                cell_inst["children"]["wall_w"] = rasterizer.get_model_instance(None, None,
+                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_size / 2),
+                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
+                    {"wall": wall_mesh})
+            if wall_e:
+                cell_inst["children"]["wall_e"] = rasterizer.get_model_instance(None, None,
+                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_size / 2),
+                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
+                    {"wall": wall_mesh})
 
             # if corner_nw:
             #     cell_inst["children"]["corner_nw"] = rasterizer.get_model_instance(
