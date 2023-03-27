@@ -77,13 +77,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     wall_color_2 = (120, 120, 120)
     wall_colors = (wall_color_1, wall_color_2)
 
-    # Reuse the same wall meshes
-    corner_mesh = meshes.get_cube_mesh()
-    meshes.scale_vertices(corner_mesh, cell_d_o, cell_height, cell_d_o)
-
-    # wall_mesh = meshes.get_cube_mesh()
-    # meshes.scale_vertices(wall_mesh, cell_d_i, cell_height, cell_d_o) # broad side along x-axis
-    wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (1, 1), (2, 2), wall_colors)
+    # Reuse building blocks
+    wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
+    corner_mesh = meshes.get_block_instance(cell_d_o, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -124,7 +120,7 @@ def main_function(): # PYGBAG: decorate with 'async'
                 wall_e = True
                 corner_se = True
 
-            cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh(), vecmat.get_scal_m4(0.1, 0.1, 0.1))
+            # cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh(), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
             if wall_n:
                 cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
@@ -145,22 +141,22 @@ def main_function(): # PYGBAG: decorate with 'async'
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
                     {"wall": wall_mesh})
 
-            # if corner_nw:
-            #     cell_inst["children"]["corner_nw"] = rasterizer.get_model_instance(
-            #         corner_mesh,
-            #         vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)))
-            # if corner_ne:
-            #     cell_inst["children"]["corner_ne"] = rasterizer.get_model_instance(
-            #         corner_mesh,
-            #         vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)))
-            # if corner_sw:
-            #     cell_inst["children"]["corner_sw"] = rasterizer.get_model_instance(
-            #         corner_mesh,
-            #         vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_d_o / 2))
-            # if corner_se:
-            #     cell_inst["children"]["corner_se"] = rasterizer.get_model_instance(
-            #         corner_mesh,
-            #         vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_d_o / 2))
+            if corner_nw:
+                cell_inst["children"]["corner_nw"] = rasterizer.get_model_instance(None, None,
+                    vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
+                    {"corner": corner_mesh})
+            if corner_ne:
+                cell_inst["children"]["corner_ne"] = rasterizer.get_model_instance(None, None,
+                    vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
+                    {"corner": corner_mesh})
+            if corner_sw:
+                cell_inst["children"]["corner_sw"] = rasterizer.get_model_instance(None, None,
+                    vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_d_o / 2),
+                    {"corner": corner_mesh})
+            if corner_se:
+                cell_inst["children"]["corner_se"] = rasterizer.get_model_instance(None, None,
+                    vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_d_o / 2),
+                    {"corner": corner_mesh})
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
