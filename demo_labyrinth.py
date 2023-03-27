@@ -244,7 +244,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         # normalize the movement vector so moving diagonally isn't faster than straight moves
         total_movement = vecmat.norm_vec3(total_movement)
         cam_pos = CAMERA["pos"]
-        move_scale = 0.1
+        move_scale = 0.2
         cam_pos[0] += total_movement[0] * move_scale
         cam_pos[2] += total_movement[2] * move_scale
         # Camera rotation
