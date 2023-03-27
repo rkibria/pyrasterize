@@ -5,6 +5,9 @@
 Mesh generation, manipulation and information
 """
 
+from . import rasterizer
+from . import vecmat
+
 import math
 
 MESH_DEFAULT_COLOR = (200, 200, 200)
@@ -73,6 +76,15 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
             ],
         "colors": [[color[0], color[1], color[2]]] * 12
         }
+
+def get_block_instance(sx, sy, sz, front_divs, side_divs, top_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
+    """
+    Return a block made of separate 2d rectangles
+    """
+    inst = rasterizer.get_model_instance(None)
+    front_mesh = get_rect_mesh((sx, sy), front_divs, colors)
+    inst["children"]["front"] = rasterizer.get_model_instance(front_mesh, vecmat.get_transl_m4(0, 0, -sz/2))
+    return inst
 
 def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
     """
