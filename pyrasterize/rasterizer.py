@@ -126,17 +126,29 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
         i_1 = tri[1]
         i_2 = tri[2]
 
-        v_0 = view_verts[i_0]
-        v_1 = view_verts[i_1]
-        v_2 = view_verts[i_2]
-
-        # clip left/right/top/bottom
         sv_0 = screen_verts[i_0]
         sv_1 = screen_verts[i_1]
         sv_2 = screen_verts[i_2]
 
         if sv_0 is None or sv_1 is None or sv_2 is None:
             continue
+
+        # Ignore triangles whose bounding box doesn't intersect the viewing area
+        min_scr_x = min(sv_0[0], min(sv_1[0], sv_2[0]))
+        max_scr_x = max(sv_0[0], max(sv_1[0], sv_2[0]))
+        min_scr_y = min(sv_0[1], min(sv_1[1], sv_2[1]))
+        max_scr_y = max(sv_0[1], max(sv_1[1], sv_2[1]))
+        # Check if above rectangle intersects (-1,-1)->(1,1)
+        x_ov_1 = max(min_scr_x, -1)
+        y_ov_1 = max(min_scr_y, -1)
+        x_ov_2 = min(max_scr_x, 1)
+        y_ov_2 = min(max_scr_y, 1)
+        if x_ov_1 > x_ov_2 or y_ov_1 > y_ov_2:
+            continue
+
+        v_0 = view_verts[i_0]
+        v_1 = view_verts[i_1]
+        v_2 = view_verts[i_2]
 
         v_0_behind = v_0[2] > near_clip
         v_1_behind = v_1[2] > near_clip
@@ -415,6 +427,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
     # Sort triangles in ascending z order but wireframe triangles should be drawn last
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
+    print(f"tris: {len(scene_triangles)}")
 
     px_array = None
     for _,points,color_data,draw_mode in scene_triangles:
