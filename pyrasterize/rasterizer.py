@@ -81,14 +81,6 @@ def visit_instances(scene_graph, func, enabled_only=False):
                 visit_instances(instance["children"], func, enabled_only)
 
 
-def project_model_vert_to_view(model_v, model_m):
-    """
-    Model vertices are vec3 so need a conversion
-    Return vec4
-    """
-    return vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
-
-
 def project_normal_to_view(model_n, model_m):
     """
     Gets normal vector transformed to current view
@@ -294,7 +286,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origi
         return
 
     if "billboard" in model:
-        cam_pos = project_model_vert_to_view(model["translate"], model_m)
+        model_v = model["translate"]
+        cam_pos = vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
         cur_z = cam_pos[2]
         if cur_z > near_clip:
             return
@@ -314,7 +307,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origi
                 DRAW_MODE_BILLBOARD))
         return
 
-    view_verts = list(map(lambda x: project_model_vert_to_view(x, model_m), model["verts"]))
+    view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m), model["verts"]))
     view_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["normals"]))
 
     draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
