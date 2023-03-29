@@ -107,6 +107,20 @@ def get_proj_light_dir(lighting, camera_m):
     return vecmat.norm_vec3(vecmat.vec4_mat4_mul(light_dir_vec4, camera_m)[0:3])
 
 
+def project_to_screen(view_v, persp_m):
+    """
+    Project view space point to screen point
+    Takes vec4
+    Returns vec2 or None
+    """
+    minus_z = -view_v[2]
+    if minus_z == 0:
+        return None
+    else:
+        screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
+        return [screen_v[0]/minus_z, screen_v[1]/minus_z]
+
+
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
@@ -138,18 +152,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     # Sorted by depth before drawing, draw mode overrides order so wireframes come last
     scene_triangles = []
 
-    def project_to_screen(view_v):
-        """
-        Takes vec4
-        Returns vec2 or None
-        """
-        minus_z = -view_v[2]
-        if minus_z == 0:
-            return None
-        else:
-            screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
-            return [screen_v[0]/minus_z, screen_v[1]/minus_z]
-
     def get_visible_instance_tris(model, view_verts, view_normals, vert_normals, no_culling):
         """
         Compute the triangles we can see, i.e. are not back facing or outside view frustum
@@ -159,7 +161,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
         SIDE EFFECTS: model's tris and colors get new entries which should be removed immediately!
         """
         visible_tri_idcs = []
-        screen_verts = list(map(project_to_screen, view_verts))
+        screen_verts = list(map(lambda x: project_to_screen(x, persp_m), view_verts))
 
         # May add new triangles as we loop
         tris = model["tris"]
@@ -239,9 +241,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 # Add the new vertices and their screen projections to the end of the list
                 new_verts_idx = len(view_verts)
                 view_verts.append(new_back_1)
-                screen_verts.append(project_to_screen(new_back_1))
+                screen_verts.append(project_to_screen(new_back_1, persp_m))
                 view_verts.append(new_back_2)
-                screen_verts.append(project_to_screen(new_back_2))
+                screen_verts.append(project_to_screen(new_back_2, persp_m))
                 # Copy the normals of the original triangle and vertices
                 view_normals.append(view_normals[tri_idx])
                 if vert_normals is not None:
@@ -290,9 +292,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 # Add the new vertices and their screen projections to the end of the list
                 new_verts_idx = len(view_verts)
                 view_verts.append(new_front_1)
-                screen_verts.append(project_to_screen(new_front_1))
+                screen_verts.append(project_to_screen(new_front_1, persp_m))
                 view_verts.append(new_front_2)
-                screen_verts.append(project_to_screen(new_front_2))
+                screen_verts.append(project_to_screen(new_front_2, persp_m))
                 # Copy the normals of the original triangle and vertices
                 view_normals.append(view_normals[tri_idx])
                 view_normals.append(view_normals[tri_idx])
@@ -325,7 +327,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             cur_z = cam_pos[2]
             if cur_z > near_clip:
                 return
-            scr_pos = project_to_screen(cam_pos)
+            scr_pos = project_to_screen(cam_pos, persp_m)
             if scr_pos is not None:
                 size = model["size"]
                 img = model["img"]
