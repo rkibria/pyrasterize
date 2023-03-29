@@ -98,6 +98,15 @@ def project_normal_to_view(model_n, model_m):
     return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
 
 
+def get_proj_light_dir(lighting, camera_m):
+    """
+    Get the resulting light direction for the given camera
+    """
+    light_dir_vec3 = lighting["lightDir"]
+    light_dir_vec4 = (light_dir_vec3[0], light_dir_vec3[1], light_dir_vec3[2], 0)
+    return vecmat.norm_vec3(vecmat.vec4_mat4_mul(light_dir_vec4, camera_m)[0:3])
+
+
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
@@ -122,12 +131,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
 
-    def get_proj_light_dir():
-        light_dir_vec3 = lighting["lightDir"]
-        light_dir_vec4 = (light_dir_vec3[0], light_dir_vec3[1], light_dir_vec3[2], 0)
-        return vecmat.norm_vec3(vecmat.vec4_mat4_mul(light_dir_vec4, camera_m)[0:3])
-
-    proj_light_dir = get_proj_light_dir()
+    proj_light_dir = get_proj_light_dir(lighting, camera_m)
 
     # Collect all visible triangles. Elements are tuples:
     # (average z depth, screen points of triangle, lighted color, draw mode)
