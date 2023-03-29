@@ -31,53 +31,12 @@ CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_W
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 
-def main_function(): # PYGBAG: decorate with 'async'
-    """Main"""
-    pygame.init()
-
-    screen = pygame.display.set_mode(RASTER_SCR_SIZE)
-    pygame.display.set_caption("pyrasterize first person demo")
-    clock = pygame.time.Clock()
-
-    # Generate the labyrinth
-    lab_rows = 5
-    lab_cols = 5
-    labyrinth = make_labyrinth(lab_rows, lab_cols, 20)
-    print(labyrinth_to_string(labyrinth))
-    import pprint
-    pp = pprint.PrettyPrinter(indent=2)
-    pp.pprint(labyrinth)
-
-    # Use separate scene graphs for ground and other objects to avoid problems with overlapping
-    scene_graphs = [
-        { "root": rasterizer.get_model_instance(None) },
-        { "root": rasterizer.get_model_instance(None) }
-    ]
-
-    # Ground and ceiling graph
-
-    # Each labyrinth cell's area is a cube with an "inner" and "outer" area
-    cell_d_i = 3
-    cell_d_o = 1
+def create_labyrinth_mesh(root_instance, labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors):
+    """
+    """
+    lab_rows,lab_cols = labyrinth["size"]
     cell_size = cell_d_i + 2 * cell_d_o
-    # Height of cell walls
-    cell_height = 3
 
-    CAMERA["pos"][0] = cell_d_o + cell_d_i /2
-    CAMERA["pos"][1] = cell_height / 2
-    CAMERA["pos"][2] = -(cell_d_o + cell_d_i /2)
-
-    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
-        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
-                             vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
-
-    # Interior: walls
-    wall_color_1 = (130, 130, 140)
-    wall_color_2 = (120, 120, 120)
-    wall_colors = (wall_color_1, wall_color_2)
-
-    # Reuse building blocks
     wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
     corner_mesh = meshes.get_block_instance(cell_d_o, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
 
@@ -87,9 +46,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         for col in range(lab_cols):
             cell = row_cells[col]
             cell_name = f"cell_{row}_{col}"
-            scene_graphs[1]["root"]["children"][cell_name] = rasterizer.get_model_instance(None,
+            root_instance["children"][cell_name] = rasterizer.get_model_instance(None,
                 xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
-            cell_inst = scene_graphs[1]["root"]["children"][cell_name]
+            cell_inst = root_instance["children"][cell_name]
 
             corner_nw = False
             corner_ne = False
@@ -157,6 +116,57 @@ def main_function(): # PYGBAG: decorate with 'async'
                 cell_inst["children"]["corner_se"] = rasterizer.get_model_instance(None, None,
                     vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_d_o / 2),
                     {"corner": corner_mesh})
+
+def main_function(): # PYGBAG: decorate with 'async'
+    """Main"""
+    pygame.init()
+
+    screen = pygame.display.set_mode(RASTER_SCR_SIZE)
+    pygame.display.set_caption("pyrasterize first person demo")
+    clock = pygame.time.Clock()
+
+    # Generate the labyrinth
+    lab_rows = 5
+    lab_cols = 5
+    labyrinth = make_labyrinth(lab_rows, lab_cols, 20)
+    print(labyrinth_to_string(labyrinth))
+    import pprint
+    pp = pprint.PrettyPrinter(indent=2)
+    pp.pprint(labyrinth)
+
+    # Use separate scene graphs for ground and other objects to avoid problems with overlapping
+    scene_graphs = [
+        { "root": rasterizer.get_model_instance(None) },
+        { "root": rasterizer.get_model_instance(None) }
+    ]
+
+    # Ground and ceiling graph
+
+    # Each labyrinth cell's area is a cube with an "inner" and "outer" area
+    cell_d_i = 3
+    cell_d_o = 1
+    # Height of cell walls
+    cell_height = 3
+    cell_size = cell_d_i + 2 * cell_d_o
+
+    # CAMERA["pos"][0] = cell_d_o + cell_d_i /2
+    # CAMERA["pos"][1] = cell_height / 2
+    # CAMERA["pos"][2] = -(cell_d_o + cell_d_i /2)
+
+    CAMERA["pos"][0] = 0
+    CAMERA["pos"][1] = cell_height / 2
+    CAMERA["pos"][2] = 3
+
+    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
+                             vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+
+    # Interior: walls
+    wall_color_1 = (130, 130, 140)
+    wall_color_2 = (120, 120, 120)
+    wall_colors = (wall_color_1, wall_color_2)
+    create_labyrinth_mesh(scene_graphs[1]["root"], labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors)
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -283,7 +293,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         t = time.perf_counter()
-        for scene_graph in scene_graphs:
+        for scene_graph in scene_graphs[1:]:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
                 vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
         elapsed_time = time.perf_counter() - t
