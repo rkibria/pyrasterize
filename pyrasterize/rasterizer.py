@@ -81,15 +81,6 @@ def visit_instances(scene_graph, func, enabled_only=False):
                 visit_instances(instance["children"], func, enabled_only)
 
 
-def project_normal_to_view(model_n, model_m):
-    """
-    Gets normal vector transformed to current view
-    Returns vec3
-    """
-    normal_vec4 = (model_n[0], model_n[1], model_n[2], 0)
-    return vecmat.norm_vec3(vecmat.vec4_mat4_mul(normal_vec4, model_m)[0:3])
-
-
 def get_proj_light_dir(lighting, camera_m):
     """
     Get the resulting light direction for the given camera
@@ -308,7 +299,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origi
         return
 
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m), model["verts"]))
-    view_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["normals"]))
+    view_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["normals"]))
 
     draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
     no_culling = ("noCulling" in instance) and instance["noCulling"]
@@ -318,7 +309,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origi
 
     vert_normals = None
     if draw_gouraud_shaded:
-        vert_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["vert_normals"]))
+        vert_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["vert_normals"]))
 
     # This function may add temporary triangles due to clipping
     # We reset the model's lists to their original size after processing
