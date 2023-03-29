@@ -286,6 +286,105 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
     return (visible_tri_idcs, screen_verts)
 
 
+def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origin_x, scr_origin_y,
+                                  lighting, proj_light_dir, instance, model_m):
+    """Get (lighted) triangles from this instance and insert them into scene_triangles"""
+    model = instance["model"]
+    if not model:
+        return
+
+    if "billboard" in model:
+        cam_pos = project_model_vert_to_view(model["translate"], model_m)
+        cur_z = cam_pos[2]
+        if cur_z > near_clip:
+            return
+        scr_pos = project_to_screen(cam_pos, persp_m)
+        if scr_pos is not None:
+            size = model["size"]
+            img = model["img"]
+            inv_z = 1.0 / abs(cur_z)
+            proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
+            scale_img = pygame.transform.scale(img, proj_size)
+            scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - scale_img.get_width()/2),
+                    int(scr_origin_y - scr_pos[1] * scr_origin_y - scale_img.get_height()/2))
+            scene_triangles.append((
+                cur_z,
+                scr_pos,
+                scale_img,
+                DRAW_MODE_BILLBOARD))
+        return
+
+    view_verts = list(map(lambda x: project_model_vert_to_view(x, model_m), model["verts"]))
+    view_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["normals"]))
+
+    draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
+    no_culling = ("noCulling" in instance) and instance["noCulling"]
+    model_colors = model["colors"]
+    model_tris = model["tris"]
+    draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
+
+    vert_normals = None
+    if draw_gouraud_shaded:
+        vert_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["vert_normals"]))
+
+    # This function may add temporary triangles due to clipping
+    # We reset the model's lists to their original size after processing
+    num_orig_model_tris = len(model_tris)
+    visible_tri_idcs,screen_verts = _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_normals, vert_normals, no_culling)
+    screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
+
+    draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
+
+    ambient = lighting["ambient"]
+    diffuse = lighting["diffuse"]
+
+    # Compute colors for each required vertex for Gouraud shading
+    vert_colors = [None] * len(view_verts)
+    if draw_gouraud_shaded:
+        for tri_idx in visible_tri_idcs:
+            tri_color = model_colors[tri_idx]
+            tri = model_tris[tri_idx]
+            for vert_idx in tri:
+                if vert_colors[vert_idx] is None:
+                    normal = vert_normals[vert_idx]
+                    dot_prd = max(0, proj_light_dir[0] * normal[0]
+                        + proj_light_dir[1] * normal[1]
+                        + proj_light_dir[2] * normal[2])
+                    intensity = min(1, max(0, ambient + diffuse * dot_prd))
+                    vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
+
+    for tri_idx in visible_tri_idcs:
+        tri = model_tris[tri_idx]
+
+        if draw_mode == DRAW_MODE_WIREFRAME:
+            color_data = model_colors[tri_idx]
+        elif draw_mode == DRAW_MODE_FLAT:
+            color = model_colors[tri_idx]
+            normal = view_normals[tri_idx]
+            dot_prd = max(0, proj_light_dir[0] * normal[0]
+                + proj_light_dir[1] * normal[1]
+                + proj_light_dir[2] * normal[2])
+            intensity = min(1, max(0, ambient + diffuse * dot_prd))
+            color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
+        else: # draw_mode == DRAW_MODE_GOURAUD
+            color_data = [vert_colors[vert_idx] for vert_idx in tri]
+
+        # Using the minimum tends to look glitchier in a lot of cases,
+        # but also works better for placement of billboards and big triangles
+        # z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
+        z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
+        scene_triangles.append((
+            z_order,
+            [screen_verts[tri[i]] for i in range(3)],
+            color_data,
+            draw_mode))
+
+    # Remove temporary triangles
+    if num_orig_model_tris != len(model_tris):
+        del model_tris[num_orig_model_tris:]
+        del model_colors[num_orig_model_tris:]
+
+
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
@@ -307,109 +406,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scr_min_y = screen_area[1]
     scr_max_y = screen_area[1] + screen_area[3] - 1
 
-    ambient = lighting["ambient"]
-    diffuse = lighting["diffuse"]
-
-    proj_light_dir = get_proj_light_dir(lighting, camera_m)
-
     # Collect all visible triangles. Elements are tuples:
     # (average z depth, screen points of triangle, lighted color, draw mode)
     # Sorted by depth before drawing, draw mode overrides order so wireframes come last
     scene_triangles = []
 
-    def get_screen_tris_for_instance(instance, model_m):
-        """Get (lighted) triangles from this instance and insert them into scene_triangles"""
-        model = instance["model"]
-        if not model:
-            return
-
-        if "billboard" in model:
-            cam_pos = project_model_vert_to_view(model["translate"], model_m)
-            cur_z = cam_pos[2]
-            if cur_z > near_clip:
-                return
-            scr_pos = project_to_screen(cam_pos, persp_m)
-            if scr_pos is not None:
-                size = model["size"]
-                img = model["img"]
-                inv_z = 1.0 / abs(cur_z)
-                proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
-                scale_img = pygame.transform.scale(img, proj_size)
-                scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - scale_img.get_width()/2),
-                        int(scr_origin_y - scr_pos[1] * scr_origin_y - scale_img.get_height()/2))
-                scene_triangles.append((
-                    cur_z,
-                    scr_pos,
-                    scale_img,
-                    DRAW_MODE_BILLBOARD))
-            return
-
-        view_verts = list(map(lambda x: project_model_vert_to_view(x, model_m), model["verts"]))
-        view_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["normals"]))
-
-        draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
-        no_culling = ("noCulling" in instance) and instance["noCulling"]
-        model_colors = model["colors"]
-        model_tris = model["tris"]
-        draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
-
-        vert_normals = None
-        if draw_gouraud_shaded:
-            vert_normals = list(map(lambda x: project_normal_to_view(x, model_m), model["vert_normals"]))
-
-        # This function may add temporary triangles due to clipping
-        # We reset the model's lists to their original size after processing
-        num_orig_model_tris = len(model_tris)
-        visible_tri_idcs,screen_verts = _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_normals, vert_normals, no_culling)
-        screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
-
-        draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
-
-        # Compute colors for each required vertex for Gouraud shading
-        vert_colors = [None] * len(view_verts)
-        if draw_gouraud_shaded:
-            for tri_idx in visible_tri_idcs:
-                tri_color = model_colors[tri_idx]
-                tri = model_tris[tri_idx]
-                for vert_idx in tri:
-                    if vert_colors[vert_idx] is None:
-                        normal = vert_normals[vert_idx]
-                        dot_prd = max(0, proj_light_dir[0] * normal[0]
-                            + proj_light_dir[1] * normal[1]
-                            + proj_light_dir[2] * normal[2])
-                        intensity = min(1, max(0, ambient + diffuse * dot_prd))
-                        vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
-
-        for tri_idx in visible_tri_idcs:
-            tri = model_tris[tri_idx]
-
-            if draw_mode == DRAW_MODE_WIREFRAME:
-                color_data = model_colors[tri_idx]
-            elif draw_mode == DRAW_MODE_FLAT:
-                color = model_colors[tri_idx]
-                normal = view_normals[tri_idx]
-                dot_prd = max(0, proj_light_dir[0] * normal[0]
-                    + proj_light_dir[1] * normal[1]
-                    + proj_light_dir[2] * normal[2])
-                intensity = min(1, max(0, ambient + diffuse * dot_prd))
-                color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
-            else: # draw_mode == DRAW_MODE_GOURAUD
-                color_data = [vert_colors[vert_idx] for vert_idx in tri]
-
-            # Using the minimum tends to look glitchier in a lot of cases,
-            # but also works better for placement of billboards and big triangles
-            # z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
-            z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
-            scene_triangles.append((
-                z_order,
-                [screen_verts[tri[i]] for i in range(3)],
-                color_data,
-                draw_mode))
-
-        # Remove temporary triangles
-        if num_orig_model_tris != len(model_tris):
-            del model_tris[num_orig_model_tris:]
-            del model_colors[num_orig_model_tris:]
+    proj_light_dir = get_proj_light_dir(lighting, camera_m)
 
     def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
@@ -417,7 +419,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
                 proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
-                get_screen_tris_for_instance(instance, proj_m)
+                _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m,
+                                              scr_origin_x, scr_origin_y, lighting, proj_light_dir,
+                                              instance, proj_m)
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)
