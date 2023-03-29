@@ -12,6 +12,7 @@ import pygame.cursors
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
+from pyrasterize import selecting
 
 # CONSTANTS
 
@@ -58,7 +59,7 @@ def draw_scene_graph(surface, frame, scene_graph):
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
     global CUR_SELECTED
-    selection = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
+    selection = selecting.get_selection(SCR_AREA, pos, scene_graph,
         vecmat.get_simple_camera_m(CAMERA))
     if CUR_SELECTED is not None:
         CUR_SELECTED[1]["wireframe"] = False
