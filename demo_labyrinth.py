@@ -157,10 +157,10 @@ def main_function(): # PYGBAG: decorate with 'async'
     CAMERA["pos"][1] = cell_height / 2
     CAMERA["pos"][2] = 3
 
-    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
-        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
-                             vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    # scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
+    #     meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
+    #     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
+    #                          vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
 
     # Interior: walls
     wall_color_1 = (130, 130, 140)
@@ -182,7 +182,8 @@ def main_function(): # PYGBAG: decorate with 'async'
         global CAMERA
         nonlocal textblock_fps
         pos = [round(p, 2) for p in CAMERA['pos']]
-        textblock_fps = font.render(f"pos: {pos} - mov: {move_dir} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
+        rot = [round(vecmat.rad_to_deg(p), 2) for p in CAMERA['rot']]
+        textblock_fps = font.render(f"pos: {pos} - rot(deg): {rot} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
     update_hud()
 
     pygame.mouse.set_visible(False)
@@ -199,6 +200,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         rot[1] -= vecmat.deg_to_rad(x * 0.2)
         # limit up/down rotation around x-axis to straight up/down at most
         rot[0] = min(math.pi/2, max(-math.pi/2, rot[0]))
+        # limit to 360 degrees
+        # rot[0] = divmod(rot[0], 2 * math.pi)[1]
+        # rot[1] = divmod(rot[1], 2 * math.pi)[1]
 
     # key: (index, value)
     key_moves = {

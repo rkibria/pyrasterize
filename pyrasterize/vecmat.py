@@ -167,6 +167,10 @@ def deg_to_rad(degrees):
     """Return degrees converted to radians"""
     return degrees * (math.pi / 180)
 
+def rad_to_deg(radians):
+    """Return radians converted to degrees"""
+    return radians / math.pi * 180
+
 def get_persp_m4(d, ar):
     """Return perspective transformation matrix"""
     return [d,    0.0,   0.0,  0.0,
