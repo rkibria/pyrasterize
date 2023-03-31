@@ -80,16 +80,20 @@ def main_function():
     TEXT_COLOR = (200, 200, 230)
     textblock_drawmode = font.render("", True, TEXT_COLOR)
     textblock_model = font.render("", True, TEXT_COLOR)
+    textblock_scale = font.render("", True, TEXT_COLOR)
 
     drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
     OVERLAY_DRAWING_MODE = 2
     drawing_mode = 0
+    model_scale = 1.0
 
     def regenerate_textblocks():
         nonlocal textblock_drawmode
         nonlocal textblock_model
+        nonlocal textblock_scale
         textblock_drawmode = font.render(f"Draw mode (left button toggles): {drawing_mode_names[drawing_mode]}", True, TEXT_COLOR)
         textblock_model = font.render(f"Model (right button toggles): {instances[cur_inst][0]}", True, TEXT_COLOR)
+        textblock_scale = font.render(f"Scale (wheel up/down): {round(model_scale, 1)}", True, TEXT_COLOR)
 
     def set_draw_mode():
         """Set the cube instance's drawing parameters according to current mode"""
@@ -101,15 +105,27 @@ def main_function():
         instances[cur_inst][1]["gouraud"] = (drawing_mode == 0)
         instances[cur_inst][1]["wireframe"] = (drawing_mode == 2 or drawing_mode == 3)
         instances[cur_inst][1]["noCulling"] = (drawing_mode == 3)
+        instances[cur_inst][1]["preproc_m4"] = vecmat.get_scal_m4(model_scale, model_scale, model_scale)
 
     def on_mouse_button_down(event):
-        """Handle mouse button down"""
+        """Handle mouse button down/mouse wheel down"""
         if event.button == 1:
             nonlocal drawing_mode
             drawing_mode = drawing_mode + 1 if drawing_mode < 3 else 0
         elif event.button == 3:
             nonlocal cur_inst
             cur_inst = cur_inst + 1 if cur_inst < (len(instances) - 1) else 0
+        elif event.button == 5:
+            nonlocal model_scale
+            model_scale = (model_scale - 0.1) if model_scale > 0.1 else 0.1
+        set_draw_mode()
+        regenerate_textblocks()
+
+    def on_mouse_button_up(event):
+        """Handle mouse button up/mouse wheel up"""
+        if event.button == 4:
+            nonlocal model_scale
+            model_scale += 0.1
         set_draw_mode()
         regenerate_textblocks()
 
@@ -132,6 +148,8 @@ def main_function():
                 done = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_mouse_button_down(event)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                on_mouse_button_up(event)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_o:
                     do_overlay = not do_overlay
@@ -141,6 +159,8 @@ def main_function():
                     frame -= 1
                 elif event.key == pygame.K_n and paused:
                     frame += 1
+                elif event.key == pygame.K_ESCAPE:
+                    done = True
 
         offscreen.fill(RGB_BLACK)
         draw_scene_graph(offscreen, frame, scene_graph)
@@ -159,7 +179,8 @@ def main_function():
         screen.blit(pygame.transform.scale(offscreen, PYGAME_SCR_SIZE), (0,0))
         screen.blit(textblock_drawmode, (30, 20))
         screen.blit(textblock_model, (30, 50))
-        screen.blit(textblock_fps, (30, 80))
+        screen.blit(textblock_scale, (30, 80))
+        screen.blit(textblock_fps, (30, 110))
 
         pygame.display.flip()
         frame += 1 if not paused else 0
