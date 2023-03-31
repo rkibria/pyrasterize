@@ -5,9 +5,22 @@
 Mesh generation, manipulation and information
 """
 
+from . import rasterizer
+from . import vecmat
+
 import math
 
 MESH_DEFAULT_COLOR = (200, 200, 200)
+
+def scale_vertices(model, s_x, s_y, s_z):
+    """
+    Mulitply the coordinates of every vertex
+    by the given constants
+    """
+    for v in model["verts"]:
+        v[0] *= s_x
+        v[1] *= s_y
+        v[2] *= s_z
 
 def get_billboard(dx, dy, dz, sx, sy, img):
     """Create a billboard object"""
@@ -22,9 +35,9 @@ def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {
         "verts" : [
-            (0, 0, 0),
-            (1, 0, 0),
-            (1, 1, 0),
+            [0, 0, 0],
+            [1, 0, 0],
+            [1, 1, 0],
         ],
         "tris" : [(0, 1, 2)],
         "colors" : [MESH_DEFAULT_COLOR]
@@ -38,14 +51,14 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
     """
     return {
         "verts" : [
-            ( 0.5,  0.5, 0.5),  # front top right     0
-            ( 0.5, -0.5, 0.5),  # front bottom right  1
-            (-0.5, -0.5, 0.5),  # front bottom left   2
-            (-0.5,  0.5, 0.5),  # front top left      3
-            ( 0.5,  0.5, -0.5), # back top right      4
-            ( 0.5, -0.5, -0.5), # back bottom right   5
-            (-0.5, -0.5, -0.5), # back bottom left    6
-            (-0.5,  0.5, -0.5)  # back top left       7
+            [ 0.5,  0.5, 0.5],  # front top right     0
+            [ 0.5, -0.5, 0.5],  # front bottom right  1
+            [-0.5, -0.5, 0.5],  # front bottom left   2
+            [-0.5,  0.5, 0.5],  # front top left      3
+            [ 0.5,  0.5, -0.5], # back top right      4
+            [ 0.5, -0.5, -0.5], # back bottom right   5
+            [-0.5, -0.5, -0.5], # back bottom left    6
+            [-0.5,  0.5, -0.5]  # back top left       7
             ],
         "tris" : [ # CCW winding order
             (0, 3, 1), # front face
@@ -63,6 +76,23 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
             ],
         "colors": [[color[0], color[1], color[2]]] * 12
         }
+
+def get_block_instance(sx, sy, sz, front_divs, side_divs, top_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
+    """
+    Return a block made of separate 2d rectangles
+    """
+    inst = rasterizer.get_model_instance(None)
+    front_mesh = get_rect_mesh((sx, sy), front_divs, colors)
+    inst["children"]["front"] = rasterizer.get_model_instance(front_mesh, vecmat.get_transl_m4(0, 0, sz/2))
+    inst["children"]["back"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -sz/2), vecmat.get_rot_x_m4(vecmat.deg_to_rad(180))))
+    side_mesh = get_rect_mesh((sz, sy), side_divs, colors)
+    inst["children"]["left"] = rasterizer.get_model_instance(side_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-sx/2, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["right"] = rasterizer.get_model_instance(side_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(sx/2, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))))
+    # TODO top
+    return inst
 
 def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
     """

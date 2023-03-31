@@ -13,6 +13,7 @@ import pygame.cursors
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
+from pyrasterize import selecting
 
 # SHELL GAME https://en.wikipedia.org/wiki/Shell_game
 #
@@ -265,7 +266,7 @@ def on_left_down(pos, game_state, scene_graph):
     if game_state["state"] == GS_WAIT_FOR_START or game_state["state"] == GS_GAME_OVER:
         game_state["button_pressed"] = True
     elif game_state["state"] == GS_WAIT_FOR_CHOICE:
-        game_state["selected_shell"] = rasterizer.get_selection(SCR_AREA, pos, scene_graph,
+        game_state["selected_shell"] = selecting.get_selection(SCR_AREA, pos, scene_graph,
             vecmat.get_simple_camera_m(CAMERA))
 
 # PYGAME MAIN
