@@ -79,19 +79,20 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: walls
     wall_color_1 = (130, 130, 140)
     wall_color_2 = (120, 120, 120)
+    wall_divs = (5, 5)
     scene_graphs[1]["root"]["children"]["north_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), (1,1), (wall_color_1, wall_color_1)),
+        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
         xform_m4=vecmat.get_transl_m4(0, 2.5, -5.5))
     scene_graphs[1]["root"]["children"]["south_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), (1,1), (wall_color_1, wall_color_1)),
+        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
         vecmat.get_rot_y_m4(vecmat.deg_to_rad(180)),
         xform_m4=vecmat.get_transl_m4(0, 2.5, 5.5))
     scene_graphs[1]["root"]["children"]["west_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), (1,1), (wall_color_2, wall_color_2)),
+        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
         vecmat.get_rot_y_m4(vecmat.deg_to_rad(90)),
         xform_m4=vecmat.get_transl_m4(-5.5, 2.5, 0))
     scene_graphs[1]["root"]["children"]["east_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), (1,1), (wall_color_2, wall_color_2)),
+        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
         vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90)),
         xform_m4=vecmat.get_transl_m4(5.5, 2.5, 0))
 
