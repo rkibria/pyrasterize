@@ -14,6 +14,7 @@ import pygame.cursors
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
+from pyrasterize import model_file_io
 
 from labyrinth_gen import make_labyrinth, labyrinth_to_string, WALL_NORTH, WALL_SOUTH, WALL_EAST, WALL_WEST
 
@@ -31,7 +32,22 @@ CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_W
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 
-def create_labyrinth_mesh(root_instance, labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors):
+def create_labyrinth_floor(root_instance, labyrinth):
+    """
+    """
+    lab_rows,lab_cols = labyrinth["size"]
+    cell_size = 2
+    floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
+    cells = labyrinth["cells"]
+    for row in range(lab_rows):
+        row_cells = cells[row]
+        for col in range(lab_cols):
+            cell_name = f"cell_{row}_{col}"
+            root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
+                xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
+
+
+def create_labyrinth_instances(root_instance, labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
@@ -153,16 +169,17 @@ def main_function(): # PYGBAG: decorate with 'async'
     CAMERA["pos"][1] = cell_height / 2
     CAMERA["pos"][2] = -(cell_d_o + cell_d_i /2)
 
-    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
-        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
-                             vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    # scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
+    #     meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
+    #     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
+    #                          vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    create_labyrinth_floor(scene_graphs[1]["root"], labyrinth)
 
     # Interior: walls
     wall_color_1 = (130, 130, 140)
     wall_color_2 = (120, 120, 120)
     wall_colors = (wall_color_1, wall_color_2)
-    create_labyrinth_mesh(scene_graphs[1]["root"], labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors)
+    # create_labyrinth_mesh(scene_graphs[1]["root"], labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors)
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
