@@ -90,20 +90,38 @@ def get_proj_light_dir(lighting, camera_m):
     return vecmat.norm_vec3(vecmat.vec4_mat4_mul(light_dir_vec4, camera_m)[0:3])
 
 
-def project_to_screen(view_v, persp_m):
+def project_to_clip_space(view_v, persp_m):
     """
-    Project view space point to screen point.
-    This only makes sense if the vertex is on the NEGATIVE z side!
+    Project view space point to clip space.
+    Points on the POSITIVE side of z are mirrored!
     Takes vec4
-    Returns vec2 or None
+    Returns vec3 (last component is original z) or None
     """
-    minus_z = -view_v[2]
-    if minus_z == 0:
+    z = view_v[2]
+    if z == 0:
         return None
-    else:
-        screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
-        return [screen_v[0]/minus_z, screen_v[1]/minus_z, -minus_z]
+    perp_div = abs(z)
+    screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
+    return [screen_v[0] / perp_div, screen_v[1] / perp_div, z]
 
+def clip_space_tri_overlaps_view_frustum(v_0, v_1, v_2, near_clip, far_clip):
+    """
+    Args are vec3s in clip space
+    """
+    min_x = min(v_0[0], min(v_1[0], v_2[0]))
+    max_x = max(v_0[0], max(v_1[0], v_2[0]))
+    min_y = min(v_0[1], min(v_1[1], v_2[1]))
+    max_y = max(v_0[1], max(v_1[1], v_2[1]))
+    min_z = min(v_0[2], min(v_1[2], v_2[2]))
+    max_z = max(v_0[2], max(v_1[2], v_2[2]))
+    # Check if above rectangle intersects (-1,-1)->(1,1)
+    x_ov_1 = max(min_x, -1)
+    y_ov_1 = max(min_y, -1)
+    x_ov_2 = min(max_x, 1)
+    y_ov_2 = min(max_y, 1)
+    z_ov_1 = min(min_z, near_clip)
+    z_ov_2 = min(max_z, far_clip)
+    return not (x_ov_1 > x_ov_2 or y_ov_1 > y_ov_2 or z_ov_1 > z_ov_2)
 
 def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_normals, vert_normals, no_culling):
     """
@@ -114,7 +132,7 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
     SIDE EFFECTS: model's tris and colors get new entries which should be removed immediately!
     """
     visible_tri_idcs = []
-    screen_verts = list(map(lambda x: project_to_screen(x, persp_m), view_verts))
+    screen_verts = list(map(lambda x: project_to_clip_space(x, persp_m), view_verts))
 
     # May add new triangles as we loop
     tris = model["tris"]
@@ -194,9 +212,9 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
             # Add the new vertices and their screen projections to the end of the list
             new_verts_idx = len(view_verts)
             view_verts.append(new_back_1)
-            screen_verts.append(project_to_screen(new_back_1, persp_m))
+            screen_verts.append(project_to_clip_space(new_back_1, persp_m))
             view_verts.append(new_back_2)
-            screen_verts.append(project_to_screen(new_back_2, persp_m))
+            screen_verts.append(project_to_clip_space(new_back_2, persp_m))
             # Copy the normals of the original triangle and vertices
             view_normals.append(view_normals[tri_idx])
             if vert_normals is not None:
@@ -245,9 +263,9 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
             # Add the new vertices and their screen projections to the end of the list
             new_verts_idx = len(view_verts)
             view_verts.append(new_front_1)
-            screen_verts.append(project_to_screen(new_front_1, persp_m))
+            screen_verts.append(project_to_clip_space(new_front_1, persp_m))
             view_verts.append(new_front_2)
-            screen_verts.append(project_to_screen(new_front_2, persp_m))
+            screen_verts.append(project_to_clip_space(new_front_2, persp_m))
             # Copy the normals of the original triangle and vertices
             view_normals.append(view_normals[tri_idx])
             view_normals.append(view_normals[tri_idx])
@@ -298,7 +316,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origi
         cur_z = cam_pos[2]
         if cur_z > near_clip:
             return
-        scr_pos = project_to_screen(cam_pos, persp_m)
+        scr_pos = project_to_clip_space(cam_pos, persp_m)
         if scr_pos is not None:
             size = model["size"]
             img = model["img"]
@@ -390,7 +408,7 @@ DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
 DRAW_MODE_BILLBOARD = 3
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5):
+def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
