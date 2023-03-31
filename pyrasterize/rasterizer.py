@@ -108,31 +108,34 @@ def clip_space_tri_overlaps_view_frustum(v_0, v_1, v_2, near_clip, far_clip):
     """
     Args are vec3s in clip space
     """
+    # All coordinate intervals must overlap
     min_x = min(v_0[0], min(v_1[0], v_2[0]))
     max_x = max(v_0[0], max(v_1[0], v_2[0]))
+    # Intervals overlap if they have at least one common point,
+    # i.e. if max(left bounds) <= min(right bounds)
+    if not (max(min_x, -1) <= min(max_x, 1)):
+        return False
     min_y = min(v_0[1], min(v_1[1], v_2[1]))
     max_y = max(v_0[1], max(v_1[1], v_2[1]))
+    if not (max(min_y, -1) <= min(max_y, 1)):
+        return False
     min_z = min(v_0[2], min(v_1[2], v_2[2]))
     max_z = max(v_0[2], max(v_1[2], v_2[2]))
-    # Check if above rectangle intersects (-1,-1)->(1,1)
-    x_ov_1 = max(min_x, -1)
-    y_ov_1 = max(min_y, -1)
-    x_ov_2 = min(max_x, 1)
-    y_ov_2 = min(max_y, 1)
-    z_ov_1 = min(min_z, near_clip)
-    z_ov_2 = min(max_z, far_clip)
-    return not (x_ov_1 > x_ov_2 or y_ov_1 > y_ov_2 or z_ov_1 > z_ov_2)
+    # furthest z is MORE NEGATIVE (smallest), so far clip < near clip
+    if not (max(min_z, far_clip) <= min(max_z, near_clip)):
+        return False
+    return True
 
-def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_normals, vert_normals, no_culling):
+def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, view_normals, vert_normals, no_culling):
     """
     Compute the triangles we can see, i.e. are not back facing or outside view frustum
-    - Also returns screen projections of all vertices
+    - Also returns clip space projections of all vertices
     - Also may create new triangles due to clipping.
-    Returns: ([indices of visible triangles], [screen verts of visible tris])
+    Returns: ([indices of visible triangles], [clip space verts of visible tris])
     SIDE EFFECTS: model's tris and colors get new entries which should be removed immediately!
     """
     visible_tri_idcs = []
-    screen_verts = list(map(lambda x: project_to_clip_space(x, persp_m), view_verts))
+    clip_verts = list(map(lambda x: project_to_clip_space(x, persp_m), view_verts))
 
     # May add new triangles as we loop
     tris = model["tris"]
@@ -145,12 +148,15 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
         i_1 = tri[1]
         i_2 = tri[2]
 
-        sv_0 = screen_verts[i_0]
-        sv_1 = screen_verts[i_1]
-        sv_2 = screen_verts[i_2]
+        cv_0 = clip_verts[i_0]
+        cv_1 = clip_verts[i_1]
+        cv_2 = clip_verts[i_2]
 
-        if sv_0 is None or sv_1 is None or sv_2 is None:
+        if cv_0 is None or cv_1 is None or cv_2 is None:
             # Can not process vertices that sit exactly on the xy plane with z=0
+            continue
+
+        if not clip_space_tri_overlaps_view_frustum(cv_0, cv_1, cv_2, near_clip, far_clip):
             continue
 
         v_0 = view_verts[i_0]
@@ -212,9 +218,9 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
             # Add the new vertices and their screen projections to the end of the list
             new_verts_idx = len(view_verts)
             view_verts.append(new_back_1)
-            screen_verts.append(project_to_clip_space(new_back_1, persp_m))
+            clip_verts.append(project_to_clip_space(new_back_1, persp_m))
             view_verts.append(new_back_2)
-            screen_verts.append(project_to_clip_space(new_back_2, persp_m))
+            clip_verts.append(project_to_clip_space(new_back_2, persp_m))
             # Copy the normals of the original triangle and vertices
             view_normals.append(view_normals[tri_idx])
             if vert_normals is not None:
@@ -263,9 +269,9 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
             # Add the new vertices and their screen projections to the end of the list
             new_verts_idx = len(view_verts)
             view_verts.append(new_front_1)
-            screen_verts.append(project_to_clip_space(new_front_1, persp_m))
+            clip_verts.append(project_to_clip_space(new_front_1, persp_m))
             view_verts.append(new_front_2)
-            screen_verts.append(project_to_clip_space(new_front_2, persp_m))
+            clip_verts.append(project_to_clip_space(new_front_2, persp_m))
             # Copy the normals of the original triangle and vertices
             view_normals.append(view_normals[tri_idx])
             view_normals.append(view_normals[tri_idx])
@@ -282,28 +288,13 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
             colors.append(colors[tri_idx])
             continue
 
-        # All vertices are in front of the near clip plane
-        # Ignore triangles whose bounding box doesn't intersect the viewing area
-        min_scr_x = min(sv_0[0], min(sv_1[0], sv_2[0]))
-        max_scr_x = max(sv_0[0], max(sv_1[0], sv_2[0]))
-        min_scr_y = min(sv_0[1], min(sv_1[1], sv_2[1]))
-        max_scr_y = max(sv_0[1], max(sv_1[1], sv_2[1]))
-        # Check if above rectangle intersects (-1,-1)->(1,1)
-        x_ov_1 = max(min_scr_x, -1)
-        y_ov_1 = max(min_scr_y, -1)
-        x_ov_2 = min(max_scr_x, 1)
-        y_ov_2 = min(max_scr_y, 1)
-        if x_ov_1 > x_ov_2 or y_ov_1 > y_ov_2:
-            print("invisible")
-            continue
-
         # Append a non-clipped visible triangle
         visible_tri_idcs.append(tri_idx)
 
-    return (visible_tri_idcs, screen_verts)
+    return (visible_tri_idcs, clip_verts)
 
 
-def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origin_x, scr_origin_y,
+def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
                                   lighting, proj_light_dir, instance, model_m):
     """Get (lighted) triangles from this instance and insert them into scene_triangles"""
     model = instance["model"]
@@ -348,7 +339,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m, scr_origi
     # This function may add temporary triangles due to clipping
     # We reset the model's lists to their original size after processing
     num_orig_model_tris = len(model_tris)
-    visible_tri_idcs,screen_verts = _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_normals, vert_normals, no_culling)
+    visible_tri_idcs,screen_verts = _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, view_normals, vert_normals, no_culling)
     screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
 
     draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
@@ -437,7 +428,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
                 proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
-                _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m,
+                _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
                                               instance, proj_m)
                 # print(f"name {_} tris {len(scene_triangles)}")

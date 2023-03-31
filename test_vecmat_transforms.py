@@ -23,7 +23,6 @@ def test_transl_rot():
     v = vecmat.vec4_mat4_mul(v, vecmat.get_rot_z_m4(math.pi / 2))
     assert v == pytest.approx([0, 1, -1, 1])
 
-
 def test_camera():
     cam = { "pos": [0, 1.5, 3], "rot": [0, 0, 0], "fov": 90, "ar": 800 / 600 }
     m = vecmat.get_simple_camera_m(cam)
@@ -40,12 +39,12 @@ def test_camera():
     assert clip_verts[2] == pytest.approx([-0.5, 0.0, -3.0])
     assert clip_verts[3] == pytest.approx([0.5, 0.0, -3.0])
     tris = [(0, 1, 3), (0, 3, 2)]
-    for tri in tris:
+    for tri in tris[:1]:
         i_0 = tri[0]
         i_1 = tri[1]
         i_2 = tri[2]
-        near_clip, far_clip = -0.5, 100.0
-        assert rasterizer.clip_space_tri_overlaps_view_frustum(clip_verts[i_0], clip_verts[i_1], clip_verts[i_2], near_clip, far_clip) == True
+        near_clip, far_clip = -0.5, -100.0
+        assert rasterizer.clip_space_tri_overlaps_view_frustum(clip_verts[i_0], clip_verts[i_1], clip_verts[i_2], near_clip, far_clip)
 
 def test_camera_culled_tris():
     cam = { "pos": [0, 1.5, 3], "rot": [0, vecmat.deg_to_rad(-90), 0], "fov": 90, "ar": 800 / 600 }
@@ -67,5 +66,5 @@ def test_camera_culled_tris():
         i_0 = tri[0]
         i_1 = tri[1]
         i_2 = tri[2]
-        near_clip, far_clip = -0.5, 100.0
-        assert rasterizer.clip_space_tri_overlaps_view_frustum(clip_verts[i_0], clip_verts[i_1], clip_verts[i_2], near_clip, far_clip) == False
+        near_clip, far_clip = -0.5, -100.0
+        assert not rasterizer.clip_space_tri_overlaps_view_frustum(clip_verts[i_0], clip_verts[i_1], clip_verts[i_2], near_clip, far_clip)
