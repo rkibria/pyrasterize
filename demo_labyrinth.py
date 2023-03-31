@@ -43,9 +43,9 @@ def create_labyrinth_floor(root_instance, labyrinth):
         row_cells = cells[row]
         for col in range(lab_cols):
             cell_name = f"cell_{row}_{col}"
-            root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
-                preproc_m4=vecmat.get_scal_m4(0.1, 1, 0.1),
-                xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
+            # root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
+            #     preproc_m4=vecmat.get_scal_m4(0.1, 1, 0.1),
+            #     xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors):
@@ -54,7 +54,13 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_d_i, cell_d_o, cel
     lab_rows,lab_cols = labyrinth["size"]
     cell_size = cell_d_i + 2 * cell_d_o
 
-    wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
+    # wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
+    wall_model = model_file_io.get_model_from_obj_file("assets/wall_1.obj")
+    # Original mesh width is 2
+    wall_model_width = 2
+    scale_factor = cell_size / wall_model_width
+    wall_mesh = rasterizer.get_model_instance(wall_model, preproc_m4=vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor))
+
     corner_mesh = meshes.get_block_instance(cell_d_o, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
 
     cells = labyrinth["cells"]
@@ -98,41 +104,42 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_d_i, cell_d_o, cel
 
             # cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh(), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
-            if wall_n:
-                cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
-                    vecmat.get_transl_m4(cell_d_o + cell_d_i / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
-                    {"wall": wall_mesh})
+            # if wall_n:
+            #     cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
+            #         vecmat.get_transl_m4(0, 0, 0),
+            #         {"wall": wall_mesh})
             if wall_s:
                 cell_inst["children"]["wall_s"] = rasterizer.get_model_instance(None, None,
-                    vecmat.get_transl_m4(cell_d_o + cell_d_i / 2, cell_height / 2, -cell_d_o / 2),
+                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, 0, 0),
+                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(180))),
                     {"wall": wall_mesh})
-            if wall_w:
-                cell_inst["children"]["wall_w"] = rasterizer.get_model_instance(None, None,
-                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_size / 2),
-                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
-                    {"wall": wall_mesh})
-            if wall_e:
-                cell_inst["children"]["wall_e"] = rasterizer.get_model_instance(None, None,
-                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_size / 2),
-                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
-                    {"wall": wall_mesh})
+            # if wall_w:
+            #     cell_inst["children"]["wall_w"] = rasterizer.get_model_instance(None, None,
+            #         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_size / 2),
+            #         vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
+            #         {"wall": wall_mesh})
+            # if wall_e:
+            #     cell_inst["children"]["wall_e"] = rasterizer.get_model_instance(None, None,
+            #         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_size / 2),
+            #         vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
+            #         {"wall": wall_mesh})
 
-            if corner_nw:
-                cell_inst["children"]["corner_nw"] = rasterizer.get_model_instance(None, None,
-                    vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
-                    {"corner": corner_mesh})
-            if corner_ne:
-                cell_inst["children"]["corner_ne"] = rasterizer.get_model_instance(None, None,
-                    vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
-                    {"corner": corner_mesh})
-            if corner_sw:
-                cell_inst["children"]["corner_sw"] = rasterizer.get_model_instance(None, None,
-                    vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_d_o / 2),
-                    {"corner": corner_mesh})
-            if corner_se:
-                cell_inst["children"]["corner_se"] = rasterizer.get_model_instance(None, None,
-                    vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_d_o / 2),
-                    {"corner": corner_mesh})
+            # if corner_nw:
+            #     cell_inst["children"]["corner_nw"] = rasterizer.get_model_instance(None, None,
+            #         vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
+            #         {"corner": corner_mesh})
+            # if corner_ne:
+            #     cell_inst["children"]["corner_ne"] = rasterizer.get_model_instance(None, None,
+            #         vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -(cell_d_o + cell_d_i + cell_d_o / 2)),
+            #         {"corner": corner_mesh})
+            # if corner_sw:
+            #     cell_inst["children"]["corner_sw"] = rasterizer.get_model_instance(None, None,
+            #         vecmat.get_transl_m4(cell_d_o / 2, cell_height / 2, -cell_d_o / 2),
+            #         {"corner": corner_mesh})
+            # if corner_se:
+            #     cell_inst["children"]["corner_se"] = rasterizer.get_model_instance(None, None,
+            #         vecmat.get_transl_m4(cell_d_o + cell_d_i + cell_d_o / 2, cell_height / 2, -cell_d_o / 2),
+            #         {"corner": corner_mesh})
 
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
@@ -147,9 +154,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     lab_cols = 5
     labyrinth = make_labyrinth(lab_rows, lab_cols, 20)
     print(labyrinth_to_string(labyrinth))
-    import pprint
-    pp = pprint.PrettyPrinter(indent=2)
-    pp.pprint(labyrinth)
+    # import pprint
+    # pp = pprint.PrettyPrinter(indent=2)
+    # pp.pprint(labyrinth)
 
     # Use separate scene graphs for ground and other objects to avoid problems with overlapping
     scene_graphs = [
@@ -170,17 +177,17 @@ def main_function(): # PYGBAG: decorate with 'async'
     CAMERA["pos"][1] = cell_height / 2
     CAMERA["pos"][2] = -(cell_d_o + cell_d_i /2)
 
-    # scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-    #     meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (1, 1), ((100, 100, 100), (0, 0, 0))),
-    #     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
-    #                          vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
-    create_labyrinth_floor(scene_graphs[1]["root"], labyrinth)
+    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (lab_cols, lab_rows), ((100, 0, 0), (0, 0, 100))),
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
+                             vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    # create_labyrinth_floor(scene_graphs[1]["root"], labyrinth)
 
     # Interior: walls
     wall_color_1 = (130, 130, 140)
     wall_color_2 = (120, 120, 120)
     wall_colors = (wall_color_1, wall_color_2)
-    # create_labyrinth_mesh(scene_graphs[1]["root"], labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors)
+    create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_d_i, cell_d_o, cell_height, wall_colors)
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
