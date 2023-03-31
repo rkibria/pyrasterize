@@ -294,35 +294,29 @@ def get_random_edge_pos(rows, cols):
         start_row = random.randint(0, rows - 1)
     return (start_row, start_col)
 
-if __name__ == "__main__":
-    import pprint
-    pp = pprint.PrettyPrinter(indent=2)
-
-    labyrinth = make_labyrinth(5, 5, 20)
-    print(labyrinth_to_string(labyrinth))
-
-    # print("area:")
-    # area = labyrinth_to_area(labyrinth)
-    # pp.pprint(area)
-
-    # print("raw:")
-    # pp.pprint(labyrinth)
-
+def get_blocky_labyrinth(labyrinth):
+    """
+    Returns dict
+    """
     lab_rows,lab_cols = labyrinth["size"]
     cells = labyrinth["cells"]
-    out = ""
+    blocky_labyrinth = {}
+    blocky_labyrinth["size"] = labyrinth["size"]
+    blocky_labyrinth["cells"] = []
+    out_cells = blocky_labyrinth["cells"]
     for row in range(lab_rows):
         row_cells = cells[row]
+        line = ""
         next_line = ""
         for col in range(lab_cols):
             cell = row_cells[col]
-            out += "."
+            line += "."
 
             if col != lab_cols - 1:
                 if cell[WALL_EAST]:
-                    out += "#"
+                    line += "#"
                 else:
-                    out += "."
+                    line += "."
 
             if cell[WALL_SOUTH]:
                 next_line += "#"
@@ -335,7 +329,20 @@ if __name__ == "__main__":
                 else:
                     next_line += "."
 
-        out += "\n"
+        out_cells.append(line)
         if row != lab_rows - 1:
-            out += next_line + "\n"
-    print(out)
+            out_cells.append(next_line)
+    return blocky_labyrinth
+
+if __name__ == "__main__":
+    import pprint
+    pp = pprint.PrettyPrinter(indent=2)
+
+    labyrinth = make_labyrinth(5, 5, 20)
+    print(labyrinth_to_string(labyrinth))
+
+    blocky_labyrinth = get_blocky_labyrinth(labyrinth)
+    pp.pprint(blocky_labyrinth)
+
+    # print("raw:")
+    # pp.pprint(labyrinth)
