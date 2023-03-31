@@ -3,6 +3,7 @@ Demonstrates drawing various geometry with different shading algorithms
 """
 
 import time
+import glob, os
 
 import pygame
 import pygame.gfxdraw
@@ -64,16 +65,11 @@ def main_function():
         ["Cube", rasterizer.get_model_instance(meshes.get_cube_mesh())],
         ["Sphere", rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 20, 10))],
     ]
-    try:
-        teapot_model = model_file_io.get_model_from_obj_file("teapot-low.obj")
-        instances.append(["Utah teapot", rasterizer.get_model_instance(teapot_model, vecmat.get_scal_m4(0.1, 0.1, 0.1))])
-    except:
-        pass
-    try:
-        teapot_model = model_file_io.get_model_from_obj_file("teapot.obj")
-        instances.append(["Utah teapot (hi poly)", rasterizer.get_model_instance(teapot_model, vecmat.get_scal_m4(0.1, 0.1, 0.1))])
-    except:
-        pass
+
+    for file in glob.glob("assets/*.obj"):
+        print(os.path.basename(file))
+        model = model_file_io.get_model_from_obj_file(file)
+        instances.append([os.path.basename(file), rasterizer.get_model_instance(model, vecmat.get_scal_m4(1, 1, 1))])
 
     for name,instance in instances:
         scene_graph["root"]["children"][name] = instance
