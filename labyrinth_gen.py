@@ -301,7 +301,6 @@ def get_blocky_labyrinth(labyrinth):
     lab_rows,lab_cols = labyrinth["size"]
     cells = labyrinth["cells"]
     blocky_labyrinth = {}
-    blocky_labyrinth["size"] = labyrinth["size"]
     blocky_labyrinth["cells"] = []
     out_cells = blocky_labyrinth["cells"]
     for row in range(lab_rows):
@@ -332,13 +331,14 @@ def get_blocky_labyrinth(labyrinth):
         out_cells.append(line)
         if row != lab_rows - 1:
             out_cells.append(next_line)
+    blocky_labyrinth["size"] = (len(out_cells), len(out_cells[0]))
     return blocky_labyrinth
 
 if __name__ == "__main__":
     import pprint
     pp = pprint.PrettyPrinter(indent=2)
 
-    labyrinth = make_labyrinth(5, 5, 20)
+    labyrinth = make_labyrinth(7, 5, 20)
     print(labyrinth_to_string(labyrinth))
 
     blocky_labyrinth = get_blocky_labyrinth(labyrinth)
