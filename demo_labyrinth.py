@@ -37,13 +37,14 @@ def create_labyrinth_floor(root_instance, labyrinth):
     """
     lab_rows,lab_cols = labyrinth["size"]
     cell_size = 2
-    floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
+    floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
     cells = labyrinth["cells"]
     for row in range(lab_rows):
         row_cells = cells[row]
         for col in range(lab_cols):
             cell_name = f"cell_{row}_{col}"
             root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
+                preproc_m4=vecmat.get_scal_m4(0.1, 1, 0.1),
                 xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
 
 
