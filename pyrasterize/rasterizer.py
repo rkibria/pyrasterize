@@ -307,15 +307,15 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         cur_z = cam_pos[2]
         if cur_z > near_clip:
             return
-        scr_pos = project_to_clip_space(cam_pos, persp_m)
-        if scr_pos is not None:
+        clip_pos = project_to_clip_space(cam_pos, persp_m)
+        if clip_pos is not None:
             size = model["size"]
             img = model["img"]
             inv_z = 1.0 / abs(cur_z)
             proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
             scale_img = pygame.transform.scale(img, proj_size)
-            scr_pos = (int(scr_origin_x + scr_pos[0] * scr_origin_x - scale_img.get_width()/2),
-                    int(scr_origin_y - scr_pos[1] * scr_origin_y - scale_img.get_height()/2))
+            scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
+                       int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
             scene_triangles.append((
                 cur_z,
                 scr_pos,
@@ -431,7 +431,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
                                               instance, proj_m)
-                # print(f"name {_} tris {len(scene_triangles)}")
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)
@@ -441,7 +440,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
     # Sort triangles in ascending z order but wireframe triangles should be drawn last
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
-    print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
+    # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
     px_array = None
     for _,points,color_data,draw_mode in scene_triangles:
