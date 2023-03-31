@@ -301,9 +301,41 @@ if __name__ == "__main__":
     labyrinth = make_labyrinth(5, 5, 20)
     print(labyrinth_to_string(labyrinth))
 
-    print("area:")
-    area = labyrinth_to_area(labyrinth)
-    pp.pprint(area)
+    # print("area:")
+    # area = labyrinth_to_area(labyrinth)
+    # pp.pprint(area)
 
-    print("raw:")
-    pp.pprint(labyrinth)
+    # print("raw:")
+    # pp.pprint(labyrinth)
+
+    lab_rows,lab_cols = labyrinth["size"]
+    cells = labyrinth["cells"]
+    out = "#" + "#" * (lab_cols * 2) + "\n"
+    for row in range(lab_rows):
+        row_cells = cells[row]
+        next_line = ""
+        for col in range(lab_cols):
+            cell = row_cells[col]
+            if col == 0:
+                out += "#"
+                next_line += "@"
+            out += "."
+
+            if cell[WALL_EAST]:
+                out += "#"
+            else:
+                out += "."
+
+            if cell[WALL_SOUTH]:
+                next_line += "#"
+            else:
+                next_line += "."
+
+            if cell[WALL_EAST] or cell[WALL_SOUTH]:
+                next_line += "#"
+            else:
+                next_line += "."
+
+        out += "\n"
+        out += next_line + "\n"
+    print(out)
