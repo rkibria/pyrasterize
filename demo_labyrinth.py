@@ -1,5 +1,5 @@
 """
-Demonstrates movement in a large labyrinth in first person view
+Demonstrates movement through a labyrinth in first person view
 """
 
 # import asyncio # PYGBAG
