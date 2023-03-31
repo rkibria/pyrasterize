@@ -92,7 +92,8 @@ def get_proj_light_dir(lighting, camera_m):
 
 def project_to_screen(view_v, persp_m):
     """
-    Project view space point to screen point
+    Project view space point to screen point.
+    This only makes sense if the vertex is on the NEGATIVE z side!
     Takes vec4
     Returns vec2 or None
     """
@@ -101,7 +102,7 @@ def project_to_screen(view_v, persp_m):
         return None
     else:
         screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
-        return [screen_v[0]/minus_z, screen_v[1]/minus_z]
+        return [screen_v[0]/minus_z, screen_v[1]/minus_z, -minus_z]
 
 
 def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_normals, vert_normals, no_culling):
@@ -131,19 +132,7 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
         sv_2 = screen_verts[i_2]
 
         if sv_0 is None or sv_1 is None or sv_2 is None:
-            continue
-
-        # Ignore triangles whose bounding box doesn't intersect the viewing area
-        min_scr_x = min(sv_0[0], min(sv_1[0], sv_2[0]))
-        max_scr_x = max(sv_0[0], max(sv_1[0], sv_2[0]))
-        min_scr_y = min(sv_0[1], min(sv_1[1], sv_2[1]))
-        max_scr_y = max(sv_0[1], max(sv_1[1], sv_2[1]))
-        # Check if above rectangle intersects (-1,-1)->(1,1)
-        x_ov_1 = max(min_scr_x, -1)
-        y_ov_1 = max(min_scr_y, -1)
-        x_ov_2 = min(max_scr_x, 1)
-        y_ov_2 = min(max_scr_y, 1)
-        if x_ov_1 > x_ov_2 or y_ov_1 > y_ov_2:
+            # Can not process vertices that sit exactly on the xy plane with z=0
             continue
 
         v_0 = view_verts[i_0]
@@ -273,6 +262,21 @@ def _get_visible_instance_tris(persp_m, near_clip, model, view_verts, view_norma
             # Copy the colors of the original triangle
             colors.append(colors[tri_idx])
             colors.append(colors[tri_idx])
+            continue
+
+        # All vertices are in front of the near clip plane
+        # Ignore triangles whose bounding box doesn't intersect the viewing area
+        min_scr_x = min(sv_0[0], min(sv_1[0], sv_2[0]))
+        max_scr_x = max(sv_0[0], max(sv_1[0], sv_2[0]))
+        min_scr_y = min(sv_0[1], min(sv_1[1], sv_2[1]))
+        max_scr_y = max(sv_0[1], max(sv_1[1], sv_2[1]))
+        # Check if above rectangle intersects (-1,-1)->(1,1)
+        x_ov_1 = max(min_scr_x, -1)
+        y_ov_1 = max(min_scr_y, -1)
+        x_ov_2 = min(max_scr_x, 1)
+        y_ov_2 = min(max_scr_y, 1)
+        if x_ov_1 > x_ov_2 or y_ov_1 > y_ov_2:
+            print("invisible")
             continue
 
         # Append a non-clipped visible triangle
@@ -418,6 +422,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 _get_screen_tris_for_instance(scene_triangles, near_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
                                               instance, proj_m)
+                # print(f"name {_} tris {len(scene_triangles)}")
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)
@@ -427,7 +432,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
     # Sort triangles in ascending z order but wireframe triangles should be drawn last
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
-    print(f"tris: {len(scene_triangles)}")
+    print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
     px_array = None
     for _,points,color_data,draw_mode in scene_triangles:
