@@ -87,10 +87,14 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
 
             cell = row_cells[col]
             if cell == "#":
-                wall_n = True
-                wall_s = True
-                wall_w = True
-                wall_e = True
+                if row != 0 and cells[row - 1][col] != "#":
+                    wall_n = True
+                if row != lab_rows -1 and cells[row + 1][col] != "#":
+                    wall_s = True
+                if col != 0 and cells[row][col - 1] != "#":
+                    wall_w = True
+                if col != lab_cols - 1 and cells[row][col + 1] != "#":
+                    wall_e = True
 
             cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
