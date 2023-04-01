@@ -67,6 +67,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     wall_mesh = rasterizer.get_model_instance(wall_model, preproc_m4=vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor))
     # wall_mesh["baked_colors"] = True
     wall_mesh["wireframe"] = True
+    wall_mesh["noCulling"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
