@@ -332,6 +332,14 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
 
+    if "instance_normal" in instance:
+        instance_normal = instance["instance_normal"]
+        proj_inst_normal = vecmat.norm_vec3(vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)[0:3])
+        # Skip instance if it faces away from camera (visible if dot_product(v_0, normal) < 0)
+        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
+            return
+
     vert_normals = None
     if draw_gouraud_shaded:
         vert_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["vert_normals"]))

@@ -68,6 +68,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     # wall_mesh["baked_colors"] = True
     wall_mesh["wireframe"] = True
     wall_mesh["noCulling"] = True
+    wall_mesh["instance_normal"] = [0, 0, 1]
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
