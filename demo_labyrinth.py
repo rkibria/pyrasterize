@@ -47,10 +47,12 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     for row in range(lab_rows):
         row_cells = cells[row]
         for col in range(lab_cols):
-            cell_name = f"cell_{row}_{col}"
-            root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
-                preproc_m4=vecmat.get_scal_m4(scale_factor, 1, scale_factor),
-                xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
+            cell = row_cells[col]
+            if cell != "#":
+                cell_name = f"cell_{row}_{col}"
+                root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
+                    preproc_m4=vecmat.get_scal_m4(scale_factor, 1, scale_factor),
+                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
@@ -64,6 +66,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     scale_factor = cell_size / model_width
     wall_mesh = rasterizer.get_model_instance(wall_model, preproc_m4=vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor))
     # wall_mesh["baked_colors"] = True
+    wall_mesh["wireframe"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
