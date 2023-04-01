@@ -32,20 +32,25 @@ CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_W
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 
-def create_labyrinth_floor(root_instance, labyrinth):
+def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
-    cell_size = 2
+
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
+
+    # Original mesh width is 2
+    model_width = 2
+    scale_factor = cell_size / model_width
+
     cells = labyrinth["cells"]
     for row in range(lab_rows):
         row_cells = cells[row]
         for col in range(lab_cols):
             cell_name = f"cell_{row}_{col}"
-            # root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
-            #     preproc_m4=vecmat.get_scal_m4(0.1, 1, 0.1),
-            #     xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
+            root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
+                preproc_m4=vecmat.get_scal_m4(scale_factor, 1, scale_factor),
+                xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
@@ -53,12 +58,12 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     """
     lab_rows,lab_cols = labyrinth["size"]
 
-    # wall_mesh = meshes.get_block_instance(cell_d_i, cell_height, cell_d_o, (2, 2), (2, 2), (2, 2), wall_colors)
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1.obj")
     # Original mesh width is 2
-    wall_model_width = 2
-    scale_factor = cell_size / wall_model_width
+    model_width = 2
+    scale_factor = cell_size / model_width
     wall_mesh = rasterizer.get_model_instance(wall_model, preproc_m4=vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor))
+    # wall_mesh["baked_colors"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -84,7 +89,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                 wall_w = True
                 wall_e = True
 
-            # cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh(), vecmat.get_scal_m4(0.1, 0.1, 0.1))
+            cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
             if wall_n:
                 cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
@@ -116,7 +121,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     clock = pygame.time.Clock()
 
     # Generate the labyrinth
-    labyrinth = get_blocky_labyrinth(make_labyrinth(5, 5, 20))
+    labyrinth = get_blocky_labyrinth(make_labyrinth(3, 3, 20))
     import pprint
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(labyrinth)
@@ -133,15 +138,15 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Each labyrinth cell's area is a cube with an "inner" and "outer" area
     cell_size = 8
 
-    CAMERA["pos"][0] = cell_size / 2
+    CAMERA["pos"][0] = 0 # cell_size / 2
     CAMERA["pos"][1] = 1.5
-    CAMERA["pos"][2] = -(cell_size / 2)
+    CAMERA["pos"][2] = 0# -(cell_size / 2)
 
-    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (lab_cols, lab_rows), ((100, 0, 0), (0, 0, 100))),
-        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
-                             vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
-    # create_labyrinth_floor(scene_graphs[1]["root"], labyrinth)
+    # scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
+    #     meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (lab_cols, lab_rows), ((100, 0, 0), (0, 0, 100))),
+    #     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
+    #                          vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    create_labyrinth_floor(scene_graphs[0]["root"], labyrinth, cell_size)
 
     # Interior: walls
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
