@@ -15,6 +15,7 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import model_file_io
+from pyrasterize import drawing
 
 from labyrinth_gen import make_labyrinth, get_blocky_labyrinth
 
@@ -65,10 +66,10 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     model_width = 2
     scale_factor = cell_size / model_width
     wall_mesh = rasterizer.get_model_instance(wall_model, preproc_m4=vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor))
+    wall_mesh["instance_normal"] = [0, 0, 1]
     # wall_mesh["baked_colors"] = True
     wall_mesh["wireframe"] = True
     wall_mesh["noCulling"] = True
-    wall_mesh["instance_normal"] = [0, 0, 1]
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -120,6 +121,52 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size, 0, -cell_size / 2),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
                     {"wall": wall_mesh})
+
+def update_viewable_area(labyrinth, cell_size, root_instances):
+    """
+    """
+    lab_rows,lab_cols = labyrinth["size"]
+    cells = labyrinth["cells"]
+
+    def enable_cell(row, col, enable):
+        cell_name = f"cell_{row}_{col}"
+        for root_instance in root_instances:
+            children = root_instance["children"]
+            if cell_name in children:
+                root_instance["children"][cell_name]["enabled"] = enable
+
+    # Turn off everything
+    for row in range(lab_rows):
+        for col in range(lab_cols):
+            enable_cell(row, col, False)
+
+    # row/col
+    cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
+
+    cam_rot_y = CAMERA["rot"][1]
+    cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
+
+    view_max = 10
+    end_cell = [int(cur_cell[0] + view_max * cam_v_forward[0]), int(cur_cell[1] + view_max * cam_v_forward[1])]
+    print(cur_cell, cam_v_forward, end_cell)
+
+    line = drawing.bresenham(cur_cell[0], cur_cell[1], end_cell[0], end_cell[1])
+    while True:
+        row,col = next(line, (None, None))
+        if row is None:
+            break
+        if row < 0:
+            break
+        if col < 0:
+            break
+        if row >= lab_rows:
+            break
+        if col >= lab_cols:
+            break
+        if cells[row][col] == "#":
+            enable_cell(row, col, True)
+            break
+        enable_cell(row, col, True)
 
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
@@ -289,6 +336,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         t = time.perf_counter()
+        update_viewable_area(labyrinth, cell_size, [scene_graph["root"] for scene_graph in scene_graphs])
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
                 vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
