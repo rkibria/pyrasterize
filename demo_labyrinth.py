@@ -37,18 +37,20 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
-
-    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
-    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
-    # floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((255,0,0), (0,255,0)))
-    floor_model = meshes.get_rect_mesh((2, 2), (5,5))
-
     # Original mesh width is 2
     model_width = 2
     scale_factor = cell_size / model_width
 
+    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
+    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
+    # preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
+
+    floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((255,0,0), (0,255,0)))
+    # floor_model = meshes.get_rect_mesh((2, 2), (5,5))
     preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+
+    print(f"floor: {len(floor_model['tris'])} triangles")
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -67,12 +69,21 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
-
-    wall_model = model_file_io.get_model_from_obj_file("assets/wall_1.obj")
     # Original mesh width is 2
     model_width = 2
     scale_factor = cell_size / model_width
-    wall_mesh = rasterizer.get_model_instance(wall_model, preproc_m4=vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor))
+
+    # wall_model = model_file_io.get_model_from_obj_file("assets/wall_1.obj")
+    # preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
+
+    wall_model = meshes.get_rect_mesh((2,2), (5,5), ((255,0,255), (0, 255, 255)))
+    preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, cell_size / 4, 0),
+        vecmat.get_scal_m4(scale_factor, scale_factor / 2, scale_factor))
+
+    print(f"floor: {len(wall_model['tris'])} triangles")
+
+    wall_mesh = rasterizer.get_model_instance(wall_model,
+        preproc_m4=preproc_m4)
     wall_mesh["instance_normal"] = [0, 0, 1]
     # wall_mesh["baked_colors"] = True
     # wall_mesh["wireframe"] = True
