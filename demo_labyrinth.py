@@ -156,7 +156,7 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
 
-    view_max = 1.5 * cell_size
+    view_max = 2 * cell_size
     step = cell_size / 4.0
     enables = set()
     for delta_angle in range(-60, 60, 2):
@@ -194,7 +194,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     clock = pygame.time.Clock()
 
     # Generate the labyrinth
-    labyrinth = get_blocky_labyrinth(make_labyrinth(5, 5, 20))
+    labyrinth = get_blocky_labyrinth(make_labyrinth(8, 8, 20))
     import pprint
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(labyrinth)
