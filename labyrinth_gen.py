@@ -331,6 +331,13 @@ def get_blocky_labyrinth(labyrinth):
         out_cells.append(line)
         if row != lab_rows - 1:
             out_cells.append(next_line)
+    # add the outside walls around the whole area
+    cur_size = (len(out_cells), len(out_cells[0]))
+    for i in range(len(out_cells)):
+        out_cells[i] = "#" + out_cells[i] + "#"
+    top_bottom_border = "#" * (cur_size[1] + 2)
+    out_cells.insert(0, top_bottom_border)
+    out_cells.append(top_bottom_border)
     blocky_labyrinth["size"] = (len(out_cells), len(out_cells[0]))
     return blocky_labyrinth
 

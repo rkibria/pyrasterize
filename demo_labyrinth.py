@@ -45,7 +45,7 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     # floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
     # preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
 
-    floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((255,0,0), (0,255,0)))
+    floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((0,0,255), (0,255,0)))
     # floor_model = meshes.get_rect_mesh((2, 2), (5,5))
     preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
@@ -90,7 +90,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     # so their triangles need no individual culling
     # wall_mesh["baked_colors"] = True
     # wall_mesh["wireframe"] = True
-    wall_mesh["noCulling"] = True
+    # wall_mesh["noCulling"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -120,7 +120,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                 if col != lab_cols - 1 and cells[row][col + 1] != "#":
                     wall_e = True
 
-            # cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
+            cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
             if wall_n:
                 cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
@@ -225,9 +225,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Each labyrinth cell's area is a cube with an "inner" and "outer" area
     cell_size = 8
 
-    CAMERA["pos"][0] = 0 # cell_size / 2
+    CAMERA["pos"][0] = cell_size * 1.5
     CAMERA["pos"][1] = 1.5
-    CAMERA["pos"][2] = 0# -(cell_size / 2)
+    CAMERA["pos"][2] = -cell_size * 1.5
 
     # scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
     #     meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (lab_cols, lab_rows), ((100, 0, 0), (0, 0, 100))),
