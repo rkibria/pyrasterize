@@ -68,8 +68,8 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     wall_mesh = rasterizer.get_model_instance(wall_model, preproc_m4=vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor))
     wall_mesh["instance_normal"] = [0, 0, 1]
     # wall_mesh["baked_colors"] = True
-    wall_mesh["wireframe"] = True
-    wall_mesh["noCulling"] = True
+    # wall_mesh["wireframe"] = True
+    # wall_mesh["noCulling"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -140,28 +140,28 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
         for col in range(lab_cols):
             enable_cell(row, col, False)
 
+    def pos_to_cell(z, x):
+        return [lab_rows - 1 + int(z / cell_size), int(x / cell_size)]
+
     # row/col
-    cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
+    # cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
 
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
-    view_max = 10
-    def get_end_point(delta_angle):
+
+    view_max = 5 * cell_size
+    step = cell_size / 4.0
+    enables = set()
+    for delta_angle in range(-60, 60, 2):
         delta_rad = vecmat.deg_to_rad(delta_angle)
         cos = math.cos(delta_rad)
         sin = math.sin(delta_rad)
         rot_forward = [cos * cam_v_forward[0] - sin * cam_v_forward[1], sin * cam_v_forward[0] + cos * cam_v_forward[1]]
-        end_cell = [int(cur_cell[0] + view_max * rot_forward[0]), int(cur_cell[1] + view_max * rot_forward[1])]
-        return end_cell
-
-    enables = set()
-    def trace_to_end(cur_cell, end_cell):
-        line = drawing.bresenham(cur_cell[0], cur_cell[1], end_cell[0], end_cell[1])
-        passed = True
-        while True:
-            row,col = next(line, (None, None))
-            if row is None:
-                break
+        pos_zx = [CAMERA["pos"][2], CAMERA["pos"][0]]
+        for _ in range(int(view_max / step)):
+            pos_zx[0] += rot_forward[0] * step
+            pos_zx[1] += rot_forward[1] * step
+            row,col = pos_to_cell(pos_zx[0], pos_zx[1])
             if row < 0:
                 break
             if col < 0:
@@ -172,14 +172,8 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
                 break
             if cells[row][col] == "#":
                 enables.add((row, col))
-                if passed:
-                    break
-                passed = True
+                break
             enables.add((row, col))
-
-    for angle in range(-45, 45, 1):
-        end_point = get_end_point(angle)
-        trace_to_end([cur_cell[0], cur_cell[1]], end_point)
 
     for row,col in enables:
         enable_cell(row, col, True)
