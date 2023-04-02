@@ -38,7 +38,8 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     """
     lab_rows,lab_cols = labyrinth["size"]
 
-    floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
+    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
+    floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
 
     # Original mesh width is 2
     model_width = 2
@@ -99,7 +100,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                 if col != lab_cols - 1 and cells[row][col + 1] != "#":
                     wall_e = True
 
-            cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
+            # cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
             if wall_n:
                 cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
@@ -149,7 +150,7 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
 
-    view_max = 5 * cell_size
+    view_max = 2.5 * cell_size
     step = cell_size / 4.0
     enables = set()
     for delta_angle in range(-60, 60, 2):
