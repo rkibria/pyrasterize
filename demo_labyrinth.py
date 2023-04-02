@@ -41,8 +41,6 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     model_width = 2
     scale_factor = cell_size / model_width
 
-    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
-    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
 
@@ -50,8 +48,6 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))
     ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor), ceil_preproc_m4)
     ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 1.25 * scale_factor, 0), ceil_preproc_m4)
-
-    print(f"floor: {len(floor_model['tris'])} triangles")
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -73,32 +69,18 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
-    """
-    """
     lab_rows,lab_cols = labyrinth["size"]
     # Original mesh width is 2
     model_width = 2
     scale_factor = cell_size / model_width
 
-    # wall_model = model_file_io.get_model_from_obj_file("assets/wall_1.obj")
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
 
-    # wall_model = meshes.get_rect_mesh((2,2), (5,5), ((255,0,255), (0, 255, 255)))
-    # preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, cell_size / 4, 0),
-    #     vecmat.get_scal_m4(scale_factor, scale_factor / 2, scale_factor))
-
-    print(f"floor: {len(wall_model['tris'])} triangles")
-
     wall_mesh = rasterizer.get_model_instance(wall_model,
         preproc_m4=preproc_m4)
-    wall_mesh["instance_normal"] = [0, 0, 1]
     # Wall meshes are culled if not facing the camera.
-    # They have baked colors and no back-facing triangles,
-    # so their triangles need no individual culling
-    # wall_mesh["baked_colors"] = True
-    # wall_mesh["wireframe"] = True
-    # wall_mesh["noCulling"] = True
+    wall_mesh["instance_normal"] = [0, 0, 1]
     wall_mesh["fade_distance"] = 15.0
     wall_mesh["use_minimum_z_order"] = True
 
@@ -106,9 +88,6 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     for row in range(lab_rows):
         row_cells = cells[row]
         for col in range(lab_cols):
-            # if not (col == 0 and row == lab_rows - 1):
-            #     continue
-
             cell_name = f"cell_{row}_{col}"
             root_instance["children"][cell_name] = rasterizer.get_model_instance(None,
                 xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
@@ -130,7 +109,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                 if col != lab_cols - 1 and cells[row][col + 1] != "#":
                     wall_e = True
 
-            cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
+            # cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
 
             if wall_n:
                 cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
@@ -236,10 +215,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     CAMERA["pos"][1] = 2
     CAMERA["pos"][2] = -cell_size * 1.5
 
-    # scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
-    #     meshes.get_rect_mesh((lab_cols * cell_size, lab_rows * cell_size), (lab_cols, lab_rows), ((100, 0, 0), (0, 0, 100))),
-    #     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(lab_cols * cell_size / 2, 0, -lab_cols * cell_size / 2),
-    #                          vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
     create_labyrinth_floor(scene_graphs[0]["root"], labyrinth, cell_size)
 
     # Interior: walls
@@ -277,9 +252,6 @@ def main_function(): # PYGBAG: decorate with 'async'
         rot[1] -= vecmat.deg_to_rad(x * 0.2)
         # limit up/down rotation around x-axis to straight up/down at most
         rot[0] = min(math.pi/2, max(-math.pi/2, rot[0]))
-        # limit to 360 degrees
-        # rot[0] = divmod(rot[0], 2 * math.pi)[1]
-        # rot[1] = divmod(rot[1], 2 * math.pi)[1]
 
     # key: (index, value)
     key_moves = {
@@ -336,24 +308,23 @@ def main_function(): # PYGBAG: decorate with 'async'
         total_movement = vecmat.norm_vec3(total_movement)
         cam_pos = CAMERA["pos"]
         move_scale = 0.2
-        # cam_pos[0] += total_movement[0] * move_scale
-        # cam_pos[2] += total_movement[2] * move_scale
-
-        # row/col of current occupied cell
-        cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
-        # check if new position is viable against all surrounding cells
-        # determine walkable area considering surroundings
-        wall_dist = cell_size / 4
-        # lower left xz, upper right xz
-        x = (lab_rows - 1 - cur_cell[0]) * cell_size + wall_dist
-        z = -(cur_cell[1] * cell_size + wall_dist)
-        walkable = [x, z,
-            x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
         new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
+
+        # TODO prevent clipping through walls
+        # cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
+        # # check if new position is viable against all surrounding cells
+        # # determine walkable area considering surroundings
+        # wall_dist = cell_size / 4
+        # # lower left xz, upper right xz
+        # x = (lab_rows - 1 - cur_cell[0]) * cell_size + wall_dist
+        # z = -(cur_cell[1] * cell_size + wall_dist)
+        # walkable = [x, z,
+        #     x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
         # new_pos = [
         #     max(walkable[2], max(new_pos[0], walkable[0])),
         #     max(walkable[3], max(new_pos[1], walkable[1])),
         # ]
+
         CAMERA["pos"][0] = new_pos[0]
         CAMERA["pos"][2] = new_pos[1]
 
