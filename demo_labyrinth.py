@@ -94,6 +94,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     # wall_mesh["wireframe"] = True
     # wall_mesh["noCulling"] = True
     wall_mesh["fade_distance"] = 15.0
+    wall_mesh["use_minimum_z_order"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):

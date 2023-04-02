@@ -335,6 +335,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
+    use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
@@ -379,8 +380,10 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
         # Using the minimum tends to look glitchier in a lot of cases,
         # but also works better for placement of billboards and big triangles
-        z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
-        # z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
+        if use_minimum_z_order:
+            z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
+        else:
+            z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
 
         if draw_mode == DRAW_MODE_WIREFRAME:
             color_data = model_colors[tri_idx]
