@@ -8,3 +8,7 @@ wall_1_145tris.obj - modified to have less triangles than original
 
 https://opengameart.org/content/lowpoly-modular-dungeon-pack by quaternius - CC0 license
 floor_62tris.obj - modified to have less triangles than original
+
+--
+
+Utah teapot obj files available at https://graphics.cs.utah.edu/courses/cs6620/fall2017/?prj=5

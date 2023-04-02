@@ -18,8 +18,4 @@ Gouraud shading / draw modes demo video https://i.imgur.com/XC3njax.mp4
 
 First person game/billboard sprites demo: https://i.imgur.com/5fZugHX.png video https://i.imgur.com/CAEq013.mp4 - on itch.io: https://pelicanicious.itch.io/pyrasterize-firstpersondemo
 
---
-
-Utah teapot obj files available at https://graphics.cs.utah.edu/courses/cs6620/fall2017/?prj=5
-
-Goldfish .obj file by jeremy [CC-BY] here https://poly.pizza/m/52s3JpUSjmX
+3D labyrinth first person demo: https://i.imgur.com/fFj17LO.mp4 video - on itch.io: https://pelicanicious.itch.io/pyrasterize-labyrinth
