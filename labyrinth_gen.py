@@ -294,16 +294,62 @@ def get_random_edge_pos(rows, cols):
         start_row = random.randint(0, rows - 1)
     return (start_row, start_col)
 
+def get_blocky_labyrinth(labyrinth):
+    """
+    Returns dict
+    """
+    lab_rows,lab_cols = labyrinth["size"]
+    cells = labyrinth["cells"]
+    blocky_labyrinth = {}
+    blocky_labyrinth["cells"] = []
+    out_cells = blocky_labyrinth["cells"]
+    for row in range(lab_rows):
+        row_cells = cells[row]
+        line = ""
+        next_line = ""
+        for col in range(lab_cols):
+            cell = row_cells[col]
+            line += "."
+
+            if col != lab_cols - 1:
+                if cell[WALL_EAST]:
+                    line += "#"
+                else:
+                    line += "."
+
+            if cell[WALL_SOUTH]:
+                next_line += "#"
+            else:
+                next_line += "."
+
+            if col != lab_cols - 1:
+                if cell[WALL_EAST] or cell[WALL_SOUTH]:
+                    next_line += "#"
+                else:
+                    next_line += "."
+
+        out_cells.append(line)
+        if row != lab_rows - 1:
+            out_cells.append(next_line)
+    # add the outside walls around the whole area
+    cur_size = (len(out_cells), len(out_cells[0]))
+    for i in range(len(out_cells)):
+        out_cells[i] = "#" + out_cells[i] + "#"
+    top_bottom_border = "#" * (cur_size[1] + 2)
+    out_cells.insert(0, top_bottom_border)
+    out_cells.append(top_bottom_border)
+    blocky_labyrinth["size"] = (len(out_cells), len(out_cells[0]))
+    return blocky_labyrinth
+
 if __name__ == "__main__":
     import pprint
     pp = pprint.PrettyPrinter(indent=2)
 
-    labyrinth = make_labyrinth(5, 5, 20)
+    labyrinth = make_labyrinth(7, 5, 20)
     print(labyrinth_to_string(labyrinth))
 
-    print("area:")
-    area = labyrinth_to_area(labyrinth)
-    pp.pprint(area)
+    blocky_labyrinth = get_blocky_labyrinth(labyrinth)
+    pp.pprint(blocky_labyrinth)
 
-    print("raw:")
-    pp.pprint(labyrinth)
+    # print("raw:")
+    # pp.pprint(labyrinth)

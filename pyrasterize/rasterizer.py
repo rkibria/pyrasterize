@@ -172,9 +172,10 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
             continue
 
         # Back-face culling: visible if dot_product(v_0, normal) < 0
-        normal = view_normals[tri_idx]
-        if not (no_culling or (v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0):
-            continue
+        if not no_culling:
+            normal = view_normals[tri_idx]
+            if not ((v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0):
+                continue
 
         # Check if triangle extends behind near clip plane
         if num_behind == 2:
@@ -331,6 +332,16 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_colors = model["colors"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
+    fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
+    use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
+
+    if "instance_normal" in instance:
+        instance_normal = instance["instance_normal"]
+        proj_inst_normal = vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
+        # Skip instance if it faces away from camera (visible if dot_product(v_0, normal) < 0)
+        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
+            return
 
     vert_normals = None
     if draw_gouraud_shaded:
@@ -365,6 +376,13 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
 
+        # Using the minimum tends to look glitchier in a lot of cases,
+        # but also works better for placement of billboards and big triangles
+        if use_minimum_z_order:
+            z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
+        else:
+            z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
+
         if draw_mode == DRAW_MODE_WIREFRAME:
             color_data = model_colors[tri_idx]
         elif draw_mode == DRAW_MODE_FLAT:
@@ -375,13 +393,13 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 + proj_light_dir[2] * normal[2])
             intensity = min(1, max(0, ambient + diffuse * dot_prd))
             color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
+            if fade_distance > 0:
+                z = abs(z_order)
+                fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
+                color_data = [color_data[0] * fade_factor, color_data[1] * fade_factor, color_data[2] * fade_factor]
         else: # draw_mode == DRAW_MODE_GOURAUD
             color_data = [vert_colors[vert_idx] for vert_idx in tri]
 
-        # Using the minimum tends to look glitchier in a lot of cases,
-        # but also works better for placement of billboards and big triangles
-        # z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
-        z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
         scene_triangles.append((
             z_order,
             [screen_verts[tri[i]] for i in range(3)],
@@ -443,7 +461,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
     px_array = None
-    for _,points,color_data,draw_mode in scene_triangles:
+    for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
             if px_array is None:
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this

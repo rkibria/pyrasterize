@@ -1,2 +1,10 @@
 Origin of files:
-LampStand.png - https://opengameart.org/content/iron-torches "Iron Torches" by Xavier4321 - CC0 license
+
+https://opengameart.org/content/iron-torches "Iron Torches" by Xavier4321 - CC0 license
+LampStand.png
+
+https://opengameart.org/content/low-poly-dungeon-3d-tiles by zisongbr - CC0 license
+wall_1_145tris.obj - modified to have less triangles than original
+
+https://opengameart.org/content/lowpoly-modular-dungeon-pack by quaternius - CC0 license
+floor_62tris.obj - modified to have less triangles than original
