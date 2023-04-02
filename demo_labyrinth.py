@@ -74,11 +74,12 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     scale_factor = cell_size / model_width
 
     # wall_model = model_file_io.get_model_from_obj_file("assets/wall_1.obj")
-    # preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
+    wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_153tris.obj")
+    preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
 
-    wall_model = meshes.get_rect_mesh((2,2), (5,5), ((255,0,255), (0, 255, 255)))
-    preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, cell_size / 4, 0),
-        vecmat.get_scal_m4(scale_factor, scale_factor / 2, scale_factor))
+    # wall_model = meshes.get_rect_mesh((2,2), (5,5), ((255,0,255), (0, 255, 255)))
+    # preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, cell_size / 4, 0),
+    #     vecmat.get_scal_m4(scale_factor, scale_factor / 2, scale_factor))
 
     print(f"floor: {len(wall_model['tris'])} triangles")
 
