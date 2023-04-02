@@ -164,9 +164,6 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
     def pos_to_cell(z, x):
         return [lab_rows - 1 + int(z / cell_size), int(x / cell_size)]
 
-    # row/col
-    # cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
-
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
 
@@ -329,8 +326,27 @@ def main_function(): # PYGBAG: decorate with 'async'
         total_movement = vecmat.norm_vec3(total_movement)
         cam_pos = CAMERA["pos"]
         move_scale = 0.2
-        cam_pos[0] += total_movement[0] * move_scale
-        cam_pos[2] += total_movement[2] * move_scale
+        # cam_pos[0] += total_movement[0] * move_scale
+        # cam_pos[2] += total_movement[2] * move_scale
+
+        # row/col of current occupied cell
+        cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
+        # check if new position is viable against all surrounding cells
+        # determine walkable area considering surroundings
+        wall_dist = cell_size / 4
+        # lower left xz, upper right xz
+        x = (lab_rows - 1 - cur_cell[0]) * cell_size + wall_dist
+        z = -(cur_cell[1] * cell_size + wall_dist)
+        walkable = [x, z,
+            x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
+        new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
+        new_pos = [
+            max(walkable[2], max(new_pos[0], walkable[0])),
+            max(walkable[3], max(new_pos[1], walkable[1])),
+        ]
+        CAMERA["pos"][0] = new_pos[0]
+        CAMERA["pos"][2] = new_pos[1]
+
         # Camera rotation
         rot_scale = 0.05
         CAMERA["rot"][0] += move_dir[3] * rot_scale
