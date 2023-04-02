@@ -46,9 +46,10 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
 
-    # floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((0,0,255), (0,255,0)))
-    # preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor),
-    #     vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+    ceil_model = meshes.get_rect_mesh((2, 2), (5,5))
+    ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))
+    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor), ceil_preproc_m4)
+    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 1.25 * scale_factor, 0), ceil_preproc_m4)
 
     print(f"floor: {len(floor_model['tris'])} triangles")
 
@@ -59,11 +60,16 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
             cell = row_cells[col]
             if cell != "#":
                 cell_name = f"cell_{row}_{col}"
-                root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
+                root_instance["children"][cell_name] = rasterizer.get_model_instance(None)
+                root_instance["children"][cell_name]["children"]["floor"] = rasterizer.get_model_instance(floor_model,
                     preproc_m4=preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
-                # root_instance["children"][cell_name]["wireframe"] = True
-                root_instance["children"][cell_name]["fade_distance"] = 15.0
+                root_instance["children"][cell_name]["children"]["floor"]["fade_distance"] = 15.0
+
+                root_instance["children"][cell_name]["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
+                    preproc_m4=ceil_preproc_m4,
+                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
+                root_instance["children"][cell_name]["children"]["ceiling"]["fade_distance"] = 15.0
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
@@ -227,7 +233,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     cell_size = 8
 
     CAMERA["pos"][0] = cell_size * 1.5
-    CAMERA["pos"][1] = 1.5
+    CAMERA["pos"][1] = 2
     CAMERA["pos"][2] = -cell_size * 1.5
 
     # scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
