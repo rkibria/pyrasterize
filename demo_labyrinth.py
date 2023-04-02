@@ -43,12 +43,12 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
 
     # floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
     # floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
-    # preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
+    floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
+    preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
 
-    floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((0,0,255), (0,255,0)))
-    # floor_model = meshes.get_rect_mesh((2, 2), (5,5))
-    preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor),
-        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+    # floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((0,0,255), (0,255,0)))
+    # preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor),
+    #     vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
 
     print(f"floor: {len(floor_model['tris'])} triangles")
 
