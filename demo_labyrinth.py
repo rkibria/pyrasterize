@@ -63,6 +63,7 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
                     preproc_m4=preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
                 # root_instance["children"][cell_name]["wireframe"] = True
+                root_instance["children"][cell_name]["fade_distance"] = 15.0
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
@@ -92,6 +93,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     # wall_mesh["baked_colors"] = True
     # wall_mesh["wireframe"] = True
     # wall_mesh["noCulling"] = True
+    wall_mesh["fade_distance"] = 15.0
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):

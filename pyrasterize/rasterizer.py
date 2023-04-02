@@ -334,6 +334,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_colors = model["colors"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
+    fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
@@ -376,6 +377,11 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
 
+        # Using the minimum tends to look glitchier in a lot of cases,
+        # but also works better for placement of billboards and big triangles
+        z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
+        # z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
+
         if draw_mode == DRAW_MODE_WIREFRAME:
             color_data = model_colors[tri_idx]
         elif draw_mode == DRAW_MODE_FLAT:
@@ -386,13 +392,13 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 + proj_light_dir[2] * normal[2])
             intensity = min(1, max(0, ambient + diffuse * dot_prd))
             color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
+            if fade_distance > 0:
+                z = abs(z_order)
+                fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
+                color_data = [color_data[0] * fade_factor, color_data[1] * fade_factor, color_data[2] * fade_factor]
         else: # draw_mode == DRAW_MODE_GOURAUD
             color_data = [vert_colors[vert_idx] for vert_idx in tri]
 
-        # Using the minimum tends to look glitchier in a lot of cases,
-        # but also works better for placement of billboards and big triangles
-        z_order = min(view_verts[tri[0]][2], view_verts[tri[1]][2], view_verts[tri[2]][2])
-        # z_order = (view_verts[tri[0]][2] + view_verts[tri[1]][2] + view_verts[tri[2]][2]) / 3
         scene_triangles.append((
             z_order,
             [screen_verts[tri[i]] for i in range(3)],
@@ -507,12 +513,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
                     px_array[x, y] = (r << 16) | (g << 8) | b
         elif draw_mode == DRAW_MODE_FLAT:
-            if True:
-                z = abs(z_order)
-                d = 15.0
-                fade_factor = 1 if z < 1 else max(0, (1/d) * (d - z))
-                # fade_factor *= fade_factor
-                color_data = [color_data[0] * fade_factor, color_data[1] * fade_factor, color_data[2] * fade_factor]
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
