@@ -85,9 +85,12 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     wall_mesh = rasterizer.get_model_instance(wall_model,
         preproc_m4=preproc_m4)
     wall_mesh["instance_normal"] = [0, 0, 1]
+    # Wall meshes are culled if not facing the camera.
+    # They have baked colors and no back-facing triangles,
+    # so their triangles need no individual culling
     # wall_mesh["baked_colors"] = True
     # wall_mesh["wireframe"] = True
-    # wall_mesh["noCulling"] = True
+    wall_mesh["noCulling"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):

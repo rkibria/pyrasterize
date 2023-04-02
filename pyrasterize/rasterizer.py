@@ -172,8 +172,11 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
             continue
 
         # Back-face culling: visible if dot_product(v_0, normal) < 0
+        if no_culling:
+            continue
+
         normal = view_normals[tri_idx]
-        if not (no_culling or (v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0):
+        if not ((v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0):
             continue
 
         # Check if triangle extends behind near clip plane
