@@ -39,11 +39,16 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     lab_rows,lab_cols = labyrinth["size"]
 
     # floor_model = model_file_io.get_model_from_obj_file("assets/floor_1.obj")
-    floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
+    # floor_model = model_file_io.get_model_from_obj_file("assets/floor_simplified.obj")
+    # floor_model = meshes.get_rect_mesh((2, 2), (5,5), ((255,0,0), (0,255,0)))
+    floor_model = meshes.get_rect_mesh((2, 2), (5,5))
 
     # Original mesh width is 2
     model_width = 2
     scale_factor = cell_size / model_width
+
+    preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor),
+        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -53,8 +58,9 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
             if cell != "#":
                 cell_name = f"cell_{row}_{col}"
                 root_instance["children"][cell_name] = rasterizer.get_model_instance(floor_model,
-                    preproc_m4=vecmat.get_scal_m4(scale_factor, 1, scale_factor),
+                    preproc_m4=preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
+                # root_instance["children"][cell_name]["wireframe"] = True
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
@@ -150,7 +156,7 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
 
-    view_max = 2.5 * cell_size
+    view_max = 1.5 * cell_size
     step = cell_size / 4.0
     enables = set()
     for delta_angle in range(-60, 60, 2):
