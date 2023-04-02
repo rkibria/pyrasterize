@@ -74,7 +74,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     scale_factor = cell_size / model_width
 
     # wall_model = model_file_io.get_model_from_obj_file("assets/wall_1.obj")
-    wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_153tris.obj")
+    wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
 
     # wall_model = meshes.get_rect_mesh((2,2), (5,5), ((255,0,255), (0, 255, 255)))
@@ -341,10 +341,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         walkable = [x, z,
             x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
         new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
-        new_pos = [
-            max(walkable[2], max(new_pos[0], walkable[0])),
-            max(walkable[3], max(new_pos[1], walkable[1])),
-        ]
+        # new_pos = [
+        #     max(walkable[2], max(new_pos[0], walkable[0])),
+        #     max(walkable[3], max(new_pos[1], walkable[1])),
+        # ]
         CAMERA["pos"][0] = new_pos[0]
         CAMERA["pos"][2] = new_pos[1]
 
