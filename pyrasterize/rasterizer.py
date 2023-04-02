@@ -509,7 +509,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 d = 15.0
                 fade_factor = 1 if z < 1 else max(0, (1/d) * (d - z))
                 # fade_factor *= fade_factor
-                color_data = [color_data[0] * fade_factor, color_data[0] * fade_factor, color_data[0] * fade_factor]
+                color_data = [color_data[0] * fade_factor, color_data[1] * fade_factor, color_data[2] * fade_factor]
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
