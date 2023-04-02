@@ -145,27 +145,43 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
 
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
-
     view_max = 10
-    end_cell = [int(cur_cell[0] + view_max * cam_v_forward[0]), int(cur_cell[1] + view_max * cam_v_forward[1])]
-    print(cur_cell, cam_v_forward, end_cell)
+    def get_end_point(delta_angle):
+        delta_rad = vecmat.deg_to_rad(delta_angle)
+        cos = math.cos(delta_rad)
+        sin = math.sin(delta_rad)
+        rot_forward = [cos * cam_v_forward[0] - sin * cam_v_forward[1], sin * cam_v_forward[0] + cos * cam_v_forward[1]]
+        end_cell = [int(cur_cell[0] + view_max * rot_forward[0]), int(cur_cell[1] + view_max * rot_forward[1])]
+        return end_cell
 
-    line = drawing.bresenham(cur_cell[0], cur_cell[1], end_cell[0], end_cell[1])
-    while True:
-        row,col = next(line, (None, None))
-        if row is None:
-            break
-        if row < 0:
-            break
-        if col < 0:
-            break
-        if row >= lab_rows:
-            break
-        if col >= lab_cols:
-            break
-        if cells[row][col] == "#":
-            enable_cell(row, col, True)
-            break
+    enables = set()
+    def trace_to_end(cur_cell, end_cell):
+        line = drawing.bresenham(cur_cell[0], cur_cell[1], end_cell[0], end_cell[1])
+        passed = True
+        while True:
+            row,col = next(line, (None, None))
+            if row is None:
+                break
+            if row < 0:
+                break
+            if col < 0:
+                break
+            if row >= lab_rows:
+                break
+            if col >= lab_cols:
+                break
+            if cells[row][col] == "#":
+                enables.add((row, col))
+                if passed:
+                    break
+                passed = True
+            enables.add((row, col))
+
+    for angle in range(-45, 45, 1):
+        end_point = get_end_point(angle)
+        trace_to_end([cur_cell[0], cur_cell[1]], end_point)
+
+    for row,col in enables:
         enable_cell(row, col, True)
 
 def main_function(): # PYGBAG: decorate with 'async'
@@ -177,7 +193,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     clock = pygame.time.Clock()
 
     # Generate the labyrinth
-    labyrinth = get_blocky_labyrinth(make_labyrinth(3, 3, 20))
+    labyrinth = get_blocky_labyrinth(make_labyrinth(5, 5, 20))
     import pprint
     pp = pprint.PrettyPrinter(indent=2)
     pp.pprint(labyrinth)
