@@ -1,9 +1,9 @@
 """
-Demonstrates drawing various geometry with different shading algorithms
+Demonstrates particles
 """
 
 import time
-import glob, os
+import math
 
 import pygame
 import pygame.gfxdraw
@@ -13,7 +13,6 @@ import pygame.cursors
 from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
-from pyrasterize import model_file_io
 
 # CONSTANTS
 
@@ -23,7 +22,7 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 
 # Set up a camera that is a little back from the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0,0,3], "rot": [0,0,0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0,0,18], "rot": [0,0,0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
@@ -32,11 +31,12 @@ def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
     # Set the transformation matrix of the root element to a combination of x/y/z rotations
     # This will also rotate all its children, i.e. the cube
-    scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
-        vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)),
-        vecmat.mat4_mat4_mul(
-            vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)),
-            vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5))))
+    # scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
+    #     vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)),
+    #     vecmat.mat4_mat4_mul(
+    #         vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)),
+    #         vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5))))
+
     # Get perspective matrix and render the scene
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     t = time.perf_counter()
@@ -60,8 +60,29 @@ def main_function():
     scene_graph = { "root": rasterizer.get_model_instance(None) }
 
     img = pygame.image.load("assets/blue_spot.png").convert_alpha()
-    scene_graph["root"]["children"][f"particle"] = rasterizer.get_model_instance(
-        meshes.get_particles(img, 1))
+    l_divs = 5
+    r_divs = 5
+    r_phi_step = 2 * math.pi / r_divs
+    l_phi_step = math.pi / l_divs
+    radius = 5
+    num_particles = (l_divs - 1) * r_divs
+    particles = meshes.get_particles(img, num_particles)
+    scene_graph["root"]["children"]["particles"] = rasterizer.get_model_instance(particles)
+    pos_i = 0
+    for l_i in range(l_divs - 1):
+        for r_i in range(r_divs):
+            # divide surface arc from bottom to top into l_divs
+            l_phi = l_phi_step * (l_i + 1)
+            y_i = -radius * math.cos(l_phi)
+            radius_i = (radius ** 2 - y_i ** 2) ** 0.5
+            r_phi = r_phi_step * r_i
+            x_i = radius_i * math.cos(r_phi)
+            z_i = -radius_i * math.sin(r_phi)
+            pos = particles["positions"][pos_i]
+            pos[0] = x_i
+            pos[1] = y_i
+            pos[2] = z_i
+            pos_i += 1
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)

@@ -326,8 +326,12 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     if "particles" in model:
         img = model["img"]
+        enabled = model["enabled"]
         cam_positions = [vecmat.vec4_mat4_mul(v, model_m) for v in model["positions"]]
-        for cam_pos in cam_positions:
+        for i in range(len(cam_positions)):
+            if not enabled[i]:
+                continue
+            cam_pos = cam_positions[i]
             cur_z = cam_pos[2]
             if cur_z > near_clip:
                 continue
