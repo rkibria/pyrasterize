@@ -87,12 +87,6 @@ def main_function():
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
 
-    def on_mouse_button_down(event):
-        pass
-
-    def on_mouse_button_up(event):
-        pass
-
     frame = 0
     done = False
     textblock_fps = font.render("", True, TEXT_COLOR)
