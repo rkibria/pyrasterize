@@ -22,20 +22,18 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 
 # Set up a camera that is a little back from the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0,0,18], "rot": [0,0,0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0,0,5], "rot": [0,0,0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
-    # Set the transformation matrix of the root element to a combination of x/y/z rotations
-    # This will also rotate all its children, i.e. the cube
-    # scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
-    #     vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)),
-    #     vecmat.mat4_mat4_mul(
-    #         vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)),
-    #         vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5))))
+    scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
+        vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)),
+        vecmat.mat4_mat4_mul(
+            vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)),
+            vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5))))
 
     # Get perspective matrix and render the scene
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
@@ -59,14 +57,16 @@ def main_function():
     # The scene graph's top element is the "root" element which has no geometry of its own
     scene_graph = { "root": rasterizer.get_model_instance(None) }
 
+    scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
+
     img = pygame.image.load("assets/blue_spot.png").convert_alpha()
-    l_divs = 5
-    r_divs = 5
+    l_divs = 15
+    r_divs = 15
     r_phi_step = 2 * math.pi / r_divs
     l_phi_step = math.pi / l_divs
-    radius = 5
+    radius = 1.5
     num_particles = (l_divs - 1) * r_divs
-    particles = meshes.get_particles(img, num_particles)
+    particles = meshes.get_particles(img, num_particles, 1, 1)
     scene_graph["root"]["children"]["particles"] = rasterizer.get_model_instance(particles)
     pos_i = 0
     for l_i in range(l_divs - 1):
@@ -108,12 +108,12 @@ def main_function():
 
         screen.fill(RGB_BLACK)
         draw_scene_graph(screen, frame, scene_graph)
-        screen.blit(textblock_fps, (30, 110))
+        screen.blit(textblock_fps, (30, 10))
 
         pygame.display.flip()
         frame += 1
-        if frame % 30 == 0:
-            textblock_fps = font.render(f"{round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
+        # if frame % 30 == 0:
+        #     textblock_fps = font.render(f"{round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
 
 if __name__ == '__main__':
     main_function()

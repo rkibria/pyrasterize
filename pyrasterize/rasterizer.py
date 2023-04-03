@@ -326,6 +326,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     if "particles" in model:
         img = model["img"]
+        size = model["size"]
         enabled = model["enabled"]
         cam_positions = [vecmat.vec4_mat4_mul(v, model_m) for v in model["positions"]]
         for i in range(len(cam_positions)):
@@ -337,12 +338,15 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 continue
             clip_pos = project_to_clip_space(cam_pos, persp_m)
             if clip_pos is not None:
-                scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - img.get_width() / 2),
-                        int(scr_origin_y - clip_pos[1] * scr_origin_y - img.get_height() / 2))
+                inv_z = 1.0 / abs(cur_z)
+                proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
+                scale_img = pygame.transform.scale(img, proj_size)
+                scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
+                        int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
                 scene_triangles.append((
                     cur_z,
                     scr_pos,
-                    img,
+                    scale_img,
                     DRAW_MODE_PARTICLE))
         return
 
