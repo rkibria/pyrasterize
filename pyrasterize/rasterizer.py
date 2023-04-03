@@ -28,7 +28,7 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     if children is None:
         children = {}
 
-    if model is not None and "billboard" not in model and "normals" not in model:
+    if model is not None and "billboard" not in model and "particles" not in model and "normals" not in model:
         normals = []
         verts = model["verts"]
         sum_normals = [[0, 0, 0] for _ in range(len(verts))]
@@ -324,6 +324,32 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 DRAW_MODE_BILLBOARD))
         return
 
+    if "particles" in model:
+        img = model["img"]
+        size = model["size"]
+        enabled = model["enabled"]
+        cam_positions = [vecmat.vec4_mat4_mul(v, model_m) for v in model["positions"]]
+        for i in range(len(cam_positions)):
+            if not enabled[i]:
+                continue
+            cam_pos = cam_positions[i]
+            cur_z = cam_pos[2]
+            if cur_z > near_clip:
+                continue
+            clip_pos = project_to_clip_space(cam_pos, persp_m)
+            if clip_pos is not None:
+                inv_z = 1.0 / abs(cur_z)
+                proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
+                scale_img = pygame.transform.scale(img, proj_size)
+                scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
+                        int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
+                scene_triangles.append((
+                    cur_z,
+                    scr_pos,
+                    scale_img,
+                    DRAW_MODE_PARTICLE))
+        return
+
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m), model["verts"]))
     view_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["normals"]))
 
@@ -416,6 +442,7 @@ DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
 DRAW_MODE_BILLBOARD = 3
+DRAW_MODE_PARTICLE = 4
 
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0):
     """Render the scene graph
@@ -518,6 +545,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
         elif draw_mode == DRAW_MODE_BILLBOARD:
+            surface.blit(color_data, points)
+        elif draw_mode == DRAW_MODE_PARTICLE:
             surface.blit(color_data, points)
     if px_array is not None:
         del px_array
