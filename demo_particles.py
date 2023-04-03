@@ -1,0 +1,94 @@
+"""
+Demonstrates drawing various geometry with different shading algorithms
+"""
+
+import time
+import glob, os
+
+import pygame
+import pygame.gfxdraw
+import pygame.mouse
+import pygame.cursors
+
+from pyrasterize import vecmat
+from pyrasterize import rasterizer
+from pyrasterize import meshes
+from pyrasterize import model_file_io
+
+# CONSTANTS
+
+RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 800, 600
+RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
+
+RGB_BLACK = (0, 0, 0)
+
+# Set up a camera that is a little back from the origin point, facing forward (i.e. to negative z)
+CAMERA = { "pos": [0,0,3], "rot": [0,0,0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+
+# Light comes from a right, top, and back direction (over the "right shoulder")
+LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+
+def draw_scene_graph(surface, frame, scene_graph):
+    """Draw and animate the scene graph"""
+    # Set the transformation matrix of the root element to a combination of x/y/z rotations
+    # This will also rotate all its children, i.e. the cube
+    scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
+        vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)),
+        vecmat.mat4_mat4_mul(
+            vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)),
+            vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5))))
+    # Get perspective matrix and render the scene
+    persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
+    t = time.perf_counter()
+    rasterizer.render(surface, RASTER_SCR_AREA, scene_graph,
+        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+    elapsed_time = time.perf_counter() - t
+    if frame % 30 == 0:
+        print(f"render time: {round(elapsed_time, 3)} s")
+
+def main_function():
+    """Main"""
+    pygame.init()
+
+    screen = pygame.display.set_mode(RASTER_SCR_SIZE)
+    pygame.display.set_caption("pyrasterize particles demo")
+    clock = pygame.time.Clock()
+
+    pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+
+    # The scene graph's top element is the "root" element which has no geometry of its own
+    scene_graph = { "root": rasterizer.get_model_instance(None) }
+
+    font = pygame.font.Font(None, 30)
+    TEXT_COLOR = (200, 200, 230)
+
+    def on_mouse_button_down(event):
+        pass
+
+    def on_mouse_button_up(event):
+        pass
+
+    frame = 0
+    done = False
+    textblock_fps = font.render("", True, TEXT_COLOR)
+
+    while not done:
+        clock.tick(30)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                done = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done = True
+
+        screen.fill(RGB_BLACK)
+        draw_scene_graph(screen, frame, scene_graph)
+        screen.blit(textblock_fps, (30, 110))
+
+        pygame.display.flip()
+        frame += 1
+        if frame % 30 == 0:
+            textblock_fps = font.render(f"{round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
+
+if __name__ == '__main__':
+    main_function()
