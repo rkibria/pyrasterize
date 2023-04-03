@@ -59,6 +59,10 @@ def main_function():
     # The scene graph's top element is the "root" element which has no geometry of its own
     scene_graph = { "root": rasterizer.get_model_instance(None) }
 
+    img = pygame.image.load("assets/blue_spot.png").convert_alpha()
+    scene_graph["root"]["children"][f"particle"] = rasterizer.get_model_instance(
+        meshes.get_particles(img, 1))
+
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
 

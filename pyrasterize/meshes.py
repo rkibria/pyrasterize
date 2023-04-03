@@ -237,3 +237,12 @@ def get_model_centering_offset(model):
         avg[i] /= len(model["verts"])
         avg[i] *= -1
     return avg
+
+def get_particles(img, num_particles):
+    """Create a particles object"""
+    return {
+        "particles": True,
+        "positions": [[0.0, 0.0, 0.0, 1.0] for _ in range(num_particles)],
+        "enabled": [True] * num_particles,
+        "img": img,
+    }
