@@ -33,6 +33,17 @@ def norm_vec3(v_3):
     mag = mag ** -0.5 # 1.0 / math.sqrt(mag)
     return [v_3[0] * mag, v_3[1] * mag, v_3[2] * mag]
 
+def norm_vec3_from_vec4(v_4):
+    """
+    Take first elements of vec4 as a vec3, normalize,
+    return vec4 with normalized and 4th element from original
+    """
+    mag = v_4[0]*v_4[0] + v_4[1]*v_4[1] + v_4[2]*v_4[2]
+    if mag == 0:
+        return [0, 0, 0]
+    mag = mag ** -0.5 # 1.0 / math.sqrt(mag)
+    return [v_4[0] * mag, v_4[1] * mag, v_4[2] * mag, v_4[3]]
+
 def mat4_mat4_mul(m4_1, m4_2):
     """Return multiplication of 4x4 matrices
     Unrolled form is faster than loops"""

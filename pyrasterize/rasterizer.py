@@ -28,6 +28,10 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     if children is None:
         children = {}
 
+    # It's about 10% faster not to have to create temporary vec4s for matmults
+    if model is not None and "billboard" not in model and "particles" not in model:
+        model["verts"] = list([model_v[0], model_v[1], model_v[2], 1.0] for model_v in model["verts"])
+
     if model is not None and "billboard" not in model and "particles" not in model and "normals" not in model:
         normals = []
         verts = model["verts"]
@@ -57,9 +61,8 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
             sum_normals[i_2][1] += n_y
             sum_normals[i_2][2] += n_z
 
-        model["normals"] = normals
-        vert_normals = list(map(vecmat.norm_vec3, sum_normals))
-        model["vert_normals"] = vert_normals
+        model["normals"] = [[*v, 0.0] for v in normals]
+        model["vert_normals"] = list(map(lambda v: [*vecmat.norm_vec3(v), 1.0], sum_normals))
 
     return {
         "enabled" : True,
@@ -304,6 +307,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     if "billboard" in model:
         model_v = model["translate"]
+        # TODO make vec4
         cam_pos = vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
         cur_z = cam_pos[2]
         if cur_z > near_clip:
@@ -350,8 +354,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     DRAW_MODE_PARTICLE))
         return
 
-    view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m), model["verts"]))
-    view_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["normals"]))
+    view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
+    view_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["normals"]))
 
     draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
     no_culling = ("noCulling" in instance) and instance["noCulling"]

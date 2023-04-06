@@ -238,8 +238,8 @@ def main_function(): # PYGBAG: decorate with 'async'
         textblock_fps = font.render(f"pos: {pos} - rot(deg): {rot} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
     update_hud()
 
-    pygame.mouse.set_visible(False)
-    pygame.event.set_grab(True)
+    # pygame.mouse.set_visible(False)
+    # pygame.event.set_grab(True)
 
     def on_mouse_button_down(event):
         """Handle mouse button down"""
@@ -385,3 +385,17 @@ def main_function(): # PYGBAG: decorate with 'async'
 if __name__ == '__main__':
     # asyncio.run(main_function()) # PYGBAG
     main_function()
+
+    # model_m = vecmat.get_rot_x_m4(0)
+    # inst = rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 10, 10))
+    # model = inst["model"]
+
+    # t = time.perf_counter()
+    # for i in range(1000000):
+    #     #1
+    #     # view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m), model["verts"]))
+    #     #2
+    #     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
+
+    # elapsed_time = time.perf_counter() - t
+    # print(f"render time: {round(elapsed_time, 3)} s")
