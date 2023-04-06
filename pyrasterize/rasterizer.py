@@ -62,7 +62,7 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
             sum_normals[i_2][2] += n_z
 
         model["normals"] = [[*v, 0.0] for v in normals]
-        model["vert_normals"] = list(map(lambda v: [*vecmat.norm_vec3(v), 1.0], sum_normals))
+        model["vert_normals"] = list(map(lambda v: [*vecmat.norm_vec3(v), 0.0], sum_normals))
 
     return {
         "enabled" : True,
@@ -375,7 +375,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     vert_normals = None
     if draw_gouraud_shaded:
-        vert_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["vert_normals"]))
+        vert_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["vert_normals"]))
 
     # This function may add temporary triangles due to clipping
     # We reset the model's lists to their original size after processing
