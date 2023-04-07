@@ -253,12 +253,14 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: walls
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
 
+    # Projectile
     projectile_inst = rasterizer.get_model_instance(
         rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
     scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
     projectile_inst["enabled"] = False
     LIGHTING["pointlight_enabled"] = False
 
+    # Projectile explosion
     explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
     explo_imgs = []
     for y in range(4):
@@ -269,6 +271,17 @@ def main_function(): # PYGBAG: decorate with 'async'
     explo_inst = rasterizer.get_model_instance(explo_billboard)
     scene_graphs[1]["root"]["children"]["projectile_explo"] = explo_inst
     explo_inst["enabled"] = False
+
+    # Skeleton
+    skeleton_ss = SpriteSheet("assets/zombie_n_skeleton2.png")
+    skeleton_imgs = []
+    for x in range(3):
+        skeleton_imgs.append(skeleton_ss.get_image(3*32 + x * 32, 0 * 64, 32, 64))
+    skeleton_billboard = rasterizer.get_animated_billboard(12, 2, -12-1, 20, 20, skeleton_imgs)
+    skeleton_billboard["frame_advance"] = 0.3
+    skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
+    scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
+    # skeleton_inst["enabled"] = False
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
