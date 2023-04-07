@@ -362,6 +362,10 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
+    pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
+    if pointlight_enabled:
+        pointlight_falloff = lighting["pointlight_falloff"]
+        pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
@@ -400,11 +404,6 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                         + proj_light_dir[2] * normal[2])
                     intensity = min(1, max(0, ambient + diffuse * dot_prd))
                     vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
-
-    pointlight_enabled = lighting["pointlight_enabled"]
-    if pointlight_enabled:
-        pointlight_falloff = lighting["pointlight_falloff"]
-        pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
 
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
