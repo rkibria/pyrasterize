@@ -186,6 +186,19 @@ def update_viewable_area(labyrinth, cell_size, view_max, root_instances):
     for row,col in enables:
         enable_cell(row, col, True)
 
+# https://stackoverflow.com/a/48055738
+class SpriteSheet(object):
+    def __init__(self, file_name):
+        # You have to call `convert_alpha`, so that the background of
+        # the surface is transparent.
+        self.sprite_sheet = pygame.image.load(file_name).convert_alpha()
+
+    def get_image(self, x, y, width, height):
+        # Use a transparent surface as the base image (pass pygame.SRCALPHA).
+        image = pygame.Surface([width, height], pygame.SRCALPHA)
+        image.blit(self.sprite_sheet, (0,0), (x, y, width, height))
+        return image
+
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     pygame.init()
@@ -240,10 +253,19 @@ def main_function(): # PYGBAG: decorate with 'async'
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
 
     projectile_inst = rasterizer.get_model_instance(
-        meshes.get_billboard(12, 2, -12, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
+        meshes.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
     scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
     projectile_inst["enabled"] = False
     LIGHTING["pointlight_enabled"] = False
+
+    explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
+    img = explo_ss.get_image(0, 0, 32, 32)
+
+    projectile_explo_inst = rasterizer.get_model_instance(
+        meshes.get_billboard(12, 2, -12, 4, 4, img))
+    scene_graphs[1]["root"]["children"]["projectile_explo"] = projectile_explo_inst
+    # projectile_inst["enabled"] = False
+    # LIGHTING["pointlight_enabled"] = False
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
