@@ -315,6 +315,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     if not model:
         return
 
+    fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
+
     if "billboard" in model:
         cam_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
         cur_z = cam_pos[2]
@@ -328,7 +330,19 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             int_cur_frame = int(model["cur_frame"])
             if int_cur_frame >= num_frames:
                 return
-            img = model_imgs[int_cur_frame]
+
+            img = model_imgs[int_cur_frame].copy()
+            
+            fade_factor = 1
+            if fade_distance > 0:
+                z = abs(cur_z)
+                fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
+
+            dark = pygame.Surface(img.get_size()).convert_alpha()
+            darken_value = fade_factor * 255
+            dark.fill((darken_value, darken_value, darken_value, 255))
+            img.blit(dark, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+
             inv_z = 1.0 / abs(cur_z)
             proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
             scale_img = pygame.transform.scale(img, proj_size)
@@ -381,7 +395,6 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_colors = model["colors"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
-    fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
     pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
     if pointlight_enabled:

@@ -36,6 +36,8 @@ LIGHTING = {"lightDir": (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
 # Original mesh width for scaling
 MODELS_ORIG_WIDTH = 2
 
+FADE_DISTANCE = 15
+
 def get_ceiling_height(cell_size):
     return 1.25 * cell_size / MODELS_ORIG_WIDTH
 
@@ -64,12 +66,12 @@ def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
                 root_instance["children"][cell_name]["children"]["floor"] = rasterizer.get_model_instance(floor_model,
                     preproc_m4=preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
-                root_instance["children"][cell_name]["children"]["floor"]["fade_distance"] = 15.0
+                root_instance["children"][cell_name]["children"]["floor"]["fade_distance"] = FADE_DISTANCE
 
                 root_instance["children"][cell_name]["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
                     preproc_m4=ceil_preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
-                root_instance["children"][cell_name]["children"]["ceiling"]["fade_distance"] = 15.0
+                root_instance["children"][cell_name]["children"]["ceiling"]["fade_distance"] = FADE_DISTANCE
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
@@ -79,12 +81,12 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
 
-    wall_mesh = rasterizer.get_model_instance(wall_model,
+    wall_inst = rasterizer.get_model_instance(wall_model,
         preproc_m4=preproc_m4)
     # Wall meshes are culled if not facing the camera.
-    wall_mesh["instance_normal"] = [0, 0, 1]
-    wall_mesh["fade_distance"] = 15.0
-    wall_mesh["use_minimum_z_order"] = True
+    wall_inst["instance_normal"] = [0, 0, 1]
+    wall_inst["fade_distance"] = FADE_DISTANCE
+    wall_inst["use_minimum_z_order"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -117,22 +119,22 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                 cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, 0, -cell_size),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(180))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
             if wall_s:
                 cell_inst["children"]["wall_s"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, 0, 0),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(0))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
             if wall_w:
                 cell_inst["children"]["wall_w"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -cell_size / 2),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
             if wall_e:
                 cell_inst["children"]["wall_e"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size, 0, -cell_size / 2),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
 
 def update_viewable_area(labyrinth, cell_size, view_max, root_instances):
     """
@@ -281,6 +283,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     skeleton_billboard["frame_advance"] = 0.3
     skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
     scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
+    skeleton_inst["fade_distance"] = FADE_DISTANCE
     # skeleton_inst["enabled"] = False
 
     font = pygame.font.Font(None, 30)
