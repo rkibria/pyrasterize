@@ -15,9 +15,6 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import model_file_io
-from pyrasterize import drawing
-
-from labyrinth_gen import make_labyrinth, get_blocky_labyrinth
 
 # CONSTANTS
 
@@ -209,11 +206,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
-    # Generate the labyrinth
-    # labyrinth = get_blocky_labyrinth(make_labyrinth(8, 8, 20))
-    # import pprint
-    # pp = pprint.PrettyPrinter(indent=2)
-    # pp.pprint(labyrinth)
     labyrinth = {
         'cells': [
         '#################',
@@ -479,9 +471,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         for i in range(3):
             sphere_pos = [enemy_pos[0], sphere_radius + i * 2 * sphere_radius, enemy_pos[2]]
             dist_sq_v = vecmat.mag_sq_vec3(vecmat.sub_vec3(sphere_pos, projectile_pos))
-            print(i, projectile_pos, " -> ", sphere_pos, " d = ", dist_sq_v)
             if dist_sq_v <= 1:
-                print("hit")
                 return True
         return False
 
