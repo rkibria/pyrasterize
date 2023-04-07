@@ -30,7 +30,8 @@ RGB_BLACK = (0, 0, 0)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+LIGHTING = {"lightDir": (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
+            "pointlight_enabled": True, "pointlight": [12, 2, -12, 1], "pointlight_falloff": 5}
 
 
 def create_labyrinth_floor(root_instance, labyrinth, cell_size):
@@ -238,8 +239,8 @@ def main_function(): # PYGBAG: decorate with 'async'
         textblock_fps = font.render(f"pos: {pos} - rot(deg): {rot} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
     update_hud()
 
-    # pygame.mouse.set_visible(False)
-    # pygame.event.set_grab(True)
+    pygame.mouse.set_visible(False)
+    pygame.event.set_grab(True)
 
     def on_mouse_button_down(event):
         """Handle mouse button down"""

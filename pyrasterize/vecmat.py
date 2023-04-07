@@ -236,3 +236,10 @@ def get_vec2_triangle_centroid(v_a, v_b, v_c):
     cx = (v_a[0] + v_b[0] + v_c[0]) / 3
     cy = (v_a[1] + v_b[1] + v_c[1]) / 3
     return (cx, cy)
+
+def get_vec3_triangle_centroid(v_a, v_b, v_c):
+    """Get centroid point of a three-dimensional triangle"""
+    cx = (v_a[0] + v_b[0] + v_c[0]) / 3
+    cy = (v_a[1] + v_b[1] + v_c[1]) / 3
+    cz = (v_a[2] + v_b[2] + v_c[2]) / 3
+    return [cx, cy, cz]

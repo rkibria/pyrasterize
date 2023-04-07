@@ -299,7 +299,7 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
 
 
 def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
-                                  lighting, proj_light_dir, instance, model_m):
+                                  lighting, proj_light_dir, instance, model_m, camera_m):
     """Get (lighted) triangles from this instance and insert them into scene_triangles"""
     model = instance["model"]
     if not model:
@@ -403,6 +403,11 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     intensity = min(1, max(0, ambient + diffuse * dot_prd))
                     vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
 
+    pointlight_enabled = lighting["pointlight_enabled"]
+    if pointlight_enabled:
+        pointlight_falloff = lighting["pointlight_falloff"]
+        pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
+
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
 
@@ -422,11 +427,20 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 + proj_light_dir[1] * normal[1]
                 + proj_light_dir[2] * normal[2])
             intensity = min(1, max(0, ambient + diffuse * dot_prd))
-            color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
+
+            fade_factor = 1
             if fade_distance > 0:
                 z = abs(z_order)
                 fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-                color_data = [color_data[0] * fade_factor, color_data[1] * fade_factor, color_data[2] * fade_factor]
+                intensity *= fade_factor
+
+            if pointlight_enabled:
+                centroid = vecmat.get_vec3_triangle_centroid(view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]])
+                dist_to_light = vecmat.mag_vec3(vecmat.sub_vec3(centroid, pointlight_cam_pos))
+                intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+
+            intensity = min(1, intensity)
+            color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
         else: # draw_mode == DRAW_MODE_GOURAUD
             color_data = [vert_colors[vert_idx] for vert_idx in tri]
 
@@ -479,7 +493,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
                 _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
-                                              instance, proj_m)
+                                              instance, proj_m, camera_m)
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)
