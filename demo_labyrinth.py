@@ -21,7 +21,7 @@ from labyrinth_gen import make_labyrinth, get_blocky_labyrinth
 
 # CONSTANTS
 
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 800, 600
+RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
 RGB_BLACK = (0, 0, 0)
@@ -189,7 +189,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     pygame.init()
 
-    screen = pygame.display.set_mode(RASTER_SCR_SIZE)
+    screen = pygame.display.set_mode(RASTER_SCR_SIZE, flags=pygame.SCALED)
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
