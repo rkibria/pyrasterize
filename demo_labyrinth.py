@@ -133,7 +133,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
                     {"wall": wall_mesh})
 
-def update_viewable_area(labyrinth, cell_size, root_instances):
+def update_viewable_area(labyrinth, cell_size, view_max, root_instances):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
@@ -157,7 +157,6 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
 
-    view_max = 2 * cell_size
     step = cell_size / 4.0
     enables = set()
     for delta_angle in range(-60, 60, 2):
@@ -195,10 +194,31 @@ def main_function(): # PYGBAG: decorate with 'async'
     clock = pygame.time.Clock()
 
     # Generate the labyrinth
-    labyrinth = get_blocky_labyrinth(make_labyrinth(8, 8, 20))
-    import pprint
-    pp = pprint.PrettyPrinter(indent=2)
-    pp.pprint(labyrinth)
+    # labyrinth = get_blocky_labyrinth(make_labyrinth(8, 8, 20))
+    # import pprint
+    # pp = pprint.PrettyPrinter(indent=2)
+    # pp.pprint(labyrinth)
+    labyrinth = {
+        'cells': [
+        '#################',
+        '#.........#.....#',
+        '#..########..####',
+        '#.#.......#...#.#',
+        '#.#....##.###.#.#',
+        '#.#.....#.....#.#',
+        '#.#####.#####.#.#',
+        '#.....#.#.......#',
+        '#.....#.#.......#',
+        '#.....#.....#...#',
+        '#.....#####.#...#',
+        '#.#.#...#.#.#.#.#',
+        '###.###.#.#.#.#.#',
+        '#...#.....#...#.#',
+        '#..############.#',
+        '#...............#',
+        '#################'],
+        'size': (17, 17)}
+
     lab_rows,lab_cols = labyrinth["size"]
 
     # Use separate scene graphs for ground and other objects to avoid problems with overlapping
@@ -221,9 +241,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: walls
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
 
-    scene_graphs[1]["root"]["children"]["projectile"] = rasterizer.get_model_instance(
-        meshes.get_billboard(12, 2, -12, 1, 1, pygame.image.load("assets/plasmball.png").convert_alpha()))
-
+    projectile_inst = rasterizer.get_model_instance(
+        meshes.get_billboard(12, 2, -12, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
+    scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -346,6 +366,10 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
     pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
 
+    view_max = 2 * cell_size
+    near_clip = -0.5
+    far_clip = -view_max
+
     while not done:
         clock.tick(30)
         for event in pygame.event.get():
@@ -369,10 +393,11 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         t = time.perf_counter()
-        update_viewable_area(labyrinth, cell_size, [scene_graph["root"] for scene_graph in scene_graphs])
+        update_viewable_area(labyrinth, cell_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-                vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+                vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING,
+                near_clip, far_clip)
         elapsed_time = time.perf_counter() - t
         if frame % 30 == 0:
             print(f"render time: {round(elapsed_time, 3)} s")

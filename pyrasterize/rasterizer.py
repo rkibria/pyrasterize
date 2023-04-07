@@ -306,11 +306,9 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         return
 
     if "billboard" in model:
-        model_v = model["translate"]
-        # TODO make vec4
-        cam_pos = vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
+        cam_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
         cur_z = cam_pos[2]
-        if cur_z > near_clip:
+        if cur_z > near_clip or cur_z < far_clip:
             return
         clip_pos = project_to_clip_space(cam_pos, persp_m)
         if clip_pos is not None:

@@ -26,7 +26,7 @@ def get_billboard(dx, dy, dz, sx, sy, img):
     """Create a billboard object"""
     return {
         "billboard": True,
-        "translate": [dx, dy, dz],
+        "translate": [dx, dy, dz, 1.0],
         "size": [sx, sy],
         "img": img,
     }
