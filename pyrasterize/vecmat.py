@@ -216,10 +216,17 @@ def mouse_pos_to_ray(pos, scr_size):
     ndc_y = 1 - (2 * pos[1]) / scr_size[1]
     return norm_vec3([ndc_x, ndc_y, -1])
 
+def get_rot_xyz_m4(x, y, z):
+    """Return rotation order xyz matrix"""
+    m = get_rot_z_m4(z)
+    m = mat4_mat4_mul(get_rot_y_m4(y), m)
+    return mat4_mat4_mul(get_rot_x_m4(x), m)
+
 def get_simple_camera_m(cam):
     """Return matrix based on camera dict(rot = [x,y,z],pos = [x,y,z])"""
     cam_pos = cam["pos"]
     cam_rot = cam["rot"]
+    # Operation order: rot_x, rot_y, rot_z, translate
     camera_m = get_transl_m4(-cam_pos[0], -cam_pos[1], -cam_pos[2])
     camera_m = mat4_mat4_mul(get_rot_z_m4(-cam_rot[2]), camera_m)
     camera_m = mat4_mat4_mul(get_rot_y_m4(-cam_rot[1]), camera_m)

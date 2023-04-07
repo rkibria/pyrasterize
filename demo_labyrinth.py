@@ -244,6 +244,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     projectile_inst = rasterizer.get_model_instance(
         meshes.get_billboard(12, 2, -12, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
     scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
+    projectile_inst["enabled"] = False
+    LIGHTING["pointlight_enabled"] = False
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -268,6 +270,16 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     def on_mouse_button_down(event):
         """Handle mouse button down"""
+        if not projectile_inst["enabled"]:
+            projectile_inst["enabled"] = True
+            LIGHTING["pointlight_enabled"] = True
+            projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
+            projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
+            projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
+            dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0],
+                vecmat.get_rot_xyz_m4(*CAMERA["rot"]))
+            f = 0.1
+            projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
 
     def on_mouse_movement(x, y):
         """Handle mouse movement"""
@@ -306,7 +318,7 @@ def main_function(): # PYGBAG: decorate with 'async'
             index, _ = key_moves[key]
             move_dir[index] = 0
 
-    def do_movement():
+    def do_player_movement():
         """"""
         global CAMERA
         nonlocal move_dir
@@ -357,6 +369,13 @@ def main_function(): # PYGBAG: decorate with 'async'
         rot_scale = 0.05
         CAMERA["rot"][0] += move_dir[3] * rot_scale
         CAMERA["rot"][1] += move_dir[4] * rot_scale
+        CAMERA["rot"][0] = min(math.pi/2, max(-math.pi/2, CAMERA["rot"][0]))
+
+    def do_projectile_movement():
+        if projectile_inst["enabled"]:
+            projectile_inst["model"]["translate"][0] += projectile_inst["dir"][0]
+            projectile_inst["model"]["translate"][1] += projectile_inst["dir"][1]
+            projectile_inst["model"]["translate"][2] += projectile_inst["dir"][2]
 
     cross_size = 20
     cross_width = 2
@@ -369,6 +388,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     view_max = 2 * cell_size
     near_clip = -0.5
     far_clip = -view_max
+    first_mouse_move = True
 
     while not done:
         clock.tick(30)
@@ -385,9 +405,13 @@ def main_function(): # PYGBAG: decorate with 'async'
                 on_key_up(event.key)
             elif event.type == pygame.MOUSEMOTION:
                 mouse_position = pygame.mouse.get_rel()
-                on_mouse_movement(mouse_position[0], mouse_position[1])
+                if first_mouse_move:
+                    first_mouse_move = False
+                else:
+                    on_mouse_movement(mouse_position[0], mouse_position[1])
 
-        do_movement()
+        do_player_movement()
+        do_projectile_movement()
 
         screen.fill(RGB_BLACK)
 
