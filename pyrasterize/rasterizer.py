@@ -12,6 +12,16 @@ DEBUG_FONT = None
 from . import vecmat
 from . import drawing
 
+DRAW_MODE_WIREFRAME = 0
+DRAW_MODE_FLAT = 1
+DRAW_MODE_GOURAUD = 2
+DRAW_MODE_BILLBOARD = 3
+DRAW_MODE_PARTICLE = 4
+
+BILLBOARD_PLAY_ALWAYS = 0
+BILLBOARD_PLAY_ONCE = 1
+
+
 def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary
@@ -314,13 +324,21 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         if clip_pos is not None:
             size = model["size"]
             model_imgs = model["img"]
+            num_frames = len(model_imgs)
+            if model["cur_frame"] >= num_frames:
+                return
             img = model_imgs[model["cur_frame"]]
             inv_z = 1.0 / abs(cur_z)
             proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
             scale_img = pygame.transform.scale(img, proj_size)
             scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
                        int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
-            model["cur_frame"] = (model["cur_frame"] + 1) % len(model_imgs)
+            if num_frames > 1:
+                model["cur_frame"] += 1
+                if model["cur_frame"] == num_frames:
+                    if model["play_mode"] == BILLBOARD_PLAY_ALWAYS:
+                        model["cur_frame"] = 0
+
             scene_triangles.append((
                 cur_z,
                 scr_pos,
@@ -454,13 +472,6 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         del model_tris[num_orig_model_tris:]
         del model_colors[num_orig_model_tris:]
 
-
-DRAW_MODE_WIREFRAME = 0
-DRAW_MODE_FLAT = 1
-DRAW_MODE_GOURAUD = 2
-DRAW_MODE_BILLBOARD = 3
-DRAW_MODE_PARTICLE = 4
-
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
@@ -576,6 +587,7 @@ def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
         "size": [sx, sy],
         "img": img_list,
         "cur_frame": 0,
+        "play_mode": BILLBOARD_PLAY_ALWAYS,
     }
 
 def get_billboard(dx, dy, dz, sx, sy, img):

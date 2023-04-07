@@ -263,12 +263,11 @@ def main_function(): # PYGBAG: decorate with 'async'
     for y in range(4):
         for x in range(4):
             explo_imgs.append(explo_ss.get_image(x * 32, y * 32, 32, 32))
-
-    projectile_explo_inst = rasterizer.get_model_instance(
-        rasterizer.get_animated_billboard(12, 2, -12, 8, 8, explo_imgs))
-    scene_graphs[1]["root"]["children"]["projectile_explo"] = projectile_explo_inst
-    # projectile_inst["enabled"] = False
-    # LIGHTING["pointlight_enabled"] = False
+    explo_billboard = rasterizer.get_animated_billboard(12, 2, -12-1, 16, 16, explo_imgs)
+    explo_billboard["play_mode"] = rasterizer.BILLBOARD_PLAY_ONCE
+    explo_inst = rasterizer.get_model_instance(explo_billboard)
+    scene_graphs[1]["root"]["children"]["projectile_explo"] = explo_inst
+    explo_inst["enabled"] = False
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -430,16 +429,27 @@ def main_function(): # PYGBAG: decorate with 'async'
     def do_projectile_movement():
         if projectile_inst["enabled"]:
             mdl_tr = projectile_inst["model"]["translate"]
-            mdl_tr[0] += projectile_inst["dir"][0]
-            mdl_tr[1] += projectile_inst["dir"][1]
-            mdl_tr[2] += projectile_inst["dir"][2]
-            pl_tr = LIGHTING["pointlight"]
-            pl_tr[0] = mdl_tr[0]
-            pl_tr[1] = mdl_tr[1]
-            pl_tr[2] = mdl_tr[2]
-            if not is_position_reachable(*mdl_tr[0:3]):
+            mdl_tr_copy = mdl_tr.copy()
+            mdl_tr_copy[0] += projectile_inst["dir"][0]
+            mdl_tr_copy[1] += projectile_inst["dir"][1]
+            mdl_tr_copy[2] += projectile_inst["dir"][2]
+            if not is_position_reachable(*mdl_tr_copy[0:3]):
                 projectile_inst["enabled"] = False
                 LIGHTING["pointlight_enabled"] = False
+                explo_inst["enabled"] = True
+                explo_billboard["cur_frame"] = 0
+                explo_tr = explo_billboard["translate"]
+                explo_tr[0] = mdl_tr[0]
+                explo_tr[1] = mdl_tr[1]
+                explo_tr[2] = mdl_tr[2]
+            else:
+                mdl_tr[0] = mdl_tr_copy[0]
+                mdl_tr[1] = mdl_tr_copy[1]
+                mdl_tr[2] = mdl_tr_copy[2]
+                pl_tr = LIGHTING["pointlight"]
+                pl_tr[0] = mdl_tr_copy[0]
+                pl_tr[1] = mdl_tr_copy[1]
+                pl_tr[2] = mdl_tr_copy[2]
 
     cross_size = 20
     cross_width = 2
