@@ -21,6 +21,10 @@ def dot_product_vec3(a, b):
     """Return dot product of vec3"""
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
+def mag_sq_vec3(v_3):
+    """Return squared magnitude of vec3"""
+    return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2])
+
 def mag_vec3(v_3):
     """Return magnitude of vec3"""
     return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]) ** 0.5

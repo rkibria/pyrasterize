@@ -255,20 +255,20 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: walls
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
 
-    # Projectile
-    projectile_inst = rasterizer.get_model_instance(
-        rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
+    # Projectile - only one active at any time
+    projectile_billboard = rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha())
+    projectile_inst = rasterizer.get_model_instance(projectile_billboard)
     scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
     projectile_inst["enabled"] = False
     LIGHTING["pointlight_enabled"] = False
 
-    # Projectile explosion
+    # Projectile explosion - only one active at any time
     explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
     explo_imgs = []
     for y in range(4):
         for x in range(4):
             explo_imgs.append(explo_ss.get_image(x * 32, y * 32, 32, 32))
-    explo_billboard = rasterizer.get_animated_billboard(12, 2, -12-1, 16, 16, explo_imgs)
+    explo_billboard = rasterizer.get_animated_billboard(0, 0, 0, 16, 16, explo_imgs)
     explo_billboard["play_mode"] = rasterizer.BILLBOARD_PLAY_ONCE
     explo_inst = rasterizer.get_model_instance(explo_billboard)
     scene_graphs[1]["root"]["children"]["projectile_explo"] = explo_inst
@@ -284,7 +284,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
     scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
     skeleton_inst["fade_distance"] = FADE_DISTANCE
-    # skeleton_inst["enabled"] = False
+
+    # List of all enemies
+    enemies = [skeleton_inst]
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -471,6 +473,18 @@ def main_function(): # PYGBAG: decorate with 'async'
         CAMERA["rot"][1] += move_dir[4] * rot_scale
         CAMERA["rot"][0] = min(math.pi/2, max(-math.pi/2, CAMERA["rot"][0]))
 
+    def projectile_collides_with_enemy(projectile_pos, enemy_pos):
+        # For simplicity enemy collision volume is a stack of spheres
+        sphere_radius = 0.5
+        for i in range(3):
+            sphere_pos = [enemy_pos[0], sphere_radius + i * 2 * sphere_radius, enemy_pos[2]]
+            dist_sq_v = vecmat.mag_sq_vec3(vecmat.sub_vec3(sphere_pos, projectile_pos))
+            print(i, projectile_pos, " -> ", sphere_pos, " d = ", dist_sq_v)
+            if dist_sq_v <= 1:
+                print("hit")
+                return True
+        return False
+
     def do_projectile_movement():
         if projectile_inst["enabled"]:
             mdl_tr = projectile_inst["model"]["translate"]
@@ -479,15 +493,18 @@ def main_function(): # PYGBAG: decorate with 'async'
             mdl_tr_copy[1] += projectile_inst["dir"][1]
             mdl_tr_copy[2] += projectile_inst["dir"][2]
             if not is_position_reachable(*mdl_tr_copy[0:3]):
+                # Projectile explodes and is removed
                 projectile_inst["enabled"] = False
                 LIGHTING["pointlight_enabled"] = False
                 explo_inst["enabled"] = True
                 explo_billboard["cur_frame"] = 0
+                explo_billboard["size_scale"] = 1
                 explo_tr = explo_billboard["translate"]
                 explo_tr[0] = mdl_tr[0]
                 explo_tr[1] = mdl_tr[1]
                 explo_tr[2] = mdl_tr[2]
             else:
+                # Projectile moves
                 mdl_tr[0] = mdl_tr_copy[0]
                 mdl_tr[1] = mdl_tr_copy[1]
                 mdl_tr[2] = mdl_tr_copy[2]
@@ -495,6 +512,25 @@ def main_function(): # PYGBAG: decorate with 'async'
                 pl_tr[0] = mdl_tr_copy[0]
                 pl_tr[1] = mdl_tr_copy[1]
                 pl_tr[2] = mdl_tr_copy[2]
+                # Collision check
+                nonlocal enemies
+                nonlocal projectile_billboard
+                projectile_pos = projectile_billboard["translate"]
+                for enemy_inst in enemies:
+                    if enemy_inst["enabled"]:
+                        enemy_billboard = enemy_inst["model"]
+                        enemy_pos = enemy_billboard["translate"]
+                        if projectile_collides_with_enemy(projectile_pos, enemy_pos):
+                            projectile_inst["enabled"] = False
+                            enemy_inst["enabled"] = False
+                            LIGHTING["pointlight_enabled"] = False
+                            explo_inst["enabled"] = True
+                            explo_billboard["cur_frame"] = 0
+                            explo_billboard["size_scale"] = 3
+                            explo_tr = explo_billboard["translate"]
+                            explo_tr[0] = projectile_pos[0]
+                            explo_tr[1] = projectile_pos[1]
+                            explo_tr[2] = projectile_pos[2]
 
     cross_size = 20
     cross_width = 2

@@ -324,7 +324,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             return
         clip_pos = project_to_clip_space(cam_pos, persp_m)
         if clip_pos is not None:
-            size = model["size"]
+            scale = model["size_scale"]
+            size = (model["size"][0] * scale, model["size"][1] * scale)
             model_imgs = model["img"]
             num_frames = len(model_imgs)
             int_cur_frame = int(model["cur_frame"])
@@ -600,6 +601,7 @@ def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
         "billboard": True,
         "translate": [dx, dy, dz, 1.0],
         "size": [sx, sy],
+        "size_scale": 1.0,
         "img": img_list,
         "cur_frame": 0.0,
         "play_mode": BILLBOARD_PLAY_ALWAYS,
