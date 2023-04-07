@@ -313,12 +313,14 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         clip_pos = project_to_clip_space(cam_pos, persp_m)
         if clip_pos is not None:
             size = model["size"]
-            img = model["img"]
+            model_imgs = model["img"]
+            img = model_imgs[model["cur_frame"]]
             inv_z = 1.0 / abs(cur_z)
             proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
             scale_img = pygame.transform.scale(img, proj_size)
             scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
                        int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
+            model["cur_frame"] = (model["cur_frame"] + 1) % len(model_imgs)
             scene_triangles.append((
                 cur_z,
                 scr_pos,
