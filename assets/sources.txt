@@ -9,8 +9,11 @@ wall_1_145tris.obj - modified to have less triangles than original
 https://opengameart.org/content/lowpoly-modular-dungeon-pack by quaternius - CC0 license
 floor_62tris.obj - modified to have less triangles than original
 
-LAB
+https://opengameart.org/content/lab-sprites by mutantleg - CC0 license
 plasmball.png
+
+https://opengameart.org/content/32x32-explosion by diamonddmgirl - CC0 license
+explosion_pixelfied.png
 
 --
 

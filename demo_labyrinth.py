@@ -323,15 +323,12 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     def is_position_reachable(x, y, z):
         """Is this position in open air (i.e. not inside a wall)"""
-        print(x,y,z)
         if y < 0 or y > get_ceiling_height(cell_size):
             return False
 
         row,col = get_cell_pos(x, z)
-        print(row, col)
 
         if row < 0 or row >= lab_rows or col < 0 or col >= lab_cols:
-            print("outside area")
             return False
 
         if labyrinth["cells"][row][col] == "#":
