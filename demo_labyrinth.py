@@ -270,16 +270,16 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     def on_mouse_button_down(event):
         """Handle mouse button down"""
-        if not projectile_inst["enabled"]:
-            projectile_inst["enabled"] = True
-            LIGHTING["pointlight_enabled"] = True
-            projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
-            projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
-            projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
-            dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0],
-                vecmat.get_rot_xyz_m4(*CAMERA["rot"]))
-            f = 0.1
-            projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
+        # if not projectile_inst["enabled"]:
+        projectile_inst["enabled"] = True
+        LIGHTING["pointlight_enabled"] = True
+        projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
+        projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
+        projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
+        dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0], vecmat.get_rot_x_m4(CAMERA["rot"][0]))
+        dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
+        f = 1
+        projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
 
     def on_mouse_movement(x, y):
         """Handle mouse movement"""
