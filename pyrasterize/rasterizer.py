@@ -567,3 +567,28 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             surface.blit(color_data, points)
     if px_array is not None:
         del px_array
+
+def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
+    """Create a billboard object with several animation frames"""
+    return {
+        "billboard": True,
+        "translate": [dx, dy, dz, 1.0],
+        "size": [sx, sy],
+        "img": img_list,
+        "cur_frame": 0,
+    }
+
+def get_billboard(dx, dy, dz, sx, sy, img):
+    """Create a billboard object with only one animation frame"""
+    return get_animated_billboard(dx, dy, dz, sx, sy, [img])
+
+def get_particles(img, num_particles, sx, sy):
+    """Create a particles object"""
+    return {
+        "particles": True,
+        "positions": [[0.0, 0.0, 0.0, 1.0] for _ in range(num_particles)],
+        "enabled": [True] * num_particles,
+        "img": img,
+        "size": [sx, sy],
+        "user_data": []
+    }

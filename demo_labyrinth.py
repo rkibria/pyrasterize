@@ -253,7 +253,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
 
     projectile_inst = rasterizer.get_model_instance(
-        meshes.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
+        rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha()))
     scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
     projectile_inst["enabled"] = False
     LIGHTING["pointlight_enabled"] = False
@@ -265,7 +265,7 @@ def main_function(): # PYGBAG: decorate with 'async'
             explo_imgs.append(explo_ss.get_image(x * 32, y * 32, 32, 32))
 
     projectile_explo_inst = rasterizer.get_model_instance(
-        meshes.get_animated_billboard(12, 2, -12, 8, 8, explo_imgs))
+        rasterizer.get_animated_billboard(12, 2, -12, 8, 8, explo_imgs))
     scene_graphs[1]["root"]["children"]["projectile_explo"] = projectile_explo_inst
     # projectile_inst["enabled"] = False
     # LIGHTING["pointlight_enabled"] = False
