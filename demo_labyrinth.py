@@ -242,6 +242,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     ]
 
     cell_size = 8
+    player_radius = 1
 
     CAMERA["pos"][0] = cell_size * 1.5
     CAMERA["pos"][1] = 2
@@ -341,9 +342,18 @@ def main_function(): # PYGBAG: decorate with 'async'
             move_dir[index] = 0
 
     def get_cell_pos(x, z):
+        """
+        Lower left corner of the map is at 0,0
+        (the cell in the last row and first column)
+        """
         row = lab_rows - 1 + int(z / cell_size)
         col = int(x / cell_size)
         return row, col
+
+    def cell_to_world_pos(row, col):
+        x = col * cell_size
+        z = (lab_rows - 1 - row) * -cell_size
+        return x,z
 
     def is_position_reachable(x, y, z):
         """Is this position in open air (i.e. not inside a wall)"""
@@ -360,13 +370,49 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         return True
 
-    def is_position_walkable(x, y, z):
+    def is_position_walkable(x, y, z, char_radius):
         if not is_position_reachable(x, y, z):
             return False
 
-        # We are in a free cell. Don't let the player get closer than their radius to any walls
-        # row,col = get_cell_pos(x, z)
-        # player_radius = cell_size / 4
+        # We are in a free cell, don't let char get closer than their radius to walls
+        row,col = get_cell_pos(x, z)
+        cell_x,cell_z = cell_to_world_pos(row, col)
+
+        # Check if we are too close to any surrounding walls
+        cells = labyrinth["cells"]
+        # NW
+        if (cells[row - 1][col - 1] == "#"):
+            if x < cell_x + char_radius and z < cell_z - cell_size + char_radius:
+                return False
+        # N
+        if (cells[row - 1][col] == "#"):
+            if z < cell_z - cell_size + char_radius:
+                return False
+        # NE
+        if (cells[row - 1][col + 1] == "#"):
+            if x > cell_x + cell_size - char_radius and z < cell_z - cell_size + char_radius:
+                return False
+        # E
+        if (cells[row][col + 1] == "#"):
+            if x > cell_x + cell_size - char_radius:
+                return False
+        # SE
+        if (cells[row + 1][col + 1] == "#"):
+            if x > cell_x + cell_size - char_radius and z > cell_z - char_radius:
+                return False
+        # S
+        if (cells[row + 1][col] == "#"):
+            if z > cell_z - char_radius:
+                return False
+        # SW
+        if (cells[row + 1][col - 1] == "#"):
+            if x < cell_x + char_radius and z > cell_z - char_radius:
+                return False
+        # W
+        if (cells[row][col - 1] == "#"):
+            if x < cell_x + char_radius:
+                return False
+
         return True
 
     def do_player_movement():
@@ -399,7 +445,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
 
         # Prevent clipping through walls
-        if is_position_walkable(new_pos[0], cam_pos[1], new_pos[1]):
+        if is_position_walkable(new_pos[0], cam_pos[1], new_pos[1], player_radius):
             CAMERA["pos"][0] = new_pos[0]
             CAMERA["pos"][2] = new_pos[1]
 
