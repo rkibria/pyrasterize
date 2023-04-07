@@ -359,19 +359,15 @@ def main_function(): # PYGBAG: decorate with 'async'
             return False
 
         return True
-        # check if new position is viable against all surrounding cells
-        # determine walkable area considering surroundings
-        wall_dist = cell_size / 4
-        # lower left xz, upper right xz
-        x = (lab_rows - 1 - cur_cell[0]) * cell_size + wall_dist
-        z = -(cur_cell[1] * cell_size + wall_dist)
-        walkable = [x, z,
-            x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
-        new_pos = [
-            max(walkable[2], max(new_pos[0], walkable[0])),
-            max(walkable[3], max(new_pos[1], walkable[1])),
-        ]
 
+    def is_position_walkable(x, y, z):
+        if not is_position_reachable(x, y, z):
+            return False
+
+        # We are in a free cell. Don't let the player get closer than their radius to any walls
+        # row,col = get_cell_pos(x, z)
+        # player_radius = cell_size / 4
+        return True
 
     def do_player_movement():
         """"""
@@ -403,22 +399,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
 
         # Prevent clipping through walls
-        # cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
-        # # check if new position is viable against all surrounding cells
-        # # determine walkable area considering surroundings
-        # wall_dist = cell_size / 4
-        # # lower left xz, upper right xz
-        # x = (lab_rows - 1 - cur_cell[0]) * cell_size + wall_dist
-        # z = -(cur_cell[1] * cell_size + wall_dist)
-        # walkable = [x, z,
-        #     x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
-        # new_pos = [
-        #     max(walkable[2], max(new_pos[0], walkable[0])),
-        #     max(walkable[3], max(new_pos[1], walkable[1])),
-        # ]
-
-        CAMERA["pos"][0] = new_pos[0]
-        CAMERA["pos"][2] = new_pos[1]
+        if is_position_walkable(new_pos[0], cam_pos[1], new_pos[1]):
+            CAMERA["pos"][0] = new_pos[0]
+            CAMERA["pos"][2] = new_pos[1]
 
         # Camera rotation
         rot_scale = 0.05
@@ -513,17 +496,3 @@ def main_function(): # PYGBAG: decorate with 'async'
 if __name__ == '__main__':
     # asyncio.run(main_function()) # PYGBAG
     main_function()
-
-    # model_m = vecmat.get_rot_x_m4(0)
-    # inst = rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 10, 10))
-    # model = inst["model"]
-
-    # t = time.perf_counter()
-    # for i in range(1000000):
-    #     #1
-    #     # view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m), model["verts"]))
-    #     #2
-    #     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
-
-    # elapsed_time = time.perf_counter() - t
-    # print(f"render time: {round(elapsed_time, 3)} s")
