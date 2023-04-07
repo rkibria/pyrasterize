@@ -221,6 +221,10 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: walls
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
 
+    scene_graphs[1]["root"]["children"]["projectile"] = rasterizer.get_model_instance(
+        meshes.get_billboard(12, 2, -12, 1, 1, pygame.image.load("assets/plasmball.png").convert_alpha()))
+
+
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
 
