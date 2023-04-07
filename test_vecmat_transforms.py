@@ -19,11 +19,12 @@ def test_mat4_mat4_mul():
     m_r = vecmat.get_rot_z_m4(vecmat.deg_to_rad(90)) # rotate clockwise 90 degrees
     assert vecmat.vec4_mat4_mul(v, m_t) == pytest.approx([1, 1, 0, 1])
     assert vecmat.vec4_mat4_mul(v, m_r) == pytest.approx([0, 1, 0, 1])
+    # Translate the coordinate system 1 up, then rotate 90 degrees
     m_1 = vecmat.mat4_mat4_mul(m_t, m_r)
     assert vecmat.vec4_mat4_mul(v, m_1) == pytest.approx([0, 2, 0, 1])
+    # Rotate the coordinate system 90 degrees, then translate in the new system
     m_2 = vecmat.mat4_mat4_mul(m_r, m_t)
-    print("\nsssasdasd", vecmat.vec4_mat4_mul(v, m_2))
-    assert vecmat.vec4_mat4_mul(v, m_2) == pytest.approx([-1, 1, 0, 1]) # ???????????
+    assert vecmat.vec4_mat4_mul(v, m_2) == pytest.approx([-1, 1, 0, 1])
 
 def test_transl():
     assert vecmat.vec4_mat4_mul([0, 0, 0, 1], vecmat.get_transl_m4(1, 2, 3)) == pytest.approx([1, 2, 3, 1])
