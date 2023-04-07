@@ -32,13 +32,13 @@ def test_instance_creates_normals():
     assert("normals" in model)
     normals = model["normals"]
     assert(len(normals) == 1)
-    assert(normals[0] == [0, 0, 1])
+    assert(normals[0] == [0, 0, 1, 0])
     assert("vert_normals" in model)
     vert_normals = model["vert_normals"]
     assert(len(vert_normals) == 3)
-    assert(vert_normals[0] == [0,0,1])
-    assert(vert_normals[1] == [0,0,1])
-    assert(vert_normals[2] == [0,0,1])
+    assert(vert_normals[0] == [0,0,1,0])
+    assert(vert_normals[1] == [0,0,1,0])
+    assert(vert_normals[2] == [0,0,1,0])
 
 if __name__ == "__main__":
     pass
