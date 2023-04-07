@@ -279,7 +279,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     skeleton_imgs = []
     for x in range(3):
         skeleton_imgs.append(skeleton_ss.get_image(3*32 + x * 32, 0 * 64, 32, 64))
-    skeleton_billboard = rasterizer.get_animated_billboard(12, 2, -12-1, 20, 20, skeleton_imgs)
+    skeleton_billboard = rasterizer.get_animated_billboard(cell_size * (1 + 0.5), 2, -cell_size * (3 + 0.5), 20, 20, skeleton_imgs)
     skeleton_billboard["frame_advance"] = 0.3
     skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
     scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
