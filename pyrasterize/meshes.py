@@ -22,15 +22,6 @@ def scale_vertices(model, s_x, s_y, s_z):
         v[1] *= s_y
         v[2] *= s_z
 
-def get_billboard(dx, dy, dz, sx, sy, img):
-    """Create a billboard object"""
-    return {
-        "billboard": True,
-        "translate": [dx, dy, dz],
-        "size": [sx, sy],
-        "img": img,
-    }
-
 def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {
@@ -237,14 +228,3 @@ def get_model_centering_offset(model):
         avg[i] /= len(model["verts"])
         avg[i] *= -1
     return avg
-
-def get_particles(img, num_particles, sx, sy):
-    """Create a particles object"""
-    return {
-        "particles": True,
-        "positions": [[0.0, 0.0, 0.0, 1.0] for _ in range(num_particles)],
-        "enabled": [True] * num_particles,
-        "img": img,
-        "size": [sx, sy],
-        "user_data": []
-    }

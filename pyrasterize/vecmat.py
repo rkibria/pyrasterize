@@ -21,6 +21,10 @@ def dot_product_vec3(a, b):
     """Return dot product of vec3"""
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
+def mag_sq_vec3(v_3):
+    """Return squared magnitude of vec3"""
+    return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2])
+
 def mag_vec3(v_3):
     """Return magnitude of vec3"""
     return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]) ** 0.5
@@ -32,6 +36,17 @@ def norm_vec3(v_3):
         return [0, 0, 0]
     mag = mag ** -0.5 # 1.0 / math.sqrt(mag)
     return [v_3[0] * mag, v_3[1] * mag, v_3[2] * mag]
+
+def norm_vec3_from_vec4(v_4):
+    """
+    Take first elements of vec4 as a vec3, normalize,
+    return vec4 with normalized and 4th element from original
+    """
+    mag = v_4[0]*v_4[0] + v_4[1]*v_4[1] + v_4[2]*v_4[2]
+    if mag == 0:
+        return [0, 0, 0]
+    mag = mag ** -0.5 # 1.0 / math.sqrt(mag)
+    return [v_4[0] * mag, v_4[1] * mag, v_4[2] * mag, v_4[3]]
 
 def mat4_mat4_mul(m4_1, m4_2):
     """Return multiplication of 4x4 matrices
@@ -205,10 +220,17 @@ def mouse_pos_to_ray(pos, scr_size):
     ndc_y = 1 - (2 * pos[1]) / scr_size[1]
     return norm_vec3([ndc_x, ndc_y, -1])
 
+def get_rot_xyz_m4(x, y, z):
+    """Return rotation order xyz matrix"""
+    m = get_rot_z_m4(z)
+    m = mat4_mat4_mul(get_rot_y_m4(y), m)
+    return mat4_mat4_mul(get_rot_x_m4(x), m)
+
 def get_simple_camera_m(cam):
     """Return matrix based on camera dict(rot = [x,y,z],pos = [x,y,z])"""
     cam_pos = cam["pos"]
     cam_rot = cam["rot"]
+    # Operation order: rot_x, rot_y, rot_z, translate
     camera_m = get_transl_m4(-cam_pos[0], -cam_pos[1], -cam_pos[2])
     camera_m = mat4_mat4_mul(get_rot_z_m4(-cam_rot[2]), camera_m)
     camera_m = mat4_mat4_mul(get_rot_y_m4(-cam_rot[1]), camera_m)
@@ -225,3 +247,10 @@ def get_vec2_triangle_centroid(v_a, v_b, v_c):
     cx = (v_a[0] + v_b[0] + v_c[0]) / 3
     cy = (v_a[1] + v_b[1] + v_c[1]) / 3
     return (cx, cy)
+
+def get_vec3_triangle_centroid(v_a, v_b, v_c):
+    """Get centroid point of a three-dimensional triangle"""
+    cx = (v_a[0] + v_b[0] + v_c[0]) / 3
+    cy = (v_a[1] + v_b[1] + v_c[1]) / 3
+    cz = (v_a[2] + v_b[2] + v_c[2]) / 3
+    return [cx, cy, cz]

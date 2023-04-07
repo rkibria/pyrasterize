@@ -66,7 +66,7 @@ def main_function():
     l_phi_step = math.pi / l_divs
     radius = 1.5
     num_particles = (l_divs - 1) * r_divs
-    particles = meshes.get_particles(img, num_particles, 1, 1)
+    particles = rasterizer.get_particles(img, num_particles, 1, 1)
     scene_graph["root"]["children"]["particles"] = rasterizer.get_model_instance(particles)
     pos_i = 0
     for l_i in range(l_divs - 1):

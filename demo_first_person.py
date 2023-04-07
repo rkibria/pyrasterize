@@ -101,7 +101,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     lamp_positions = [(-5, 0), (5, 0), (0, -5), (0, 5)]
     for x,y in lamp_positions:
         scene_graphs[1]["root"]["children"][f"billboard_{x}_{y}"] = rasterizer.get_model_instance(
-            meshes.get_billboard(x, 1, y, 3.5, 3.5, img))
+            rasterizer.get_billboard(x, 1, y, 3.5, 3.5, img))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)

@@ -15,13 +15,10 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import model_file_io
-from pyrasterize import drawing
-
-from labyrinth_gen import make_labyrinth, get_blocky_labyrinth
 
 # CONSTANTS
 
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 800, 600
+RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
 RGB_BLACK = (0, 0, 0)
@@ -30,16 +27,22 @@ RGB_BLACK = (0, 0, 0)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+LIGHTING = {"lightDir": (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
+            "pointlight_enabled": True, "pointlight": [12, 2, -12, 1], "pointlight_falloff": 5}
 
+# Original mesh width for scaling
+MODELS_ORIG_WIDTH = 2
 
-def create_labyrinth_floor(root_instance, labyrinth, cell_size):
+FADE_DISTANCE = 15
+
+def get_ceiling_height(cell_size):
+    return 1.25 * cell_size / MODELS_ORIG_WIDTH
+
+def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
-    # Original mesh width is 2
-    model_width = 2
-    scale_factor = cell_size / model_width
+    scale_factor = cell_size / MODELS_ORIG_WIDTH
 
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
@@ -47,7 +50,7 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     ceil_model = meshes.get_rect_mesh((2, 2), (5,5))
     ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))
     ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor), ceil_preproc_m4)
-    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 1.25 * scale_factor, 0), ceil_preproc_m4)
+    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, get_ceiling_height(cell_size), 0), ceil_preproc_m4)
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -60,29 +63,27 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
                 root_instance["children"][cell_name]["children"]["floor"] = rasterizer.get_model_instance(floor_model,
                     preproc_m4=preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
-                root_instance["children"][cell_name]["children"]["floor"]["fade_distance"] = 15.0
+                root_instance["children"][cell_name]["children"]["floor"]["fade_distance"] = FADE_DISTANCE
 
                 root_instance["children"][cell_name]["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
                     preproc_m4=ceil_preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
-                root_instance["children"][cell_name]["children"]["ceiling"]["fade_distance"] = 15.0
+                root_instance["children"][cell_name]["children"]["ceiling"]["fade_distance"] = FADE_DISTANCE
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     lab_rows,lab_cols = labyrinth["size"]
-    # Original mesh width is 2
-    model_width = 2
-    scale_factor = cell_size / model_width
+    scale_factor = cell_size / MODELS_ORIG_WIDTH
 
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
 
-    wall_mesh = rasterizer.get_model_instance(wall_model,
+    wall_inst = rasterizer.get_model_instance(wall_model,
         preproc_m4=preproc_m4)
     # Wall meshes are culled if not facing the camera.
-    wall_mesh["instance_normal"] = [0, 0, 1]
-    wall_mesh["fade_distance"] = 15.0
-    wall_mesh["use_minimum_z_order"] = True
+    wall_inst["instance_normal"] = [0, 0, 1]
+    wall_inst["fade_distance"] = FADE_DISTANCE
+    wall_inst["use_minimum_z_order"] = True
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -115,24 +116,24 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
                 cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, 0, -cell_size),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(180))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
             if wall_s:
                 cell_inst["children"]["wall_s"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, 0, 0),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(0))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
             if wall_w:
                 cell_inst["children"]["wall_w"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -cell_size / 2),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
             if wall_e:
                 cell_inst["children"]["wall_e"] = rasterizer.get_model_instance(None, None,
                     vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size, 0, -cell_size / 2),
                     vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
-                    {"wall": wall_mesh})
+                    {"wall": wall_inst})
 
-def update_viewable_area(labyrinth, cell_size, root_instances):
+def update_viewable_area(labyrinth, cell_size, view_max, root_instances):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
@@ -156,7 +157,6 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
     cam_rot_y = CAMERA["rot"][1]
     cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
 
-    view_max = 2 * cell_size
     step = cell_size / 4.0
     enables = set()
     for delta_angle in range(-60, 60, 2):
@@ -185,19 +185,48 @@ def update_viewable_area(labyrinth, cell_size, root_instances):
     for row,col in enables:
         enable_cell(row, col, True)
 
+# https://stackoverflow.com/a/48055738
+class SpriteSheet(object):
+    def __init__(self, file_name):
+        # You have to call `convert_alpha`, so that the background of
+        # the surface is transparent.
+        self.sprite_sheet = pygame.image.load(file_name).convert_alpha()
+
+    def get_image(self, x, y, width, height):
+        # Use a transparent surface as the base image (pass pygame.SRCALPHA).
+        image = pygame.Surface([width, height], pygame.SRCALPHA)
+        image.blit(self.sprite_sheet, (0,0), (x, y, width, height))
+        return image
+
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     pygame.init()
 
-    screen = pygame.display.set_mode(RASTER_SCR_SIZE)
+    screen = pygame.display.set_mode(RASTER_SCR_SIZE, flags=pygame.SCALED)
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
-    # Generate the labyrinth
-    labyrinth = get_blocky_labyrinth(make_labyrinth(8, 8, 20))
-    import pprint
-    pp = pprint.PrettyPrinter(indent=2)
-    pp.pprint(labyrinth)
+    labyrinth = {
+        'cells': [
+        '#################',
+        '#.........#.....#',
+        '#..########..####',
+        '#.#.......#...#.#',
+        '#.#....##.###.#.#',
+        '#.#.....#.....#.#',
+        '#.#####.#####.#.#',
+        '#.....#.#.......#',
+        '#.....#.#.......#',
+        '#.....#.....#...#',
+        '#.....#####.#...#',
+        '#.#.#...#.#.#.#.#',
+        '###.###.#.#.#.#.#',
+        '#...#.....#...#.#',
+        '#..############.#',
+        '#...............#',
+        '#################'],
+        'size': (17, 17)}
+
     lab_rows,lab_cols = labyrinth["size"]
 
     # Use separate scene graphs for ground and other objects to avoid problems with overlapping
@@ -206,19 +235,50 @@ def main_function(): # PYGBAG: decorate with 'async'
         { "root": rasterizer.get_model_instance(None) }
     ]
 
-    # Ground and ceiling graph
-
-    # Each labyrinth cell's area is a cube with an "inner" and "outer" area
     cell_size = 8
+    player_radius = 1
 
     CAMERA["pos"][0] = cell_size * 1.5
     CAMERA["pos"][1] = 2
     CAMERA["pos"][2] = -cell_size * 1.5
 
-    create_labyrinth_floor(scene_graphs[0]["root"], labyrinth, cell_size)
+    create_labyrinth_floor_and_ceiling(scene_graphs[0]["root"], labyrinth, cell_size)
 
     # Interior: walls
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
+
+    # Projectile - only one active at any time
+    projectile_billboard = rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha())
+    projectile_inst = rasterizer.get_model_instance(projectile_billboard)
+    scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
+    projectile_inst["enabled"] = False
+    LIGHTING["pointlight_enabled"] = False
+
+    # Projectile explosion - only one active at any time
+    explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
+    explo_imgs = []
+    for y in range(4):
+        for x in range(4):
+            explo_imgs.append(explo_ss.get_image(x * 32, y * 32, 32, 32))
+    explo_billboard = rasterizer.get_animated_billboard(0, 0, 0, 16, 16, explo_imgs)
+    explo_billboard["play_mode"] = rasterizer.BILLBOARD_PLAY_ONCE
+    explo_inst = rasterizer.get_model_instance(explo_billboard)
+    scene_graphs[1]["root"]["children"]["projectile_explo"] = explo_inst
+    explo_inst["enabled"] = False
+
+    # Skeleton
+    skeleton_ss = SpriteSheet("assets/zombie_n_skeleton2.png")
+    skeleton_imgs = []
+    for x in range(3):
+        skeleton_imgs.append(skeleton_ss.get_image(3*32 + x * 32, 0 * 64, 32, 64))
+    skeleton_billboard = rasterizer.get_animated_billboard(cell_size * (1 + 0.5), 2, -cell_size * (3 + 0.5), 20, 20, skeleton_imgs)
+    skeleton_billboard["frame_advance"] = 0.3
+    skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
+    scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
+    skeleton_inst["fade_distance"] = FADE_DISTANCE
+
+    # List of all enemies
+    enemies = [skeleton_inst]
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -243,6 +303,16 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     def on_mouse_button_down(event):
         """Handle mouse button down"""
+        if not projectile_inst["enabled"]:
+            projectile_inst["enabled"] = True
+            LIGHTING["pointlight_enabled"] = True
+            projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
+            projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
+            projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
+            dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0], vecmat.get_rot_x_m4(CAMERA["rot"][0]))
+            dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
+            f = 1
+            projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
 
     def on_mouse_movement(x, y):
         """Handle mouse movement"""
@@ -281,7 +351,81 @@ def main_function(): # PYGBAG: decorate with 'async'
             index, _ = key_moves[key]
             move_dir[index] = 0
 
-    def do_movement():
+    def get_cell_pos(x, z):
+        """
+        Lower left corner of the map is at 0,0
+        (the cell in the last row and first column)
+        """
+        row = lab_rows - 1 + int(z / cell_size)
+        col = int(x / cell_size)
+        return row, col
+
+    def cell_to_world_pos(row, col):
+        x = col * cell_size
+        z = (lab_rows - 1 - row) * -cell_size
+        return x,z
+
+    def is_position_reachable(x, y, z):
+        """Is this position in open air (i.e. not inside a wall)"""
+        if y < 0 or y > get_ceiling_height(cell_size):
+            return False
+
+        row,col = get_cell_pos(x, z)
+
+        if row < 0 or row >= lab_rows or col < 0 or col >= lab_cols:
+            return False
+
+        if labyrinth["cells"][row][col] == "#":
+            return False
+
+        return True
+
+    def is_position_walkable(x, y, z, char_radius):
+        if not is_position_reachable(x, y, z):
+            return False
+
+        # We are in a free cell, don't let char get closer than their radius to walls
+        row,col = get_cell_pos(x, z)
+        cell_x,cell_z = cell_to_world_pos(row, col)
+
+        # Check if we are too close to any surrounding walls
+        cells = labyrinth["cells"]
+        # NW
+        if (cells[row - 1][col - 1] == "#"):
+            if x < cell_x + char_radius and z < cell_z - cell_size + char_radius:
+                return False
+        # N
+        if (cells[row - 1][col] == "#"):
+            if z < cell_z - cell_size + char_radius:
+                return False
+        # NE
+        if (cells[row - 1][col + 1] == "#"):
+            if x > cell_x + cell_size - char_radius and z < cell_z - cell_size + char_radius:
+                return False
+        # E
+        if (cells[row][col + 1] == "#"):
+            if x > cell_x + cell_size - char_radius:
+                return False
+        # SE
+        if (cells[row + 1][col + 1] == "#"):
+            if x > cell_x + cell_size - char_radius and z > cell_z - char_radius:
+                return False
+        # S
+        if (cells[row + 1][col] == "#"):
+            if z > cell_z - char_radius:
+                return False
+        # SW
+        if (cells[row + 1][col - 1] == "#"):
+            if x < cell_x + char_radius and z > cell_z - char_radius:
+                return False
+        # W
+        if (cells[row][col - 1] == "#"):
+            if x < cell_x + char_radius:
+                return False
+
+        return True
+
+    def do_player_movement():
         """"""
         global CAMERA
         nonlocal move_dir
@@ -310,28 +454,73 @@ def main_function(): # PYGBAG: decorate with 'async'
         move_scale = 0.2
         new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
 
-        # TODO prevent clipping through walls
-        # cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
-        # # check if new position is viable against all surrounding cells
-        # # determine walkable area considering surroundings
-        # wall_dist = cell_size / 4
-        # # lower left xz, upper right xz
-        # x = (lab_rows - 1 - cur_cell[0]) * cell_size + wall_dist
-        # z = -(cur_cell[1] * cell_size + wall_dist)
-        # walkable = [x, z,
-        #     x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
-        # new_pos = [
-        #     max(walkable[2], max(new_pos[0], walkable[0])),
-        #     max(walkable[3], max(new_pos[1], walkable[1])),
-        # ]
-
-        CAMERA["pos"][0] = new_pos[0]
-        CAMERA["pos"][2] = new_pos[1]
+        # Prevent clipping through walls
+        if is_position_walkable(new_pos[0], cam_pos[1], new_pos[1], player_radius):
+            CAMERA["pos"][0] = new_pos[0]
+            CAMERA["pos"][2] = new_pos[1]
 
         # Camera rotation
         rot_scale = 0.05
         CAMERA["rot"][0] += move_dir[3] * rot_scale
         CAMERA["rot"][1] += move_dir[4] * rot_scale
+        CAMERA["rot"][0] = min(math.pi/2, max(-math.pi/2, CAMERA["rot"][0]))
+
+    def projectile_collides_with_enemy(projectile_pos, enemy_pos):
+        # For simplicity enemy collision volume is a stack of spheres
+        sphere_radius = 0.5
+        for i in range(3):
+            sphere_pos = [enemy_pos[0], sphere_radius + i * 2 * sphere_radius, enemy_pos[2]]
+            dist_sq_v = vecmat.mag_sq_vec3(vecmat.sub_vec3(sphere_pos, projectile_pos))
+            if dist_sq_v <= 1:
+                return True
+        return False
+
+    def do_projectile_movement():
+        if projectile_inst["enabled"]:
+            mdl_tr = projectile_inst["model"]["translate"]
+            mdl_tr_copy = mdl_tr.copy()
+            mdl_tr_copy[0] += projectile_inst["dir"][0]
+            mdl_tr_copy[1] += projectile_inst["dir"][1]
+            mdl_tr_copy[2] += projectile_inst["dir"][2]
+            if not is_position_reachable(*mdl_tr_copy[0:3]):
+                # Projectile explodes and is removed
+                projectile_inst["enabled"] = False
+                LIGHTING["pointlight_enabled"] = False
+                explo_inst["enabled"] = True
+                explo_billboard["cur_frame"] = 0
+                explo_billboard["size_scale"] = 1
+                explo_tr = explo_billboard["translate"]
+                explo_tr[0] = mdl_tr[0]
+                explo_tr[1] = mdl_tr[1]
+                explo_tr[2] = mdl_tr[2]
+            else:
+                # Projectile moves
+                mdl_tr[0] = mdl_tr_copy[0]
+                mdl_tr[1] = mdl_tr_copy[1]
+                mdl_tr[2] = mdl_tr_copy[2]
+                pl_tr = LIGHTING["pointlight"]
+                pl_tr[0] = mdl_tr_copy[0]
+                pl_tr[1] = mdl_tr_copy[1]
+                pl_tr[2] = mdl_tr_copy[2]
+                # Collision check
+                nonlocal enemies
+                nonlocal projectile_billboard
+                projectile_pos = projectile_billboard["translate"]
+                for enemy_inst in enemies:
+                    if enemy_inst["enabled"]:
+                        enemy_billboard = enemy_inst["model"]
+                        enemy_pos = enemy_billboard["translate"]
+                        if projectile_collides_with_enemy(projectile_pos, enemy_pos):
+                            projectile_inst["enabled"] = False
+                            enemy_inst["enabled"] = False
+                            LIGHTING["pointlight_enabled"] = False
+                            explo_inst["enabled"] = True
+                            explo_billboard["cur_frame"] = 0
+                            explo_billboard["size_scale"] = 3
+                            explo_tr = explo_billboard["translate"]
+                            explo_tr[0] = projectile_pos[0]
+                            explo_tr[1] = projectile_pos[1]
+                            explo_tr[2] = projectile_pos[2]
 
     cross_size = 20
     cross_width = 2
@@ -340,6 +529,11 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.draw.rect(cross_surface, rgb_cross, (cross_size - cross_width, 0, cross_width * 2, cross_size * 2))
     pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
     pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
+
+    view_max = 3 * cell_size
+    near_clip = -0.5
+    far_clip = -view_max
+    first_mouse_move = True
 
     while not done:
         clock.tick(30)
@@ -356,18 +550,23 @@ def main_function(): # PYGBAG: decorate with 'async'
                 on_key_up(event.key)
             elif event.type == pygame.MOUSEMOTION:
                 mouse_position = pygame.mouse.get_rel()
-                on_mouse_movement(mouse_position[0], mouse_position[1])
+                if first_mouse_move:
+                    first_mouse_move = False
+                else:
+                    on_mouse_movement(mouse_position[0], mouse_position[1])
 
-        do_movement()
+        do_player_movement()
+        do_projectile_movement()
 
         screen.fill(RGB_BLACK)
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         t = time.perf_counter()
-        update_viewable_area(labyrinth, cell_size, [scene_graph["root"] for scene_graph in scene_graphs])
+        update_viewable_area(labyrinth, cell_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-                vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+                vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING,
+                near_clip, far_clip)
         elapsed_time = time.perf_counter() - t
         if frame % 30 == 0:
             print(f"render time: {round(elapsed_time, 3)} s")

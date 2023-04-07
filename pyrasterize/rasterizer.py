@@ -12,6 +12,16 @@ DEBUG_FONT = None
 from . import vecmat
 from . import drawing
 
+DRAW_MODE_WIREFRAME = 0
+DRAW_MODE_FLAT = 1
+DRAW_MODE_GOURAUD = 2
+DRAW_MODE_BILLBOARD = 3
+DRAW_MODE_PARTICLE = 4
+
+BILLBOARD_PLAY_ALWAYS = 0
+BILLBOARD_PLAY_ONCE = 1
+
+
 def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary
@@ -27,6 +37,10 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
         xform_m4 = vecmat.get_unit_m4()
     if children is None:
         children = {}
+
+    # It's about 10% faster not to have to create temporary vec4s for matmults
+    if model is not None and "billboard" not in model and "particles" not in model:
+        model["verts"] = list([model_v[0], model_v[1], model_v[2], 1.0] for model_v in model["verts"])
 
     if model is not None and "billboard" not in model and "particles" not in model and "normals" not in model:
         normals = []
@@ -57,9 +71,8 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
             sum_normals[i_2][1] += n_y
             sum_normals[i_2][2] += n_z
 
-        model["normals"] = normals
-        vert_normals = list(map(vecmat.norm_vec3, sum_normals))
-        model["vert_normals"] = vert_normals
+        model["normals"] = [[*v, 0.0] for v in normals]
+        model["vert_normals"] = list(map(lambda v: [*vecmat.norm_vec3(v), 0.0], sum_normals))
 
     return {
         "enabled" : True,
@@ -296,27 +309,53 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
 
 
 def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
-                                  lighting, proj_light_dir, instance, model_m):
+                                  lighting, proj_light_dir, instance, model_m, camera_m):
     """Get (lighted) triangles from this instance and insert them into scene_triangles"""
     model = instance["model"]
     if not model:
         return
 
+    fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
+
     if "billboard" in model:
-        model_v = model["translate"]
-        cam_pos = vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m)
+        cam_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
         cur_z = cam_pos[2]
-        if cur_z > near_clip:
+        if cur_z > near_clip or cur_z < far_clip:
             return
         clip_pos = project_to_clip_space(cam_pos, persp_m)
         if clip_pos is not None:
-            size = model["size"]
-            img = model["img"]
+            scale = model["size_scale"]
+            size = (model["size"][0] * scale, model["size"][1] * scale)
+            model_imgs = model["img"]
+            num_frames = len(model_imgs)
+            int_cur_frame = int(model["cur_frame"])
+            if int_cur_frame >= num_frames:
+                return
+
+            if fade_distance > 0:
+                img = model_imgs[int_cur_frame].copy()
+                fade_factor = 1
+                if fade_distance > 0:
+                    z = abs(cur_z)
+                    fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
+                dark = pygame.Surface(img.get_size()).convert_alpha()
+                darken_value = fade_factor * 255
+                dark.fill((darken_value, darken_value, darken_value, 255))
+                img.blit(dark, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+            else:
+                img = model_imgs[int_cur_frame]
+
             inv_z = 1.0 / abs(cur_z)
             proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
             scale_img = pygame.transform.scale(img, proj_size)
             scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
                        int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
+            if num_frames > 1:
+                model["cur_frame"] += model["frame_advance"]
+                if int(model["cur_frame"]) == num_frames:
+                    if model["play_mode"] == BILLBOARD_PLAY_ALWAYS:
+                        model["cur_frame"] = 0
+
             scene_triangles.append((
                 cur_z,
                 scr_pos,
@@ -350,16 +389,19 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     DRAW_MODE_PARTICLE))
         return
 
-    view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul((model_v[0], model_v[1], model_v[2], 1), model_m), model["verts"]))
-    view_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["normals"]))
+    view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
+    view_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["normals"]))
 
     draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
     no_culling = ("noCulling" in instance) and instance["noCulling"]
     model_colors = model["colors"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
-    fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
+    pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
+    if pointlight_enabled:
+        pointlight_falloff = lighting["pointlight_falloff"]
+        pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
@@ -371,7 +413,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     vert_normals = None
     if draw_gouraud_shaded:
-        vert_normals = list(map(lambda model_n: vecmat.norm_vec3(vecmat.vec4_mat4_mul((model_n[0], model_n[1], model_n[2], 0), model_m)[0:3]), model["vert_normals"]))
+        vert_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["vert_normals"]))
 
     # This function may add temporary triangles due to clipping
     # We reset the model's lists to their original size after processing
@@ -418,11 +460,20 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 + proj_light_dir[1] * normal[1]
                 + proj_light_dir[2] * normal[2])
             intensity = min(1, max(0, ambient + diffuse * dot_prd))
-            color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
+
+            fade_factor = 1
             if fade_distance > 0:
                 z = abs(z_order)
                 fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-                color_data = [color_data[0] * fade_factor, color_data[1] * fade_factor, color_data[2] * fade_factor]
+                intensity *= fade_factor
+
+            if pointlight_enabled:
+                centroid = vecmat.get_vec3_triangle_centroid(view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]])
+                dist_to_light = vecmat.mag_vec3(vecmat.sub_vec3(centroid, pointlight_cam_pos))
+                intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+
+            intensity = min(1, intensity)
+            color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
         else: # draw_mode == DRAW_MODE_GOURAUD
             color_data = [vert_colors[vert_idx] for vert_idx in tri]
 
@@ -436,13 +487,6 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     if num_orig_model_tris != len(model_tris):
         del model_tris[num_orig_model_tris:]
         del model_colors[num_orig_model_tris:]
-
-
-DRAW_MODE_WIREFRAME = 0
-DRAW_MODE_FLAT = 1
-DRAW_MODE_GOURAUD = 2
-DRAW_MODE_BILLBOARD = 3
-DRAW_MODE_PARTICLE = 4
 
 def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0):
     """Render the scene graph
@@ -475,7 +519,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
                 _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
-                                              instance, proj_m)
+                                              instance, proj_m, camera_m)
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)
@@ -550,3 +594,31 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             surface.blit(color_data, points)
     if px_array is not None:
         del px_array
+
+def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
+    """Create a billboard object with several animation frames"""
+    return {
+        "billboard": True,
+        "translate": [dx, dy, dz, 1.0],
+        "size": [sx, sy],
+        "size_scale": 1.0,
+        "img": img_list,
+        "cur_frame": 0.0,
+        "play_mode": BILLBOARD_PLAY_ALWAYS,
+        "frame_advance": 1.0,
+    }
+
+def get_billboard(dx, dy, dz, sx, sy, img):
+    """Create a billboard object with only one animation frame"""
+    return get_animated_billboard(dx, dy, dz, sx, sy, [img])
+
+def get_particles(img, num_particles, sx, sy):
+    """Create a particles object"""
+    return {
+        "particles": True,
+        "positions": [[0.0, 0.0, 0.0, 1.0] for _ in range(num_particles)],
+        "enabled": [True] * num_particles,
+        "img": img,
+        "size": [sx, sy],
+        "user_data": []
+    }
