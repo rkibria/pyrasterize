@@ -373,9 +373,14 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     def do_projectile_movement():
         if projectile_inst["enabled"]:
-            projectile_inst["model"]["translate"][0] += projectile_inst["dir"][0]
-            projectile_inst["model"]["translate"][1] += projectile_inst["dir"][1]
-            projectile_inst["model"]["translate"][2] += projectile_inst["dir"][2]
+            mdl_tr = projectile_inst["model"]["translate"]
+            mdl_tr[0] += projectile_inst["dir"][0]
+            mdl_tr[1] += projectile_inst["dir"][1]
+            mdl_tr[2] += projectile_inst["dir"][2]
+            pl_tr = LIGHTING["pointlight"]
+            pl_tr[0] = mdl_tr[0]
+            pl_tr[1] = mdl_tr[1]
+            pl_tr[2] = mdl_tr[2]
 
     cross_size = 20
     cross_width = 2
