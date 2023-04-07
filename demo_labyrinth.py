@@ -33,14 +33,17 @@ CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_W
 LIGHTING = {"lightDir": (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
             "pointlight_enabled": True, "pointlight": [12, 2, -12, 1], "pointlight_falloff": 5}
 
+# Original mesh width for scaling
+MODELS_ORIG_WIDTH = 2
 
-def create_labyrinth_floor(root_instance, labyrinth, cell_size):
+def get_ceiling_height(cell_size):
+    return 1.25 * cell_size / MODELS_ORIG_WIDTH
+
+def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
-    # Original mesh width is 2
-    model_width = 2
-    scale_factor = cell_size / model_width
+    scale_factor = cell_size / MODELS_ORIG_WIDTH
 
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
@@ -48,7 +51,7 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
     ceil_model = meshes.get_rect_mesh((2, 2), (5,5))
     ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))
     ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor), ceil_preproc_m4)
-    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 1.25 * scale_factor, 0), ceil_preproc_m4)
+    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, get_ceiling_height(cell_size), 0), ceil_preproc_m4)
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -71,9 +74,7 @@ def create_labyrinth_floor(root_instance, labyrinth, cell_size):
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     lab_rows,lab_cols = labyrinth["size"]
-    # Original mesh width is 2
-    model_width = 2
-    scale_factor = cell_size / model_width
+    scale_factor = cell_size / MODELS_ORIG_WIDTH
 
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
@@ -227,16 +228,13 @@ def main_function(): # PYGBAG: decorate with 'async'
         { "root": rasterizer.get_model_instance(None) }
     ]
 
-    # Ground and ceiling graph
-
-    # Each labyrinth cell's area is a cube with an "inner" and "outer" area
     cell_size = 8
 
     CAMERA["pos"][0] = cell_size * 1.5
     CAMERA["pos"][1] = 2
     CAMERA["pos"][2] = -cell_size * 1.5
 
-    create_labyrinth_floor(scene_graphs[0]["root"], labyrinth, cell_size)
+    create_labyrinth_floor_and_ceiling(scene_graphs[0]["root"], labyrinth, cell_size)
 
     # Interior: walls
     create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
@@ -318,6 +316,42 @@ def main_function(): # PYGBAG: decorate with 'async'
             index, _ = key_moves[key]
             move_dir[index] = 0
 
+    def get_cell_pos(x, z):
+        row = lab_rows - 1 + int(z / cell_size)
+        col = int(x / cell_size)
+        return row, col
+
+    def is_position_reachable(x, y, z):
+        """Is this position in open air (i.e. not inside a wall)"""
+        print(x,y,z)
+        if y < 0 or y > get_ceiling_height(cell_size):
+            return False
+
+        row,col = get_cell_pos(x, z)
+        print(row, col)
+
+        if row < 0 or row >= lab_rows or col < 0 or col >= lab_cols:
+            print("outside area")
+            return False
+
+        if labyrinth["cells"][row][col] == "#":
+            return False
+
+        return True
+        # check if new position is viable against all surrounding cells
+        # determine walkable area considering surroundings
+        wall_dist = cell_size / 4
+        # lower left xz, upper right xz
+        x = (lab_rows - 1 - cur_cell[0]) * cell_size + wall_dist
+        z = -(cur_cell[1] * cell_size + wall_dist)
+        walkable = [x, z,
+            x + (cell_size - 2 * wall_dist), z - (cell_size - 2 * wall_dist)]
+        new_pos = [
+            max(walkable[2], max(new_pos[0], walkable[0])),
+            max(walkable[3], max(new_pos[1], walkable[1])),
+        ]
+
+
     def do_player_movement():
         """"""
         global CAMERA
@@ -347,7 +381,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         move_scale = 0.2
         new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
 
-        # TODO prevent clipping through walls
+        # Prevent clipping through walls
         # cur_cell = [lab_rows - 1 + int(CAMERA["pos"][2] / cell_size), int(CAMERA["pos"][0] / cell_size)]
         # # check if new position is viable against all surrounding cells
         # # determine walkable area considering surroundings
@@ -381,6 +415,9 @@ def main_function(): # PYGBAG: decorate with 'async'
             pl_tr[0] = mdl_tr[0]
             pl_tr[1] = mdl_tr[1]
             pl_tr[2] = mdl_tr[2]
+            if not is_position_reachable(*mdl_tr[0:3]):
+                projectile_inst["enabled"] = False
+                LIGHTING["pointlight_enabled"] = False
 
     cross_size = 20
     cross_width = 2
@@ -390,7 +427,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
     pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
 
-    view_max = 2 * cell_size
+    view_max = 3 * cell_size
     near_clip = -0.5
     far_clip = -view_max
     first_mouse_move = True
