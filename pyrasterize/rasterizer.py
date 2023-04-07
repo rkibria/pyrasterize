@@ -331,17 +331,18 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             if int_cur_frame >= num_frames:
                 return
 
-            img = model_imgs[int_cur_frame].copy()
-            
-            fade_factor = 1
             if fade_distance > 0:
-                z = abs(cur_z)
-                fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-
-            dark = pygame.Surface(img.get_size()).convert_alpha()
-            darken_value = fade_factor * 255
-            dark.fill((darken_value, darken_value, darken_value, 255))
-            img.blit(dark, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+                img = model_imgs[int_cur_frame].copy()
+                fade_factor = 1
+                if fade_distance > 0:
+                    z = abs(cur_z)
+                    fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
+                dark = pygame.Surface(img.get_size()).convert_alpha()
+                darken_value = fade_factor * 255
+                dark.fill((darken_value, darken_value, darken_value, 255))
+                img.blit(dark, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+            else:
+                img = model_imgs[int_cur_frame]
 
             inv_z = 1.0 / abs(cur_z)
             proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
