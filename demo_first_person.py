@@ -17,7 +17,7 @@ from pyrasterize import meshes
 
 # CONSTANTS
 
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 800, 600
+RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
 RGB_BLACK = (0, 0, 0)
@@ -33,7 +33,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     pygame.init()
 
-    screen = pygame.display.set_mode(RASTER_SCR_SIZE)
+    screen = pygame.display.set_mode(RASTER_SCR_SIZE, pygame.SCALED)
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
@@ -60,14 +60,17 @@ def main_function(): # PYGBAG: decorate with 'async'
     scene_graphs[1]["root"]["children"]["blue_sphere"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(0.2, 20, 10, (0, 0, 200)))
     blue_sphere = scene_graphs[1]["root"]["children"]["blue_sphere"]
+    blue_sphere["gouraud"] = True
 
     blue_sphere["children"]["red_sphere"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(0.1, 10, 5, (200, 0, 0)))
     red_sphere = blue_sphere["children"]["red_sphere"]
+    red_sphere["gouraud"] = True
 
     red_sphere["children"]["green_sphere"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(0.05, 10, 5, (0, 200, 0)),
         xform_m4=vecmat.get_transl_m4(0.15, 0, 0))
+    red_sphere["children"]["green_sphere"]["gouraud"] = True
 
     # Interior: columns
     column_positions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]

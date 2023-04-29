@@ -531,15 +531,20 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
-    px_array = None
     for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
-            if px_array is None:
-                px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
-
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
+
+            avg_color = [(i+j+k)/3.0 for i,j,k in zip(color_data[0], color_data[1], color_data[2])]
+            col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
+                        for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
+            if col_diff <= 20:
+                pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                continue
+
+            px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
 
             # v_ab = vecmat.sub_vec3(v_b, v_a)
             v_ab_0 = v_b[0] - v_a[0]
@@ -584,6 +589,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
                     b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
                     px_array[x, y] = (r << 16) | (g << 8) | b
+            del px_array
         elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
@@ -592,8 +598,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             surface.blit(color_data, points)
         elif draw_mode == DRAW_MODE_PARTICLE:
             surface.blit(color_data, points)
-    if px_array is not None:
-        del px_array
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
