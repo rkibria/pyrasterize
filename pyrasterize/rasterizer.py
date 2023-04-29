@@ -5,6 +5,8 @@
 3D rasterizer engine
 """
 
+from collections import deque
+
 import pygame
 
 DEBUG_FONT = None
@@ -531,11 +533,39 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
+    def tri_area(v1, v2, v3):
+        v_12 = (v2[0] - v1[0], v2[1] - v1[1]) # a,b
+        v_13 = (v3[0] - v1[0], v3[1] - v1[1]) # c,d
+        cross = v_12[0] * v_13[1] - v_12[1] * v_13[0] # ad-bc
+        return abs(cross / 2)
+
     for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
+
+            tri_stack = deque() # (vec2: point, vec2: point, vec2: point,  vec3: color, vec3: color, vec3: color)
+            tri_stack.append((v_a, v_b, v_c,
+                              color_data[0], color_data[1], color_data[2]))
+
+            while tri_stack:
+                tri = tri_stack.popleft()
+                area = tri_area(tri[0], tri[1], tri[2])
+                if area < 100:
+                    avg_color = [(i+j+k)/3.0 for i,j,k in zip(tri[3], tri[4], tri[5])]
+                    pygame.draw.polygon(surface, avg_color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
+                else:
+                    centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
+                    tri_stack.append((tri[0], tri[1], centroid,  (255, 0, 0), (255, 0, 0), (255, 0, 0)))
+                    tri_stack.append((tri[0], tri[2], centroid,  (0, 255, 0), (0, 255, 0), (0, 255, 0)))
+                    tri_stack.append((tri[1], tri[2], centroid,  (0, 0, 255), (0, 0, 255), (0, 0, 255)))
+
+            # centroid = vecmat.get_vec2_triangle_centroid(v_a, v_b, v_c)
+            # pygame.draw.polygon(surface, (255, 0, 0), ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (centroid[0], centroid[1])))
+            # pygame.draw.polygon(surface, (0, 255, 0), ((v_a[0], v_a[1]), (v_c[0], v_c[1]), (centroid[0], centroid[1])))
+            # pygame.draw.polygon(surface, (0, 0, 255), ((v_b[0], v_b[1]), (v_c[0], v_c[1]), (centroid[0], centroid[1])))
+            continue
 
             avg_color = [(i+j+k)/3.0 for i,j,k in zip(color_data[0], color_data[1], color_data[2])]
             col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
@@ -556,6 +586,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             v_n = v_ab_0 * v_ac_1 - v_ab_1 * v_ac_0
             # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
             area_full_sq = v_n * v_n
+
+            if area_full_sq < 0:
+                pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                continue
 
             if area_full_sq > 0:
                 # p = (x, y, 0)
