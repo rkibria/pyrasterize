@@ -533,11 +533,14 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
-    def tri_area(v1, v2, v3):
+    def get_2d_tri_area(v1, v2, v3):
         v_12 = (v2[0] - v1[0], v2[1] - v1[1]) # a,b
         v_13 = (v3[0] - v1[0], v3[1] - v1[1]) # c,d
         cross = v_12[0] * v_13[1] - v_12[1] * v_13[0] # ad-bc
         return abs(cross / 2)
+
+    def get_average_color(c_0, c_1, c_2):
+        return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]
 
     for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
@@ -545,14 +548,62 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
 
+            # v_ab = vecmat.sub_vec3(v_b, v_a)
+            v_ab_0 = v_b[0] - v_a[0]
+            v_ab_1 = v_b[1] - v_a[1]
+            # v_ac = vecmat.sub_vec3(v_c, v_a)
+            v_ac_0 = v_c[0] - v_a[0]
+            v_ac_1 = v_c[1] - v_a[1]
+            # v_n = vecmat.cross_vec3(v_ab, v_ac)
+            v_n = v_ab_0 * v_ac_1 - v_ab_1 * v_ac_0
+            # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
+            area_full_sq = v_n * v_n
+
+            if area_full_sq < 10:
+                pygame.draw.polygon(surface, get_average_color(*color_data), ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                continue
+
+            # p = (x, y, 0)
+            # v_bc = vecmat.sub_vec3(v_c, v_b)
+            v_bc_0 = v_c[0] - v_b[0]
+            v_bc_1 = v_c[1] - v_b[1]
+            # v_ca = vecmat.sub_vec3(v_a, v_c)
+            v_ca_0 = v_a[0] - v_c[0]
+            v_ca_1 = v_a[1] - v_c[1]
+
+            def get_uvw(x, y):
+                # v_bp = vecmat.sub_vec3(p, v_b)
+                v_bp_0 = x - v_b[0]
+                v_bp_1 = y - v_b[1]
+                # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
+                v_n1 = v_bc_0 * v_bp_1 - v_bc_1 * v_bp_0
+                # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
+                u = (v_n * v_n1) / area_full_sq
+                # v_cp = vecmat.sub_vec3(p, v_c)
+                v_cp_0 = x - v_c[0]
+                v_cp_1 = y - v_c[1]
+                # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
+                v_n2 = v_ca_0 * v_cp_1 - v_ca_1 * v_cp_0
+                # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
+                v = (v_n * v_n2) / area_full_sq
+                w = 1 - u - v
+                return (u, v, w)
+
+            def get_interpolated_color(x, y):
+                u, v, w = get_uvw(x, y)
+                r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
+                g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
+                b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
+                return (r, g, b)
+
             tri_stack = deque() # (vec2: point, vec2: point, vec2: point,  vec3: color, vec3: color, vec3: color)
             tri_stack.append((v_a, v_b, v_c,
                               color_data[0], color_data[1], color_data[2]))
 
             while tri_stack:
                 tri = tri_stack.popleft()
-                area = tri_area(tri[0], tri[1], tri[2])
-                if area < 100:
+                area = get_2d_tri_area(tri[0], tri[1], tri[2])
+                if area < 10:
                     avg_color = [(i+j+k)/3.0 for i,j,k in zip(tri[3], tri[4], tri[5])]
                     pygame.draw.polygon(surface, avg_color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
                 else:
