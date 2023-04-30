@@ -68,8 +68,11 @@ def main_function():
 
     for file in glob.glob("assets/*.obj"):
         print(os.path.basename(file))
-        model = model_file_io.get_model_from_obj_file(file)
-        instances.append([os.path.basename(file), rasterizer.get_model_instance(model, vecmat.get_scal_m4(1, 1, 1))])
+        try:
+            model = model_file_io.get_model_from_obj_file(file)
+            instances.append([os.path.basename(file), rasterizer.get_model_instance(model, vecmat.get_scal_m4(1, 1, 1))])
+        except:
+            print(f"Error loading {file}, skipping")
 
     gouraud_max_iterations = 0
     for name,instance in instances:
@@ -112,6 +115,7 @@ def main_function():
         instances[cur_inst][1]["noCulling"] = (drawing_mode == 3)
         instances[cur_inst][1]["preproc_m4"] = vecmat.get_scal_m4(model_scale, model_scale, model_scale)
         instances[cur_inst][1]["gouraud_max_iterations"] = gouraud_max_iterations
+        # instances[cur_inst][1]["use_minimum_z_order"] = True
 
     up_scale_factor = 1.1
     def on_mouse_button_down(event):
