@@ -611,12 +611,22 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                         avg_color = get_average_color(c_0, c_1, c_2)
                         pygame.draw.polygon(surface, avg_color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
                     else:
-                        centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
-                        area /= 3
+                        area /= 4
                         iteration += 1
-                        tri_stack.append((tri[0], tri[1], centroid,  area,  iteration))
-                        tri_stack.append((tri[0], tri[2], centroid,  area,  iteration))
-                        tri_stack.append((tri[1], tri[2], centroid,  area,  iteration))
+                        v_01 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]]
+                        v_02 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1]]
+
+                        v_01_h = [v_01[0] / 2, v_01[1] / 2]
+                        v_02_h = [v_02[0] / 2, v_02[1] / 2]
+
+                        h_01 = [tri[0][0] + v_01_h[0], tri[0][1] + v_01_h[1]]
+                        h_02 = [tri[0][0] + v_02_h[0], tri[0][1] + v_02_h[1]]
+                        h_12 = [tri[0][0] + v_01_h[0] + v_02_h[0], tri[0][1] + v_01_h[1] + v_02_h[1]]
+
+                        tri_stack.append((tri[0], h_01, h_02, area, iteration))
+                        tri_stack.append((h_02, h_01, h_12, area, iteration))
+                        tri_stack.append((h_01, tri[1], h_12, area, iteration))
+                        tri_stack.append((h_02, h_12, tri[2], area, iteration))
             else:
                 # Per pixel Gouraud shading
                 v_a = (points[0][0], points[0][1])
