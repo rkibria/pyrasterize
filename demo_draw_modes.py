@@ -17,9 +17,9 @@ from pyrasterize import model_file_io
 
 # CONSTANTS
 
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 320, 240
+RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
-PYGAME_SCR_SIZE = (800, 600)
+PYGAME_SCR_SIZE = (640, 480)
 
 RGB_BLACK = (0, 0, 0)
 
@@ -51,7 +51,7 @@ def main_function():
     """Main"""
     pygame.init()
 
-    screen = pygame.display.set_mode(PYGAME_SCR_SIZE)
+    screen = pygame.display.set_mode(PYGAME_SCR_SIZE, pygame.SCALED)
     pygame.display.set_caption("pyrasterize drawing modes demo")
     clock = pygame.time.Clock()
 
@@ -68,9 +68,13 @@ def main_function():
 
     for file in glob.glob("assets/*.obj"):
         print(os.path.basename(file))
-        model = model_file_io.get_model_from_obj_file(file)
-        instances.append([os.path.basename(file), rasterizer.get_model_instance(model, vecmat.get_scal_m4(1, 1, 1))])
+        try:
+            model = model_file_io.get_model_from_obj_file(file)
+            instances.append([os.path.basename(file), rasterizer.get_model_instance(model, vecmat.get_scal_m4(1, 1, 1))])
+        except:
+            print(f"Error loading {file}, skipping")
 
+    gouraud_max_iterations = 0
     for name,instance in instances:
         scene_graph["root"]["children"][name] = instance
         print(f"- {name}: {len(instance['model']['tris'])} triangles")
@@ -81,51 +85,50 @@ def main_function():
     textblock_drawmode = font.render("", True, TEXT_COLOR)
     textblock_model = font.render("", True, TEXT_COLOR)
     textblock_scale = font.render("", True, TEXT_COLOR)
+    textblock_gouraud_its = font.render("", True, TEXT_COLOR)
 
     drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
     OVERLAY_DRAWING_MODE = 2
     drawing_mode = 0
-    model_scale = 1.0
+    model_scale = 1
 
     def regenerate_textblocks():
         nonlocal textblock_drawmode
         nonlocal textblock_model
         nonlocal textblock_scale
-        textblock_drawmode = font.render(f"Draw mode (left button toggles): {drawing_mode_names[drawing_mode]}", True, TEXT_COLOR)
-        textblock_model = font.render(f"Model (right button toggles): {instances[cur_inst][0]}", True, TEXT_COLOR)
-        textblock_scale = font.render(f"Scale (wheel up/down): {round(model_scale, 1)}", True, TEXT_COLOR)
+        nonlocal textblock_gouraud_its
+        textblock_drawmode = font.render(f"Draw mode (Q/A): {drawing_mode_names[drawing_mode]}", True, TEXT_COLOR)
+        textblock_model = font.render(f"Model (W/S): {instances[cur_inst][0]}", True, TEXT_COLOR)
+        textblock_scale = font.render(f"Scale (wheel up/down): {model_scale}", True, TEXT_COLOR)
+        textblock_gouraud_its = font.render(f"Gouraud subdivions (E/D): {'per pixel' if gouraud_max_iterations == 0 else str(gouraud_max_iterations)}", True, TEXT_COLOR)
 
     def set_draw_mode():
         """Set the cube instance's drawing parameters according to current mode"""
         nonlocal drawing_mode
         nonlocal instances
         nonlocal cur_inst
+        nonlocal gouraud_max_iterations
         for i in range(len(instances)):
             instances[i][1]["enabled"] = (i == cur_inst)
         instances[cur_inst][1]["gouraud"] = (drawing_mode == 0)
         instances[cur_inst][1]["wireframe"] = (drawing_mode == 2 or drawing_mode == 3)
         instances[cur_inst][1]["noCulling"] = (drawing_mode == 3)
         instances[cur_inst][1]["preproc_m4"] = vecmat.get_scal_m4(model_scale, model_scale, model_scale)
+        instances[cur_inst][1]["gouraud_max_iterations"] = gouraud_max_iterations
+        # instances[cur_inst][1]["use_minimum_z_order"] = True
 
+    up_scale_factor = 1.1
     def on_mouse_button_down(event):
-        """Handle mouse button down/mouse wheel down"""
-        if event.button == 1:
-            nonlocal drawing_mode
-            drawing_mode = drawing_mode + 1 if drawing_mode < 3 else 0
-        elif event.button == 3:
-            nonlocal cur_inst
-            cur_inst = cur_inst + 1 if cur_inst < (len(instances) - 1) else 0
-        elif event.button == 5:
+        if event.button == 5:
             nonlocal model_scale
-            model_scale = (model_scale - 0.1) if model_scale > 0.1 else 0.1
+            model_scale *= 1 / up_scale_factor
         set_draw_mode()
         regenerate_textblocks()
 
     def on_mouse_button_up(event):
-        """Handle mouse button up/mouse wheel up"""
         if event.button == 4:
             nonlocal model_scale
-            model_scale += 0.1
+            model_scale *= up_scale_factor
         set_draw_mode()
         regenerate_textblocks()
 
@@ -161,6 +164,30 @@ def main_function():
                     frame += 1
                 elif event.key == pygame.K_ESCAPE:
                     done = True
+                elif event.key == pygame.K_q:
+                    drawing_mode = drawing_mode + 1 if drawing_mode < 3 else 0
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_a:
+                    drawing_mode = drawing_mode - 1 if drawing_mode > 0 else 3
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_w:
+                    cur_inst = cur_inst + 1 if cur_inst < (len(instances) - 1) else 0
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_s:
+                    cur_inst = cur_inst - 1 if cur_inst > 0 else (len(instances) - 1)
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_e:
+                    gouraud_max_iterations += 1
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_d:
+                    gouraud_max_iterations = max(0, gouraud_max_iterations - 1)
+                    set_draw_mode()
+                    regenerate_textblocks()
 
         offscreen.fill(RGB_BLACK)
         draw_scene_graph(offscreen, frame, scene_graph)
@@ -180,7 +207,8 @@ def main_function():
         screen.blit(textblock_drawmode, (30, 20))
         screen.blit(textblock_model, (30, 50))
         screen.blit(textblock_scale, (30, 80))
-        screen.blit(textblock_fps, (30, 110))
+        screen.blit(textblock_gouraud_its, (30, 110))
+        screen.blit(textblock_fps, (30, 140))
 
         pygame.display.flip()
         frame += 1 if not paused else 0

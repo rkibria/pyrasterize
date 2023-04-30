@@ -242,6 +242,13 @@ def get_triangle_area(a, b, c):
     t = cross_vec3(sub_vec3(b, a), sub_vec3(c, a))
     return 0.5 * mag_vec3(t)
 
+def get_2d_triangle_area(v1, v2, v3):
+    """Area of triangle formed by 3 vec2s"""
+    v_12 = (v2[0] - v1[0], v2[1] - v1[1]) # a,b
+    v_13 = (v3[0] - v1[0], v3[1] - v1[1]) # c,d
+    cross = v_12[0] * v_13[1] - v_12[1] * v_13[0] # ad-bc
+    return abs(cross / 2)
+
 def get_vec2_triangle_centroid(v_a, v_b, v_c):
     """Get centroid point of a two-dimensional triangle"""
     cx = (v_a[0] + v_b[0] + v_c[0]) / 3
@@ -254,3 +261,7 @@ def get_vec3_triangle_centroid(v_a, v_b, v_c):
     cy = (v_a[1] + v_b[1] + v_c[1]) / 3
     cz = (v_a[2] + v_b[2] + v_c[2]) / 3
     return [cx, cy, cz]
+
+def get_average_color(c_0, c_1, c_2):
+    """Average of 3 RGB colors"""
+    return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]

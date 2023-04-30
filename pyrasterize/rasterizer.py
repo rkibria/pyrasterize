@@ -5,6 +5,8 @@
 3D rasterizer engine
 """
 
+from collections import deque
+
 import pygame
 
 DEBUG_FONT = None
@@ -397,6 +399,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_colors = model["colors"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
+    gouraud_max_iterations = instance["gouraud_max_iterations"] if "gouraud_max_iterations" in instance else 1 # default gouraud is 1 subdivision
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
     pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
     if pointlight_enabled:
@@ -474,8 +477,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
             intensity = min(1, intensity)
             color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
-        else: # draw_mode == DRAW_MODE_GOURAUD
-            color_data = [vert_colors[vert_idx] for vert_idx in tri]
+        else: # draw_mode == DRAW_MODE_GOURAUD: (tri_color1, tri_color2, tri_color3, gouraud_max_iterations)
+            color_data = [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]
 
         scene_triangles.append((
             z_order,
@@ -533,18 +536,17 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
     for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
+            gouraud_max_iterations = color_data[3]
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
 
-            avg_color = [(i+j+k)/3.0 for i,j,k in zip(color_data[0], color_data[1], color_data[2])]
+            avg_color = vecmat.get_average_color(color_data[0], color_data[1], color_data[2])
             col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
                         for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
             if col_diff <= 20:
                 pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
                 continue
-
-            px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
 
             # v_ab = vecmat.sub_vec3(v_b, v_a)
             v_ab_0 = v_b[0] - v_a[0]
@@ -557,39 +559,80 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
             area_full_sq = v_n * v_n
 
-            if area_full_sq > 0:
-                # p = (x, y, 0)
-                # v_bc = vecmat.sub_vec3(v_c, v_b)
-                v_bc_0 = v_c[0] - v_b[0]
-                v_bc_1 = v_c[1] - v_b[1]
-                # v_ca = vecmat.sub_vec3(v_a, v_c)
-                v_ca_0 = v_a[0] - v_c[0]
-                v_ca_1 = v_a[1] - v_c[1]
+            if area_full_sq <= 10:
+                pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                continue
+
+            # p = (x, y, 0)
+            # v_bc = vecmat.sub_vec3(v_c, v_b)
+            v_bc_0 = v_c[0] - v_b[0]
+            v_bc_1 = v_c[1] - v_b[1]
+            # v_ca = vecmat.sub_vec3(v_a, v_c)
+            v_ca_0 = v_a[0] - v_c[0]
+            v_ca_1 = v_a[1] - v_c[1]
+
+            def get_interpolated_color(x, y):
+                # v_bp = vecmat.sub_vec3(p, v_b)
+                v_bp_0 = x - v_b[0]
+                v_bp_1 = y - v_b[1]
+                # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
+                v_n1 = v_bc_0 * v_bp_1 - v_bc_1 * v_bp_0
+                # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
+                u = (v_n * v_n1) / area_full_sq
+                # v_cp = vecmat.sub_vec3(p, v_c)
+                v_cp_0 = x - v_c[0]
+                v_cp_1 = y - v_c[1]
+                # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
+                v_n2 = v_ca_0 * v_cp_1 - v_ca_1 * v_cp_0
+                # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
+                v = (v_n * v_n2) / area_full_sq
+                w = 1 - u - v
+
+                r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
+                g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
+                b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
+                return (r, g, b)
+
+            if gouraud_max_iterations > 0:
+                tri_stack = deque() # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
+                tri_stack.append((v_a, v_b, v_c, vecmat.get_2d_triangle_area(v_a, v_b, v_c), 0))
+
+                while tri_stack:
+                    tri = tri_stack.popleft()
+                    area = tri[3]
+                    iteration = tri[4]
+                    if area < 10 or iteration == gouraud_max_iterations:
+                        c_0 = get_interpolated_color(tri[0][0], tri[0][1])
+                        c_1 = get_interpolated_color(tri[1][0], tri[1][1])
+                        c_2 = get_interpolated_color(tri[2][0], tri[2][1])
+                        avg_color = vecmat.get_average_color(c_0, c_1, c_2)
+                        pygame.draw.polygon(surface, avg_color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
+                    else:
+                        area /= 4
+                        iteration += 1
+                        v_01 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]]
+                        v_02 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1]]
+
+                        v_01_h = [v_01[0] / 2, v_01[1] / 2]
+                        v_02_h = [v_02[0] / 2, v_02[1] / 2]
+
+                        h_01 = [tri[0][0] + v_01_h[0], tri[0][1] + v_01_h[1]]
+                        h_02 = [tri[0][0] + v_02_h[0], tri[0][1] + v_02_h[1]]
+                        h_12 = [tri[0][0] + v_01_h[0] + v_02_h[0], tri[0][1] + v_01_h[1] + v_02_h[1]]
+
+                        tri_stack.append((tri[0], h_01, h_02, area, iteration))
+                        tri_stack.append((h_02, h_01, h_12, area, iteration))
+                        tri_stack.append((h_01, tri[1], h_12, area, iteration))
+                        tri_stack.append((h_02, h_12, tri[2], area, iteration))
+            else:
+                # Per pixel Gouraud shading
+                px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
                 for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                     if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
                         continue
-                    # v_bp = vecmat.sub_vec3(p, v_b)
-                    v_bp_0 = x - v_b[0]
-                    v_bp_1 = y - v_b[1]
-                    # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
-                    v_n1 = v_bc_0 * v_bp_1 - v_bc_1 * v_bp_0
-                    # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
-                    u = (v_n * v_n1) / area_full_sq
-
-                    # v_cp = vecmat.sub_vec3(p, v_c)
-                    v_cp_0 = x - v_c[0]
-                    v_cp_1 = y - v_c[1]
-                    # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
-                    v_n2 = v_ca_0 * v_cp_1 - v_ca_1 * v_cp_0
-                    # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
-                    v = (v_n * v_n2) / area_full_sq
-
-                    w = 1 - u - v
-                    r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
-                    g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
-                    b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
+                    r,g,b = get_interpolated_color(x, y)
                     px_array[x, y] = (r << 16) | (g << 8) | b
-            del px_array
+                del px_array
         elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color_data, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:

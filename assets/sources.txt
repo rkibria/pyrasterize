@@ -18,6 +18,9 @@ explosion_pixelfied.png
 https://opengameart.org/content/zombie-and-skeleton-32x48 by Reemax - CC0 license
 zombie_n_skeleton2.png
 
+https://opengameart.org/content/random-items-created-for-twitch-integrated-throwing-system by innkeeper_aria - CC0 license
+tea_pot.obj
+
 --
 
 Utah teapot obj files available at https://graphics.cs.utah.edu/courses/cs6620/fall2017/?prj=5
