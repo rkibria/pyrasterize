@@ -571,7 +571,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             v_ca_0 = v_a[0] - v_c[0]
             v_ca_1 = v_a[1] - v_c[1]
 
-            def get_uvw(x, y):
+            def get_interpolated_color(x, y):
                 # v_bp = vecmat.sub_vec3(p, v_b)
                 v_bp_0 = x - v_b[0]
                 v_bp_1 = y - v_b[1]
@@ -587,10 +587,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
                 v = (v_n * v_n2) / area_full_sq
                 w = 1 - u - v
-                return (u, v, w)
 
-            def get_interpolated_color(x, y):
-                u, v, w = get_uvw(x, y)
                 r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
                 g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
                 b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
@@ -599,7 +596,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             tri_stack = deque() # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
             tri_stack.append((v_a, v_b, v_c, get_2d_tri_area(v_a, v_b, v_c), 0))
 
-            max_iterations = 1
+            max_iterations = 2
             while tri_stack:
                 tri = tri_stack.popleft()
                 area = tri[3]
@@ -617,11 +614,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     tri_stack.append((tri[0], tri[1], centroid,  area,  iteration))
                     tri_stack.append((tri[0], tri[2], centroid,  area,  iteration))
                     tri_stack.append((tri[1], tri[2], centroid,  area,  iteration))
-
-            # centroid = vecmat.get_vec2_triangle_centroid(v_a, v_b, v_c)
-            # pygame.draw.polygon(surface, (255, 0, 0), ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (centroid[0], centroid[1])))
-            # pygame.draw.polygon(surface, (0, 255, 0), ((v_a[0], v_a[1]), (v_c[0], v_c[1]), (centroid[0], centroid[1])))
-            # pygame.draw.polygon(surface, (0, 0, 255), ((v_b[0], v_b[1]), (v_c[0], v_c[1]), (centroid[0], centroid[1])))
             continue
 
             avg_color = [(i+j+k)/3.0 for i,j,k in zip(color_data[0], color_data[1], color_data[2])]
