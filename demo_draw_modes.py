@@ -94,10 +94,10 @@ def main_function():
         nonlocal textblock_model
         nonlocal textblock_scale
         nonlocal textblock_gouraud_its
-        textblock_drawmode = font.render(f"Draw mode (left button toggles): {drawing_mode_names[drawing_mode]}", True, TEXT_COLOR)
-        textblock_model = font.render(f"Model (right button toggles): {instances[cur_inst][0]}", True, TEXT_COLOR)
-        textblock_scale = font.render(f"Scale (wheel up/down): {round(model_scale, 1)}", True, TEXT_COLOR)
-        textblock_gouraud_its = font.render(f"Gouraud subdivions (Q/A): {'per pixel' if gouraud_max_iterations == 0 else str(gouraud_max_iterations)}", True, TEXT_COLOR)
+        textblock_drawmode = font.render(f"Draw mode (Q/A): {drawing_mode_names[drawing_mode]}", True, TEXT_COLOR)
+        textblock_model = font.render(f"Model (W/S): {instances[cur_inst][0]}", True, TEXT_COLOR)
+        textblock_scale = font.render(f"Scale (wheel up/down): {model_scale}", True, TEXT_COLOR)
+        textblock_gouraud_its = font.render(f"Gouraud subdivions (E/D): {'per pixel' if gouraud_max_iterations == 0 else str(gouraud_max_iterations)}", True, TEXT_COLOR)
 
     def set_draw_mode():
         """Set the cube instance's drawing parameters according to current mode"""
@@ -113,25 +113,18 @@ def main_function():
         instances[cur_inst][1]["preproc_m4"] = vecmat.get_scal_m4(model_scale, model_scale, model_scale)
         instances[cur_inst][1]["gouraud_max_iterations"] = gouraud_max_iterations
 
+    up_scale_factor = 1.1
     def on_mouse_button_down(event):
-        """Handle mouse button down/mouse wheel down"""
-        if event.button == 1:
-            nonlocal drawing_mode
-            drawing_mode = drawing_mode + 1 if drawing_mode < 3 else 0
-        elif event.button == 3:
-            nonlocal cur_inst
-            cur_inst = cur_inst + 1 if cur_inst < (len(instances) - 1) else 0
-        elif event.button == 5:
+        if event.button == 5:
             nonlocal model_scale
-            model_scale = (model_scale - 0.1) if model_scale > 0.1 else 0.1
+            model_scale *= 1 / up_scale_factor
         set_draw_mode()
         regenerate_textblocks()
 
     def on_mouse_button_up(event):
-        """Handle mouse button up/mouse wheel up"""
         if event.button == 4:
             nonlocal model_scale
-            model_scale += 0.1
+            model_scale *= up_scale_factor
         set_draw_mode()
         regenerate_textblocks()
 
@@ -168,10 +161,26 @@ def main_function():
                 elif event.key == pygame.K_ESCAPE:
                     done = True
                 elif event.key == pygame.K_q:
-                    gouraud_max_iterations += 1
+                    drawing_mode = drawing_mode + 1 if drawing_mode < 3 else 0
                     set_draw_mode()
                     regenerate_textblocks()
                 elif event.key == pygame.K_a:
+                    drawing_mode = drawing_mode - 1 if drawing_mode > 0 else 3
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_w:
+                    cur_inst = cur_inst + 1 if cur_inst < (len(instances) - 1) else 0
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_s:
+                    cur_inst = cur_inst - 1 if cur_inst > 0 else (len(instances) - 1)
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_e:
+                    gouraud_max_iterations += 1
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_d:
                     gouraud_max_iterations = max(0, gouraud_max_iterations - 1)
                     set_draw_mode()
                     regenerate_textblocks()
