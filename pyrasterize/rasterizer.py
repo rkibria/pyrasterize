@@ -399,7 +399,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_colors = model["colors"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
-    gouraud_max_iterations = instance["gouraud_max_iterations"] if "gouraud_max_iterations" in instance else 0 # per pixel gouraud if 0
+    gouraud_max_iterations = instance["gouraud_max_iterations"] if "gouraud_max_iterations" in instance else 1 # default gouraud is 1 subdivision
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
     pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
     if pointlight_enabled:

@@ -48,7 +48,7 @@ def get_new_pea_loc(pea_loc, n_swap):
 
 # VIEW SETTINGS
 
-SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 800, 600
+SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 640, 480
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
 CAMERA = { "pos": [0, 4, 7],
@@ -69,13 +69,18 @@ def create_scene_graph():
     for i in range(3):
         name = "shell_" + str(i)
         scene_graph["root"]["children"][name] = rasterizer.get_model_instance(
-            meshes.get_cylinder_mesh(SHELL_LENGTH, 1, 50, (100, 100, 230),
+            meshes.get_cylinder_mesh(SHELL_LENGTH, 1, 10, (100, 100, 230),
             close_bottom=False, top_offset=0.5),
             xform_m4=vecmat.get_transl_m4(-SHELL_DIST + i * SHELL_DIST, 0, 0))
-        scene_graph["root"]["children"][name]["bound_sph_r"] = 1
+        shell = scene_graph["root"]["children"][name]
+        shell["bound_sph_r"] = 1
+        shell["gouraud"] = True
+        shell["gouraud_max_iterations"] = 3
     scene_graph["root"]["children"]["pea"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(PEA_RADIUS, 16, 16, (200, 20, 20)),
         xform_m4=vecmat.get_transl_m4(-SHELL_DIST, 0, 0))
+    pea = scene_graph["root"]["children"]["pea"]
+    pea["gouraud"] = True
     return scene_graph
 
 def set_pea_pos(scene_graph, n_shell):
@@ -276,7 +281,7 @@ def main_function():
     pygame.init()
     random.seed()
 
-    screen = pygame.display.set_mode(SCR_SIZE)
+    screen = pygame.display.set_mode(SCR_SIZE, pygame.SCALED)
     pygame.display.set_caption("Shell Game")
     clock = pygame.time.Clock()
 
