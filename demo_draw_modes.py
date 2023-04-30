@@ -17,9 +17,9 @@ from pyrasterize import model_file_io
 
 # CONSTANTS
 
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 320, 240
+RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
-PYGAME_SCR_SIZE = (800, 600)
+PYGAME_SCR_SIZE = (640, 480)
 
 RGB_BLACK = (0, 0, 0)
 
@@ -51,7 +51,7 @@ def main_function():
     """Main"""
     pygame.init()
 
-    screen = pygame.display.set_mode(PYGAME_SCR_SIZE)
+    screen = pygame.display.set_mode(PYGAME_SCR_SIZE, pygame.SCALED)
     pygame.display.set_caption("pyrasterize drawing modes demo")
     clock = pygame.time.Clock()
 
@@ -72,6 +72,7 @@ def main_function():
         instances.append([os.path.basename(file), rasterizer.get_model_instance(model, vecmat.get_scal_m4(1, 1, 1))])
 
     for name,instance in instances:
+        instance["gouraud_max_iterations"] = 1
         scene_graph["root"]["children"][name] = instance
         print(f"- {name}: {len(instance['model']['tris'])} triangles")
     cur_inst = 0
