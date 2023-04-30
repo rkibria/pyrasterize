@@ -71,42 +71,47 @@ def main_function():
         model = model_file_io.get_model_from_obj_file(file)
         instances.append([os.path.basename(file), rasterizer.get_model_instance(model, vecmat.get_scal_m4(1, 1, 1))])
 
+    gouraud_max_iterations = 0
     for name,instance in instances:
-        instance["gouraud_max_iterations"] = 1
         scene_graph["root"]["children"][name] = instance
         print(f"- {name}: {len(instance['model']['tris'])} triangles")
-    cur_inst = 0
+    cur_inst = len(instances) - 1
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
     textblock_drawmode = font.render("", True, TEXT_COLOR)
     textblock_model = font.render("", True, TEXT_COLOR)
     textblock_scale = font.render("", True, TEXT_COLOR)
+    textblock_gouraud_its = font.render("", True, TEXT_COLOR)
 
     drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
     OVERLAY_DRAWING_MODE = 2
     drawing_mode = 0
-    model_scale = 1.0
+    model_scale = 0.1
 
     def regenerate_textblocks():
         nonlocal textblock_drawmode
         nonlocal textblock_model
         nonlocal textblock_scale
+        nonlocal textblock_gouraud_its
         textblock_drawmode = font.render(f"Draw mode (left button toggles): {drawing_mode_names[drawing_mode]}", True, TEXT_COLOR)
         textblock_model = font.render(f"Model (right button toggles): {instances[cur_inst][0]}", True, TEXT_COLOR)
         textblock_scale = font.render(f"Scale (wheel up/down): {round(model_scale, 1)}", True, TEXT_COLOR)
+        textblock_gouraud_its = font.render(f"Gouraud subdivions (Q/A): {'per pixel' if gouraud_max_iterations == 0 else str(gouraud_max_iterations)}", True, TEXT_COLOR)
 
     def set_draw_mode():
         """Set the cube instance's drawing parameters according to current mode"""
         nonlocal drawing_mode
         nonlocal instances
         nonlocal cur_inst
+        nonlocal gouraud_max_iterations
         for i in range(len(instances)):
             instances[i][1]["enabled"] = (i == cur_inst)
         instances[cur_inst][1]["gouraud"] = (drawing_mode == 0)
         instances[cur_inst][1]["wireframe"] = (drawing_mode == 2 or drawing_mode == 3)
         instances[cur_inst][1]["noCulling"] = (drawing_mode == 3)
         instances[cur_inst][1]["preproc_m4"] = vecmat.get_scal_m4(model_scale, model_scale, model_scale)
+        instances[cur_inst][1]["gouraud_max_iterations"] = gouraud_max_iterations
 
     def on_mouse_button_down(event):
         """Handle mouse button down/mouse wheel down"""
@@ -162,6 +167,14 @@ def main_function():
                     frame += 1
                 elif event.key == pygame.K_ESCAPE:
                     done = True
+                elif event.key == pygame.K_q:
+                    gouraud_max_iterations += 1
+                    set_draw_mode()
+                    regenerate_textblocks()
+                elif event.key == pygame.K_a:
+                    gouraud_max_iterations = max(0, gouraud_max_iterations - 1)
+                    set_draw_mode()
+                    regenerate_textblocks()
 
         offscreen.fill(RGB_BLACK)
         draw_scene_graph(offscreen, frame, scene_graph)
@@ -181,7 +194,8 @@ def main_function():
         screen.blit(textblock_drawmode, (30, 20))
         screen.blit(textblock_model, (30, 50))
         screen.blit(textblock_scale, (30, 80))
-        screen.blit(textblock_fps, (30, 110))
+        screen.blit(textblock_gouraud_its, (30, 110))
+        screen.blit(textblock_fps, (30, 140))
 
         pygame.display.flip()
         frame += 1 if not paused else 0
