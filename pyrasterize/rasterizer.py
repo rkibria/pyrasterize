@@ -551,6 +551,13 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 v_b = (points[1][0], points[1][1])
                 v_c = (points[2][0], points[2][1])
 
+                avg_color = get_average_color(color_data[0], color_data[1], color_data[2])
+                col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
+                            for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
+                if col_diff <= 20:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    continue
+
                 # v_ab = vecmat.sub_vec3(v_b, v_a)
                 v_ab_0 = v_b[0] - v_a[0]
                 v_ab_1 = v_b[1] - v_a[1]
@@ -562,9 +569,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
                 area_full_sq = v_n * v_n
 
-                if area_full_sq < 10:
-                    pygame.draw.polygon(surface, get_average_color(color_data[0], color_data[1], color_data[2]),
-                                        ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                if area_full_sq <= 10:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
                     continue
 
                 # p = (x, y, 0)
