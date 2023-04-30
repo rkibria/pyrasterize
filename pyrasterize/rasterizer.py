@@ -534,15 +534,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
-    def get_2d_tri_area(v1, v2, v3):
-        v_12 = (v2[0] - v1[0], v2[1] - v1[1]) # a,b
-        v_13 = (v3[0] - v1[0], v3[1] - v1[1]) # c,d
-        cross = v_12[0] * v_13[1] - v_12[1] * v_13[0] # ad-bc
-        return abs(cross / 2)
-
-    def get_average_color(c_0, c_1, c_2):
-        return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]
-
     for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
             gouraud_max_iterations = color_data[3]
@@ -550,7 +541,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
 
-            avg_color = get_average_color(color_data[0], color_data[1], color_data[2])
+            avg_color = vecmat.get_average_color(color_data[0], color_data[1], color_data[2])
             col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
                         for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
             if col_diff <= 20:
@@ -604,7 +595,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
             if gouraud_max_iterations > 0:
                 tri_stack = deque() # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
-                tri_stack.append((v_a, v_b, v_c, get_2d_tri_area(v_a, v_b, v_c), 0))
+                tri_stack.append((v_a, v_b, v_c, vecmat.get_2d_triangle_area(v_a, v_b, v_c), 0))
 
                 while tri_stack:
                     tri = tri_stack.popleft()
@@ -614,7 +605,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                         c_0 = get_interpolated_color(tri[0][0], tri[0][1])
                         c_1 = get_interpolated_color(tri[1][0], tri[1][1])
                         c_2 = get_interpolated_color(tri[2][0], tri[2][1])
-                        avg_color = get_average_color(c_0, c_1, c_2)
+                        avg_color = vecmat.get_average_color(c_0, c_1, c_2)
                         pygame.draw.polygon(surface, avg_color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
                     else:
                         area /= 4
