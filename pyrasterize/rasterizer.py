@@ -596,13 +596,15 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
                 return (r, g, b)
 
-            tri_stack = deque() # (vec2: point, vec2: point, vec2: point, float: area)
-            tri_stack.append((v_a, v_b, v_c, get_2d_tri_area(v_a, v_b, v_c)))
+            tri_stack = deque() # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
+            tri_stack.append((v_a, v_b, v_c, get_2d_tri_area(v_a, v_b, v_c), 0))
 
+            max_iterations = 1
             while tri_stack:
                 tri = tri_stack.popleft()
                 area = tri[3]
-                if area < 10:
+                iteration = tri[4]
+                if area < 10 or iteration == max_iterations:
                     c_0 = get_interpolated_color(tri[0][0], tri[0][1])
                     c_1 = get_interpolated_color(tri[1][0], tri[1][1])
                     c_2 = get_interpolated_color(tri[2][0], tri[2][1])
@@ -611,9 +613,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 else:
                     centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
                     area /= 3
-                    tri_stack.append((tri[0], tri[1], centroid,  area))
-                    tri_stack.append((tri[0], tri[2], centroid,  area))
-                    tri_stack.append((tri[1], tri[2], centroid,  area))
+                    iteration += 1
+                    tri_stack.append((tri[0], tri[1], centroid,  area,  iteration))
+                    tri_stack.append((tri[0], tri[2], centroid,  area,  iteration))
+                    tri_stack.append((tri[1], tri[2], centroid,  area,  iteration))
 
             # centroid = vecmat.get_vec2_triangle_centroid(v_a, v_b, v_c)
             # pygame.draw.polygon(surface, (255, 0, 0), ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (centroid[0], centroid[1])))
