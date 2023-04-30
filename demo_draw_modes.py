@@ -78,7 +78,7 @@ def main_function():
     for name,instance in instances:
         scene_graph["root"]["children"][name] = instance
         print(f"- {name}: {len(instance['model']['tris'])} triangles")
-    cur_inst = len(instances) - 1
+    cur_inst = 0
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -90,7 +90,7 @@ def main_function():
     drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
     OVERLAY_DRAWING_MODE = 2
     drawing_mode = 0
-    model_scale = 0.1
+    model_scale = 1
 
     def regenerate_textblocks():
         nonlocal textblock_drawmode
