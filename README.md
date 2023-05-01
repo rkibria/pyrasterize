@@ -21,3 +21,5 @@ First person game/billboard sprites demo: https://i.imgur.com/5fZugHX.png video 
 3D labyrinth first person demo: https://i.imgur.com/zLBnNwk.mp4 video - on itch.io: https://pelicanicious.itch.io/pyrasterize-labyrinth
 
 Particles demo: https://i.imgur.com/WGhYuGs.mp4
+
+Fast pseudo Gouraud implementation demo: https://www.reddit.com/r/pygame/comments/1347a71/a_pseudo_gouraud_shading_algorithm_for_software/
