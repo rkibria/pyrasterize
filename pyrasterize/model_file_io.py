@@ -5,6 +5,8 @@
 Model file loading functions
 """
 
+import os, pathlib
+
 def get_model_from_obj_file(fname):
     """Return model loaded from a Wavefront .obj file"""
     with open(fname, encoding="utf-8") as file:
@@ -13,15 +15,30 @@ def get_model_from_obj_file(fname):
 
     mesh = {"verts": [], "tris": [], "colors": []}
     cur_color = (200, 200, 200)
+    mtl_colors = {}
     for line in content:
         if line.startswith("v "):
             tokens = line.split()
             mesh["verts"].append((float(tokens[1]), float(tokens[2]), float(tokens[3])))
-        elif line.startswith("usemtl "):
+        if line.startswith("mtllib "):
             tokens = line.split()[1:]
-            mtl = tokens[0]
-            if len(mtl) == 6:
-                cur_color = (int(mtl[0:2], 16), int(mtl[2:4], 16), int(mtl[4:6], 16))
+            mtl_filename = tokens[0]
+            mtl_filename = os.path.join(os.path.dirname(os.path.abspath(fname)), mtl_filename)
+            with open(mtl_filename, encoding="utf-8") as file:
+                mtl_content = file.readlines()
+            mtl_content = [x.strip() for x in mtl_content]
+            cur_mtl = None
+            for mtl_line in mtl_content:
+                if mtl_line.startswith("newmtl "):
+                    cur_mtl = mtl_line.split()[1]
+                elif mtl_line.startswith("Kd "):
+                    tokens = mtl_line.split()[1:]
+                    color = [int(float(tokens[i]) * 255) for i in range(3)]
+                    mtl_colors[cur_mtl] = color
+        elif line.startswith("usemtl "):
+            mtl = line.split()[1]
+            if mtl in mtl_colors:
+                cur_color = mtl_colors[mtl]
         elif line.startswith("f "):
             indices = []
             tokens = line.split()[1:]
@@ -36,5 +53,5 @@ def get_model_from_obj_file(fname):
                     mesh["colors"].append(cur_color)
             else:
                 print("? indices " + str(indices))
-    print(f"--- loaded {fname}: {len(mesh['verts'])} vertices, {len(mesh['tris'])} triangles")
+    # print(f"--- loaded {fname}: {len(mesh['verts'])} vertices, {len(mesh['tris'])} triangles")
     return mesh
