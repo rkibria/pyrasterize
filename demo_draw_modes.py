@@ -74,7 +74,7 @@ def main_function():
         except:
             print(f"Error loading {file}, skipping")
 
-    gouraud_max_iterations = 0
+    gouraud_max_iterations = 1
     for name,instance in instances:
         scene_graph["root"]["children"][name] = instance
         print(f"- {name}: {len(instance['model']['tris'])} triangles")
