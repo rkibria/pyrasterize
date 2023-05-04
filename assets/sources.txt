@@ -24,6 +24,9 @@ tea_pot.obj
 https://opengameart.org/content/food-kit by Kenney - CC0 license
 apple.obj, apple.mtl
 
+https://commons.wikimedia.org/wiki/File:Mona_Lisa.jpg - Public domain
+Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.png
+
 --
 
 Utah teapot obj files available at https://graphics.cs.utah.edu/courses/cs6620/fall2017/?prj=5
