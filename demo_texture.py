@@ -31,13 +31,23 @@ def main_function():
     pygame.display.set_caption("pyrasterize demo")
     clock = pygame.time.Clock()
 
+    file_name = "assets/Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.png"
+    img = pygame.image.load(file_name).convert_alpha()
+    tex_data = []
+    for y in range(img.get_height()):
+        row = []
+        for x in range(img.get_width()):
+            rgb = img.get_at((x, y))[:3]
+            row.append(rgb)
+        tex_data.append(row)
+    tex_data.reverse()
+
     scene_graph = {"root": rasterizer.get_model_instance(None)}
     scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_test_triangle_mesh())
+    scene_graph["root"]["children"]["cube"]["model"]["texture"] = tex_data
     scene_graph["root"]["children"]["cube"]["gouraud"] = True
     scene_graph["root"]["children"]["cube"]["gouraud_max_iterations"] = 0
     scene_graph["root"]["children"]["cube"]["textured"] = True
-
-    font = pygame.font.Font(None, 30)
 
     frame = 0
     done = False
