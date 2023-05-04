@@ -400,6 +400,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
     gouraud_max_iterations = instance["gouraud_max_iterations"] if "gouraud_max_iterations" in instance else 1 # default gouraud is 1 subdivision
+    textured = draw_gouraud_shaded and (("textured" in instance) and instance["textured"])
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
     pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
     if pointlight_enabled:
@@ -478,7 +479,12 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             intensity = min(1, intensity)
             color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
         else: # draw_mode == DRAW_MODE_GOURAUD: (tri_color1, tri_color2, tri_color3, gouraud_max_iterations)
-            color_data = [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]
+            # color_data = [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]
+            if textured:
+                uv = model["uv"]
+                color_data = [textured, [uv[vert_idx] for vert_idx in tri], model["texture"]]
+            else:
+                color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]]
 
         scene_triangles.append((
             z_order,
@@ -536,17 +542,22 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
     for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
-            gouraud_max_iterations = color_data[3]
+            textured = color_data[0]
+
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
 
-            avg_color = vecmat.get_average_color(color_data[0], color_data[1], color_data[2])
-            col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
-                        for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
-            if col_diff <= 20:
-                pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
-                continue
+            if not textured:
+                gouraud_max_iterations = color_data[3]
+                avg_color = vecmat.get_average_color(color_data[0], color_data[1], color_data[2])
+                col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
+                            for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
+                if col_diff <= 20:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    continue
+            else:
+                gouraud_max_iterations = 0 # TODO
 
             # v_ab = vecmat.sub_vec3(v_b, v_a)
             v_ab_0 = v_b[0] - v_a[0]
@@ -559,9 +570,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
             area_full_sq = v_n * v_n
 
-            if area_full_sq <= 10:
-                pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
-                continue
+            if not textured:
+                if area_full_sq <= 10:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    continue
 
             # p = (x, y, 0)
             # v_bc = vecmat.sub_vec3(v_c, v_b)
@@ -571,7 +583,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             v_ca_0 = v_a[0] - v_c[0]
             v_ca_1 = v_a[1] - v_c[1]
 
-            def get_interpolated_color(x, y):
+            def get_uvw(x, y):
                 # v_bp = vecmat.sub_vec3(p, v_b)
                 v_bp_0 = x - v_b[0]
                 v_bp_1 = y - v_b[1]
@@ -586,8 +598,10 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 v_n2 = v_ca_0 * v_cp_1 - v_ca_1 * v_cp_0
                 # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
                 v = (v_n * v_n2) / area_full_sq
-                w = 1 - u - v
+                return u, v, 1 - u - v
 
+            def get_interpolated_color(x, y):
+                u,v,w = get_uvw(x, y)
                 r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
                 g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
                 b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
@@ -627,11 +641,22 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             else:
                 # Per pixel Gouraud shading
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
-                for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
-                    if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
-                        continue
-                    r,g,b = get_interpolated_color(x, y)
-                    px_array[x, y] = (r << 16) | (g << 8) | b
+                if textured:
+                    uv = color_data[1]
+                    texture = color_data[2]
+                    for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                        if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
+                            continue
+                        u,v,w = get_uvw(x, y)
+                        s = uv[0][0] * u + uv[1][0] * v + uv[2][0] * w
+                        t = uv[0][1] * u + uv[1][1] * v + uv[2][1] * w
+                        px_array[x, y] = (s * 255, t * 255, 0)
+                else:
+                    for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                        if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
+                            continue
+                        r,g,b = get_interpolated_color(x, y)
+                        px_array[x, y] = (r << 16) | (g << 8) | b
                 del px_array
         elif draw_mode == DRAW_MODE_FLAT:
             pygame.draw.polygon(surface, color_data, points)
