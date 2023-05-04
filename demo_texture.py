@@ -62,6 +62,12 @@ def main_function():
                     done = True
         screen.fill(RGB_BLACK)
 
+        scene_graph["root"]["xform_m4"] = vecmat.mat4_mat4_mul(
+            vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)),
+            vecmat.mat4_mat4_mul(
+                vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)),
+                vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5))))
+
         rasterizer.render(screen, SCR_AREA, scene_graph,
             vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
 
