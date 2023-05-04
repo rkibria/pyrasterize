@@ -22,6 +22,32 @@ def scale_vertices(model, s_x, s_y, s_z):
         v[1] *= s_y
         v[2] *= s_z
 
+def get_test_texture_mesh():
+    """centered square with texture"""
+    return {
+        "verts" : [
+            [0, 0, 0],
+            [1, 0, 0],
+            [1, 1, 0],
+            [0, 1, 0],
+        ],
+        "uv" : [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1],
+        ],
+        "texture": [ # 2x2 texture
+            [(255, 0, 0), (0, 255, 0)],
+            [(0, 0, 255), (255, 0, 255)],
+        ],
+        "tris" : [
+            (0, 1, 2),
+            (0, 2, 3),
+        ],
+        "colors" : None
+    }
+
 def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {

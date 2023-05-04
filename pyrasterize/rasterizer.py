@@ -432,7 +432,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     # Compute colors for each required vertex for Gouraud shading
     vert_colors = [None] * len(view_verts)
-    if draw_gouraud_shaded:
+    if draw_gouraud_shaded and not textured:
         for tri_idx in visible_tri_idcs:
             tri_color = model_colors[tri_idx]
             tri = model_tris[tri_idx]

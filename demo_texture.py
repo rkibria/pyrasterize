@@ -43,7 +43,7 @@ def main_function():
     tex_data.reverse()
 
     scene_graph = {"root": rasterizer.get_model_instance(None)}
-    scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_test_triangle_mesh())
+    scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh())
     scene_graph["root"]["children"]["cube"]["model"]["texture"] = tex_data
     scene_graph["root"]["children"]["cube"]["gouraud"] = True
     scene_graph["root"]["children"]["cube"]["gouraud_max_iterations"] = 0
