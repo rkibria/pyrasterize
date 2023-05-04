@@ -644,13 +644,18 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 if textured:
                     uv = color_data[1]
                     texture = color_data[2]
+                    tex_w = len(texture[0])
+                    tex_h = len(texture)
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                         if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
                             continue
                         u,v,w = get_uvw(x, y)
                         s = uv[0][0] * u + uv[1][0] * v + uv[2][0] * w
                         t = uv[0][1] * u + uv[1][1] * v + uv[2][1] * w
-                        px_array[x, y] = (s * 255, t * 255, 0)
+                        s_i = min(tex_w - 1, max(0, int(s * tex_w)))
+                        t_i = min(tex_h - 1, max(0, int(t * tex_h)))
+                        color = texture[t_i][s_i]
+                        px_array[x, y] = color
                 else:
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                         if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
