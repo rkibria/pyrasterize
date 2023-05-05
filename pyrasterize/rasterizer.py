@@ -497,7 +497,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         del model_tris[num_orig_model_tris:]
         del model_colors[num_orig_model_tris:]
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0):
+def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0, mip_dist=50):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -614,7 +614,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 uv = color_data[1]
                 mip_textures = color_data[2]
                 num_mip_levels = len(mip_textures)
-                mip_dist = 30
                 mip_level = num_mip_levels * abs(z_order) / mip_dist
                 mip_level = max(0, min(num_mip_levels - 1, int(mip_level)))
                 texture = mip_textures[mip_level]
