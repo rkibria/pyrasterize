@@ -486,7 +486,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 uv = model["uv"]
                 color_data = [textured, [uv[vert_idx] for vert_idx in tri], model["texture"], gouraud_max_iterations]
             else:
-                color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]]
+                color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri], gouraud_max_iterations]
 
         scene_triangles.append((
             z_order,
@@ -551,10 +551,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             v_c = (points[2][0], points[2][1])
 
             if not textured:
-                gouraud_max_iterations = color_data[3]
-                avg_color = vecmat.get_average_color(color_data[0], color_data[1], color_data[2])
+                gouraud_max_iterations = color_data[2]
+                colors = color_data[1]
+                avg_color = vecmat.get_average_color(colors[0], colors[1], colors[2])
                 col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
-                            for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
+                            for a,i,j,k in zip(avg_color, colors[0], colors[1], colors[2])])
                 if col_diff <= 20:
                     pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
                     continue
@@ -607,9 +608,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
             def get_interpolated_color(x, y):
                 u,v,w = get_uvw(x, y)
-                r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
-                g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
-                b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
+                r = max(0, min(255, int(colors[0][0] * u + colors[1][0] * v + colors[2][0] * w)))
+                g = max(0, min(255, int(colors[0][1] * u + colors[1][1] * v + colors[2][1] * w)))
+                b = max(0, min(255, int(colors[0][2] * u + colors[1][2] * v + colors[2][2] * w)))
                 return (r, g, b)
 
             def get_uv_extent(uv_0, uv_1, uv_2):
@@ -638,11 +639,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     tri = tri_stack.popleft()
                     area = tri[3]
                     iteration = tri[4]
-                    divisor = 2 ** iteration
-                    uv_w, uv_h = uv_extent[0] / divisor, uv_extent[1] / divisor
-                    pix_w, pix_h = uv_w * tex_w, uv_h * tex_h
 
                     if textured:
+                        divisor = 2 ** iteration
+                        uv_w, uv_h = uv_extent[0] / divisor, uv_extent[1] / divisor
+                        pix_w, pix_h = uv_w * tex_w, uv_h * tex_h
                         if pix_w <= 1 or pix_h <= 1:
                             centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
                             x,y = centroid[0], centroid[1]
