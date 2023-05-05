@@ -31,7 +31,7 @@ def main_function():
     pygame.display.set_caption("pyrasterize demo")
     clock = pygame.time.Clock()
 
-    file_name = "assets/Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.png"
+    file_name = "assets/Mona_Lisa_64x64.png"
     img = pygame.image.load(file_name).convert_alpha()
     tex_data = [] # mipmap levels, 0 = original, 1 = original/2
     mip_level = 0
@@ -58,7 +58,7 @@ def main_function():
     scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh())
     scene_graph["root"]["children"]["cube"]["model"]["texture"] = tex_data
     scene_graph["root"]["children"]["cube"]["gouraud"] = True
-    scene_graph["root"]["children"]["cube"]["gouraud_max_iterations"] = 0
+    scene_graph["root"]["children"]["cube"]["gouraud_max_iterations"] = 1
     scene_graph["root"]["children"]["cube"]["textured"] = True
 
     frame = 0
@@ -74,7 +74,8 @@ def main_function():
                     done = True
         screen.fill(RGB_BLACK)
 
-        m = vecmat.get_transl_m4(0, 0, -20.5 + 20 * math.sin(vecmat.deg_to_rad(frame * 2)))
+        d = 25
+        m = vecmat.get_transl_m4(0, 0, -0.5 - d + d * abs(math.sin(vecmat.deg_to_rad(frame * 2))))
         # m = vecmat.get_scal_m4(scale, scale, scale)
         # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
         # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))

@@ -152,6 +152,8 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
     visible_tri_idcs = []
     clip_verts = list(map(lambda x: project_to_clip_space(x, persp_m), view_verts))
 
+    # TODO clip for textured triangles
+
     # May add new triangles as we loop
     tris = model["tris"]
     colors = model["colors"]
@@ -631,16 +633,15 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     iteration = tri[4]
 
                     if textured:
-                        if area <= 8:
-                            # color = ((i * 16) % 255, (i * 64) % 255, (i * 8) % 255)
-                            x,y = tri[0][0], tri[0][1]
+                        if area <= 4:
+                            centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
+                            x,y = centroid[0], centroid[1]
                             u,v,w = get_uvw(x, y)
                             s = uv[0][0] * u + uv[1][0] * v + uv[2][0] * w
                             t = uv[0][1] * u + uv[1][1] * v + uv[2][1] * w
                             s_i = min(tex_w - 1, max(0, int(s * tex_w)))
                             t_i = min(tex_h - 1, max(0, int(t * tex_h)))
                             color = texture[t_i][s_i]
-
                             pygame.draw.polygon(surface, color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
                             continue
                     else:
