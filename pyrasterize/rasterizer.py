@@ -615,6 +615,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
                 tri_stack.append((v_a, v_b, v_c, vecmat.get_2d_triangle_area(v_a, v_b, v_c), 0))
 
+                if textured:
+                    uv = color_data[1]
+                    texture = color_data[2]
+                    tex_w = len(texture[0])
+                    tex_h = len(texture)
+
                 i = 0
                 while tri_stack:
                     i += 1
@@ -623,8 +629,16 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     iteration = tri[4]
 
                     if textured:
-                        if area < 10:
-                            color = ((i * 16) % 255, (i * 64) % 255, (i * 8) % 255)
+                        if area <= 8:
+                            # color = ((i * 16) % 255, (i * 64) % 255, (i * 8) % 255)
+                            x,y = tri[0][0], tri[0][1]
+                            u,v,w = get_uvw(x, y)
+                            s = uv[0][0] * u + uv[1][0] * v + uv[2][0] * w
+                            t = uv[0][1] * u + uv[1][1] * v + uv[2][1] * w
+                            s_i = min(tex_w - 1, max(0, int(s * tex_w)))
+                            t_i = min(tex_h - 1, max(0, int(t * tex_h)))
+                            color = texture[t_i][s_i]
+
                             pygame.draw.polygon(surface, color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
                             continue
                     else:
