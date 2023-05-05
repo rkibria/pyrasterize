@@ -18,7 +18,7 @@ SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 RGB_BLACK = (0, 0, 0)
 RGB_WHITE = (255, 255, 255)
 
-CAMERA = { "pos": [0,0,3], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
+CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
 # MAIN
@@ -74,11 +74,11 @@ def main_function():
                     done = True
         screen.fill(RGB_BLACK)
 
-        scale = 1 + 0.75 * math.sin(vecmat.deg_to_rad(frame))
-        m = vecmat.get_scal_m4(scale, scale, scale)
-        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
-        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))
-        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5)))
+        m = vecmat.get_transl_m4(0, 0, -20.5 + 20 * math.sin(vecmat.deg_to_rad(frame * 2)))
+        # m = vecmat.get_scal_m4(scale, scale, scale)
+        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
+        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))
+        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5)))
         scene_graph["root"]["xform_m4"] = m
 
         rasterizer.render(screen, SCR_AREA, scene_graph,

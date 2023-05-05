@@ -610,20 +610,23 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
                 return (r, g, b)
 
+            if textured:
+                uv = color_data[1]
+                mip_textures = color_data[2]
+                num_mip_levels = len(mip_textures)
+                mip_dist = 30
+                mip_level = num_mip_levels * abs(z_order) / mip_dist
+                mip_level = max(0, min(num_mip_levels - 1, int(mip_level)))
+                texture = mip_textures[mip_level]
+                tex_w = len(texture[0])
+                tex_h = len(texture)
+
             if gouraud_max_iterations > 0:
                 tri_stack = deque()
                 # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
                 tri_stack.append((v_a, v_b, v_c, vecmat.get_2d_triangle_area(v_a, v_b, v_c), 0))
 
-                if textured:
-                    uv = color_data[1]
-                    texture = color_data[2]
-                    tex_w = len(texture[0])
-                    tex_h = len(texture)
-
-                i = 0
                 while tri_stack:
-                    i += 1
                     tri = tri_stack.popleft()
                     area = tri[3]
                     iteration = tri[4]
@@ -671,11 +674,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 # Per pixel Gouraud shading
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
                 if textured:
-                    uv = color_data[1]
-                    mip_textures = color_data[2]
-                    texture = mip_textures[0]
-                    tex_w = len(texture[0])
-                    tex_h = len(texture)
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                         if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
                             continue
