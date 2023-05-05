@@ -33,20 +33,32 @@ def main_function():
 
     file_name = "assets/Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.png"
     img = pygame.image.load(file_name).convert_alpha()
-    tex_data = []
-    for y in range(img.get_height()):
-        row = []
-        for x in range(img.get_width()):
-            rgb = img.get_at((x, y))[:3]
-            row.append(rgb)
-        tex_data.append(row)
-    tex_data.reverse()
+    tex_data = [] # mipmap levels, 0 = original, 1 = original/2
+    mip_level = 0
+    while True:
+        mip_scale = 2 ** mip_level
+        mip_size = (img.get_width() // mip_scale, img.get_height() // mip_scale)
+        print(f"mip {mip_level} size {mip_size}")
+        mip_surface = pygame.Surface(mip_size)
+        mip_surface.blit(pygame.transform.scale(img, mip_size), (0,0))
+        mip_tex = []
+        for y in range(mip_surface.get_height()):
+            row = []
+            for x in range(mip_surface.get_width()):
+                rgb = mip_surface.get_at((x, y))[:3]
+                row.append(rgb)
+            mip_tex.append(row)
+        mip_tex.reverse()
+        tex_data.append(mip_tex)
+        if mip_size[0] <= 1 or mip_size[1] <= 1:
+            break
+        mip_level += 1
 
     scene_graph = {"root": rasterizer.get_model_instance(None)}
     scene_graph["root"]["children"]["cube"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh())
     scene_graph["root"]["children"]["cube"]["model"]["texture"] = tex_data
     scene_graph["root"]["children"]["cube"]["gouraud"] = True
-    scene_graph["root"]["children"]["cube"]["gouraud_max_iterations"] = 1
+    scene_graph["root"]["children"]["cube"]["gouraud_max_iterations"] = 0
     scene_graph["root"]["children"]["cube"]["textured"] = True
 
     frame = 0

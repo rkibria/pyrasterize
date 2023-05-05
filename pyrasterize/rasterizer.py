@@ -672,7 +672,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
                 if textured:
                     uv = color_data[1]
-                    texture = color_data[2]
+                    mip_textures = color_data[2]
+                    texture = mip_textures[0]
                     tex_w = len(texture[0])
                     tex_h = len(texture)
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
