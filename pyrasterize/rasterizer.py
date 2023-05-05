@@ -574,6 +574,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 if area_full_sq <= 10:
                     pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
                     continue
+            else:
+                if area_full_sq == 0:
+                    continue
 
             # p = (x, y, 0)
             # v_bc = vecmat.sub_vec3(v_c, v_b)
