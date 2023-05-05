@@ -72,14 +72,14 @@ def main_function():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     done = True
-        screen.fill(RGB_BLACK)
+        screen.fill((0, 0, 255))
 
         d = 25
-        m = vecmat.get_transl_m4(0, 0, -0.5 - d + d * abs(math.sin(vecmat.deg_to_rad(frame * 2))))
-        # m = vecmat.get_scal_m4(scale, scale, scale)
-        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
-        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))
-        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5)))
+        # m = vecmat.get_transl_m4(0, 0, -0.7)
+        m = vecmat.get_transl_m4(0, 0, -1.5 - d + d * abs(math.sin(vecmat.deg_to_rad(frame * 2))))
+        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
+        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))
+        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5)))
         scene_graph["root"]["xform_m4"] = m
 
         rasterizer.render(screen, SCR_AREA, scene_graph,
@@ -87,8 +87,8 @@ def main_function():
 
         pygame.display.flip()
         frame += 1
-        # if frame % 30 == 0:
-        #     print(f"{clock.get_fps()} fps")
+        if frame % 30 == 0:
+            print(f"{clock.get_fps()} fps")
 
 if __name__ == '__main__':
     main_function()

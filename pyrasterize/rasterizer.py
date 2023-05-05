@@ -612,15 +612,22 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
                 return (r, g, b)
 
+            def get_uv_extent(uv_0, uv_1, uv_2):
+                s_min = min(uv_0[0], uv_1[0], uv_2[0])
+                s_max = max(uv_0[0], uv_1[0], uv_2[0])
+                t_min = min(uv_0[1], uv_1[1], uv_2[1])
+                t_max = max(uv_0[1], uv_1[1], uv_2[1])
+                return s_max - s_min, t_max - t_min
+
             if textured:
                 uv = color_data[1]
+                uv_extent = get_uv_extent(*uv)
                 mip_textures = color_data[2]
                 num_mip_levels = len(mip_textures)
                 mip_level = num_mip_levels * abs(z_order) / mip_dist
                 mip_level = max(0, min(num_mip_levels - 1, int(mip_level)))
                 texture = mip_textures[mip_level]
-                tex_w = len(texture[0])
-                tex_h = len(texture)
+                tex_w,tex_h = len(texture[0]), len(texture)
 
             if gouraud_max_iterations > 0:
                 tri_stack = deque()
@@ -631,9 +638,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     tri = tri_stack.popleft()
                     area = tri[3]
                     iteration = tri[4]
+                    divisor = 2 ** iteration
+                    uv_w, uv_h = uv_extent[0] / divisor, uv_extent[1] / divisor
+                    pix_w, pix_h = uv_w * tex_w, uv_h * tex_h
 
                     if textured:
-                        if area <= 4:
+                        if pix_w <= 1 or pix_h <= 1:
                             centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
                             x,y = centroid[0], centroid[1]
                             u,v,w = get_uvw(x, y)
@@ -643,6 +653,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             t_i = min(tex_h - 1, max(0, int(t * tex_h)))
                             color = texture[t_i][s_i]
                             pygame.draw.polygon(surface, color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
+                            # pygame.draw.lines(surface, (0, 255, 0), True, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
                             continue
                     else:
                         if area < 10 or iteration == gouraud_max_iterations:
