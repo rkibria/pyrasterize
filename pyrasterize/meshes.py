@@ -45,7 +45,6 @@ def get_test_texture_mesh():
             (0, 1, 2),
             (0, 2, 3),
         ],
-        "colors" : None
     }
 
 def get_test_triangle_mesh():
