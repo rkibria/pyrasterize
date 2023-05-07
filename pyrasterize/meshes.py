@@ -22,7 +22,7 @@ def scale_vertices(model, s_x, s_y, s_z):
         v[1] *= s_y
         v[2] *= s_z
 
-def get_test_texture_mesh():
+def get_test_texture_mesh(mip_textures):
     """centered square with texture"""
     return {
         "verts" : [
@@ -41,6 +41,7 @@ def get_test_texture_mesh():
             (0, 1, 2),
             (0, 2, 3),
         ],
+        "texture": mip_textures,
     }
 
 def get_test_texture_cube_instance(mip_textures):
