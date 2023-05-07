@@ -113,16 +113,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         preproc_m4=vecmat.mat4_mat4_mul(vecmat.get_scal_m4(3, 3, 3), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))),
         xform_m4=vecmat.get_transl_m4(0, 4.9, 0))
     scene_graphs[1]["root"]["children"]["ceiling_painting"]["model"]["texture"] = texture
-    scene_graphs[1]["root"]["children"]["ceiling_painting"]["gouraud"] = True
-    scene_graphs[1]["root"]["children"]["ceiling_painting"]["gouraud_max_iterations"] = 1
-    scene_graphs[1]["root"]["children"]["ceiling_painting"]["textured"] = True
 
     scene_graphs[1]["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(),
         xform_m4=vecmat.get_transl_m4(0, 1, -5))
     scene_graphs[1]["root"]["children"]["wall_painting"]["model"]["texture"] = texture
-    scene_graphs[1]["root"]["children"]["wall_painting"]["gouraud"] = True
-    scene_graphs[1]["root"]["children"]["wall_painting"]["gouraud_max_iterations"] = 1
-    scene_graphs[1]["root"]["children"]["wall_painting"]["textured"] = True
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
