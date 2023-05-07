@@ -439,9 +439,10 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     # Compute colors for each required vertex for Gouraud shading
     vert_colors = [None] * len(view_verts)
-    if draw_gouraud_shaded and not textured:
+    if draw_gouraud_shaded:
         for tri_idx in visible_tri_idcs:
-            tri_color = model_colors[tri_idx]
+            if not textured:
+                tri_color = model_colors[tri_idx]
             tri = model_tris[tri_idx]
             for vert_idx in tri:
                 if vert_colors[vert_idx] is None:
@@ -450,7 +451,10 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                         + proj_light_dir[1] * normal[1]
                         + proj_light_dir[2] * normal[2])
                     intensity = min(1, max(0, ambient + diffuse * dot_prd))
-                    vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
+                    if textured:
+                        vert_colors[vert_idx] = intensity
+                    else:
+                        vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
 
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
@@ -492,7 +496,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             # color_data = [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]
             if textured:
                 uv = model["uv"]
-                color_data = [textured, [uv[vert_idx] for vert_idx in tri], model["texture"], gouraud_max_iterations]
+                color_data = [textured, [uv[vert_idx] for vert_idx in tri], model["texture"],
+                              [vert_colors[vert_idx] for vert_idx in tri], gouraud_max_iterations]
             else:
                 color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri], gouraud_max_iterations]
 
@@ -571,7 +576,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
                     continue
             else:
-                gouraud_max_iterations = color_data[3]
+                intensities = color_data[3]
+                gouraud_max_iterations = color_data[4]
 
             if not textured:
                 if bary.area_sq <= 10:
@@ -588,7 +594,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             if textured:
                 uv = color_data[1]
                 # uv_extent = get_uv_extent(*uv)
-                # mip_textures = color_data[2]
+                mip_textures = color_data[2]
                 # num_mip_levels = len(mip_textures)
                 # mip_level = num_mip_levels * abs(z_order) / mip_dist
                 # mip_level = max(0, min(num_mip_levels - 1, int(mip_level)))
@@ -681,17 +687,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 # Per pixel Gouraud shading
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
                 if textured:
-                    pass
-                    # for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
-                    #     if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
-                    #         continue
-                    #     u,v,w = get_uvw(x, y)
-                    #     s = uv[0][0] * u + uv[1][0] * v + uv[2][0] * w
-                    #     t = uv[0][1] * u + uv[1][1] * v + uv[2][1] * w
-                    #     s_i = min(tex_w - 1, max(0, int(s * tex_w)))
-                    #     t_i = min(tex_h - 1, max(0, int(t * tex_h)))
-                    #     color = texture[t_i][s_i]
-                    #     px_array[x, y] = color
+                    for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                        if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
+                            continue
+                        u,v,w = bary.get_uvw(x, y)
+                        color = tex_ip.get_color(u, v, w)
+                        px_array[x, y] = color
                 else:
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                         if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
