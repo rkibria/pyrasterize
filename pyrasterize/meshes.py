@@ -37,10 +37,6 @@ def get_test_texture_mesh():
             [1, 1],
             [0, 1],
         ],
-        "texture": [ # 2x2 texture
-            [(255, 0, 0), (0, 255, 0)],
-            [(0, 0, 255), (255, 0, 255)],
-        ],
         "tris" : [
             (0, 1, 2),
             (0, 2, 3),
@@ -72,9 +68,9 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
     """Return a unit cube mesh model dictionary:
     'verts': vertices (float vec3s for point positions in local coordinates)
     'tris': triangles (int vec3s indexing the 3 vertices in 'verts' of triangle)
-    'colors': triangle colors (float vec3s of triangle RGB color)
+    if color is not None: 'colors': triangle colors (float vec3s of triangle RGB color)
     """
-    return {
+    model = {
         "verts" : [
             [ 0.5,  0.5, 0.5],  # front top right     0
             [ 0.5, -0.5, 0.5],  # front bottom right  1
@@ -85,6 +81,16 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
             [-0.5, -0.5, -0.5], # back bottom left    6
             [-0.5,  0.5, -0.5]  # back top left       7
             ],
+        "uv" : [
+            [1, 1],
+            [1, 0],
+            [0, 0],
+            [0, 1],
+            [1, 1],
+            [1, 0],
+            [0, 0],
+            [0, 1],
+        ],
         "tris" : [ # CCW winding order
             (0, 3, 1), # front face
             (2, 1, 3), #
@@ -99,8 +105,10 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
             (7, 4, 6), # back face
             (5, 6, 4)  #
             ],
-        "colors": [[color[0], color[1], color[2]]] * 12
         }
+    if color is not None:
+        model["colors"] = [[color[0], color[1], color[2]]] * 12
+    return model
 
 def get_block_instance(sx, sy, sz, front_divs, side_divs, top_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
     """

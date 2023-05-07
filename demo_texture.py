@@ -33,7 +33,8 @@ def main_function():
     clock = pygame.time.Clock()
 
     scene_graph = {"root": rasterizer.get_model_instance(None)}
-    scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh())
+    # scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh())
+    scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_cube_mesh(None))
     scene_graph["root"]["children"]["sprite"]["model"]["texture"] = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
     # scene_graph["root"]["children"]["sprite"]["gouraud"] = True
     # scene_graph["root"]["children"]["sprite"]["gouraud_max_iterations"] = 1
@@ -53,10 +54,10 @@ def main_function():
 
         d = 25
         # m = vecmat.get_transl_m4(0, 0, -0.7)
-        m = vecmat.get_transl_m4(0, 0, -1 - d + d * abs(math.sin(vecmat.deg_to_rad(frame * 2))))
-        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
-        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))
-        # m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5)))
+        m = vecmat.get_transl_m4(0, 0, -2 - d + d * abs(math.sin(vecmat.deg_to_rad(frame * 2))))
+        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
+        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))
+        m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5)))
         scene_graph["root"]["xform_m4"] = m
 
         rasterizer.render(screen, SCR_AREA, scene_graph,
