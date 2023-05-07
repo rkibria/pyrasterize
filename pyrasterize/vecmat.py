@@ -5,6 +5,7 @@
 Vectors, matrices and other math
 """
 
+from collections import deque
 import math
 
 def sub_vec3(v_1, v_2):
@@ -333,4 +334,33 @@ class TextureInterpolation:
         t_i = min(self.tex_h - 1, max(0, int(t * self.tex_h)))
         color = self.texture[t_i][s_i]
         return color
-    
+
+def subdivide_2d_triangle(v_a, v_b, v_c, callback):
+    """
+    Callback arguments: vec2: point, vec2: point, vec2: point, int: iteration
+    If returns true, don't split current triangle further
+    """
+    tri_stack = deque()
+    tri_stack.append((v_a, v_b, v_c, 0))
+    while tri_stack:
+        tri = tri_stack.popleft()
+        if callback(*tri):
+            continue
+
+        # Split and recurse
+        iteration = tri[3]
+        iteration += 1
+        v_01 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]]
+        v_02 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1]]
+
+        v_01_h = [v_01[0] / 2, v_01[1] / 2]
+        v_02_h = [v_02[0] / 2, v_02[1] / 2]
+
+        h_01 = [tri[0][0] + v_01_h[0], tri[0][1] + v_01_h[1]]
+        h_02 = [tri[0][0] + v_02_h[0], tri[0][1] + v_02_h[1]]
+        h_12 = [tri[0][0] + v_01_h[0] + v_02_h[0], tri[0][1] + v_01_h[1] + v_02_h[1]]
+
+        tri_stack.append((tri[0], h_01, h_02, iteration))
+        tri_stack.append((h_02, h_01, h_12, iteration))
+        tri_stack.append((h_01, tri[1], h_12, iteration))
+        tri_stack.append((h_02, h_12, tri[2], iteration))

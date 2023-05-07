@@ -722,18 +722,21 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 bary = vecmat.Barycentric2dTriangle(v_a, v_b, v_c)
                 if bary.area_sq == 0:
                     continue
-                tex_interp = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
-                px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
-                for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
-                    if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
-                        continue
-                    u,v,w = bary.get_uvw(x, y)
-                    color = tex_interp.get_color(u, v, w)
-                    color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                    px_array[x, y] = color
-                del px_array
-
-                pygame.draw.lines(surface, (0, 255, 0), True, points)
+                tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
+                def cb_subdivide(v_0, v_1, v_2, iteration):
+                    divisor = 2 ** iteration
+                    uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
+                    pix_w, pix_h = uv_w * tex_ip.tex_w, uv_h * tex_ip.tex_h
+                    if pix_w <= 1 or pix_h <= 1:
+                        centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
+                        x,y = centroid[0], centroid[1]
+                        u,v,w = bary.get_uvw(x, y)
+                        color = tex_ip.get_color(u, v, w)
+                        color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                        pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                        return True
+                    return False
+                vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
             else:
                 color = color_data[2]
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])
