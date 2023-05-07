@@ -740,7 +740,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             else:
                 color = color_data[2]
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                pygame.draw.polygon(surface, color_data, points)
+                pygame.draw.polygon(surface, color, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
         elif draw_mode == DRAW_MODE_BILLBOARD:
