@@ -43,6 +43,23 @@ def get_test_texture_mesh():
         ],
     }
 
+def get_test_texture_cube_instance(mip_textures):
+    inst = rasterizer.get_model_instance(None)
+    front_mesh = get_test_texture_mesh()
+    front_mesh["texture"] = mip_textures
+    inst["children"]["front"] = rasterizer.get_model_instance(front_mesh, vecmat.get_transl_m4(0, 0, 0.5))
+    inst["children"]["back"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -0.5), vecmat.get_rot_x_m4(vecmat.deg_to_rad(180))))
+    inst["children"]["left"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-0.5, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["right"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0.5, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))))
+    inst["children"]["top"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.5, 0), vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["bottom"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, -0.5, 0), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))))
+    return inst
+
 def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {
