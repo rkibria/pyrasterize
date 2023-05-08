@@ -22,6 +22,62 @@ def scale_vertices(model, s_x, s_y, s_z):
         v[1] *= s_y
         v[2] *= s_z
 
+def get_test_texture_mesh(mip_textures):
+    """centered square with texture"""
+    return {
+        "verts" : [
+            [-0.5, -0.5, 0],
+            [0.5, -0.5, 0],
+            [0.5, 0.5, 0],
+            [-0.5, 0.5, 0],
+        ],
+        "uv" : [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1],
+        ],
+        "tris" : [
+            (0, 1, 2),
+            (0, 2, 3),
+        ],
+        "texture": mip_textures,
+    }
+
+def get_test_texture_cube_instance(mip_textures, gouraud=False, gouraud_iterations=1):
+    inst = rasterizer.get_model_instance(None)
+    front_mesh = get_test_texture_mesh(mip_textures)
+    inst["children"]["front"] = rasterizer.get_model_instance(front_mesh, vecmat.get_transl_m4(0, 0, 0.5))
+    inst["children"]["front"]["gouraud"] = gouraud
+    inst["children"]["front"]["gouraud_max_iterations"] = gouraud_iterations
+
+    inst["children"]["back"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -0.5), vecmat.get_rot_x_m4(vecmat.deg_to_rad(180))))
+    inst["children"]["back"]["gouraud"] = gouraud
+    inst["children"]["back"]["gouraud_max_iterations"] = gouraud_iterations
+
+    inst["children"]["left"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-0.5, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["left"]["gouraud"] = gouraud
+    inst["children"]["left"]["gouraud_max_iterations"] = gouraud_iterations
+
+    inst["children"]["right"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0.5, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))))
+    inst["children"]["right"]["gouraud"] = gouraud
+    inst["children"]["right"]["gouraud_max_iterations"] = gouraud_iterations
+
+    inst["children"]["top"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.5, 0), vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["top"]["gouraud"] = gouraud
+    inst["children"]["top"]["gouraud_max_iterations"] = gouraud_iterations
+
+    inst["children"]["bottom"] = rasterizer.get_model_instance(front_mesh,
+        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, -0.5, 0), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))))
+    inst["children"]["bottom"]["gouraud"] = gouraud
+    inst["children"]["bottom"]["gouraud_max_iterations"] = gouraud_iterations
+
+    return inst
+
 def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {
@@ -29,6 +85,15 @@ def get_test_triangle_mesh():
             [0, 0, 0],
             [1, 0, 0],
             [1, 1, 0],
+        ],
+        "uv" : [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+        ],
+        "texture": [ # 2x2 texture
+            [(255, 0, 0), (0, 255, 0)],
+            [(0, 0, 255), (255, 0, 255)],
         ],
         "tris" : [(0, 1, 2)],
         "colors" : [MESH_DEFAULT_COLOR]
@@ -38,9 +103,9 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
     """Return a unit cube mesh model dictionary:
     'verts': vertices (float vec3s for point positions in local coordinates)
     'tris': triangles (int vec3s indexing the 3 vertices in 'verts' of triangle)
-    'colors': triangle colors (float vec3s of triangle RGB color)
+    if color is not None: 'colors': triangle colors (float vec3s of triangle RGB color)
     """
-    return {
+    model = {
         "verts" : [
             [ 0.5,  0.5, 0.5],  # front top right     0
             [ 0.5, -0.5, 0.5],  # front bottom right  1
@@ -51,6 +116,16 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
             [-0.5, -0.5, -0.5], # back bottom left    6
             [-0.5,  0.5, -0.5]  # back top left       7
             ],
+        "uv" : [
+            [1, 1],
+            [1, 0],
+            [0, 0],
+            [0, 1],
+            [1, 1],
+            [1, 0],
+            [0, 0],
+            [0, 1],
+        ],
         "tris" : [ # CCW winding order
             (0, 3, 1), # front face
             (2, 1, 3), #
@@ -65,8 +140,10 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
             (7, 4, 6), # back face
             (5, 6, 4)  #
             ],
-        "colors": [[color[0], color[1], color[2]]] * 12
         }
+    if color is not None:
+        model["colors"] = [[color[0], color[1], color[2]]] * 12
+    return model
 
 def get_block_instance(sx, sy, sz, front_divs, side_divs, top_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
     """
@@ -119,13 +196,17 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
     """
     r_divs = max(3, r_divs)
     l_divs = max(2, l_divs)
-    mesh = { "verts": [], "tris": [], "colors": []}
+    mesh = { "verts": [], "tris": [], "uv": []}
+    if color is not None:
+        mesh["colors"] = []
     bottom_y = -radius
     top_y = radius
     bottom_center_v = 0
     top_center_v = 1
     mesh["verts"].append((0, bottom_y, 0))
     mesh["verts"].append((0, top_y, 0))
+    mesh["uv"].append((0, 1))
+    mesh["uv"].append((0, 0))
     r_phi_step = 2 * math.pi / r_divs
     l_phi_step = math.pi / l_divs
 
@@ -140,6 +221,7 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
             x_i = radius_i * math.cos(r_phi)
             z_i = -radius_i * math.sin(r_phi)
             mesh["verts"].append((x_i, y_i, z_i))
+            mesh["uv"].append((1.0 / r_divs * r_i, 1.0 / l_divs * l_i))
 
     for l_i in range(l_divs - 2):
         for r_i in range(r_divs):
@@ -152,8 +234,9 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
                 next_top_v = next_bottom_v + r_divs
             mesh["tris"].append((bottom_v, next_top_v, top_v))
             mesh["tris"].append((bottom_v, next_bottom_v, next_top_v))
-            mesh["colors"].append(color)
-            mesh["colors"].append(color)
+            if color is not None:
+                mesh["colors"].append(color)
+                mesh["colors"].append(color)
 
     for i in range(r_divs): # bottom cap
         bottom_v = 2 + i
@@ -161,7 +244,8 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
         if i == r_divs - 1:
             next_bottom_v = 2
         mesh["tris"].append((next_bottom_v, bottom_v, bottom_center_v))
-        mesh["colors"].append(color)
+        if color is not None:
+            mesh["colors"].append(color)
 
     for i in range(r_divs): # top cap
         top_v = 2 + (l_divs - 2) * r_divs + i
@@ -169,7 +253,8 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
         if i == r_divs - 1:
             next_top_v = 2 + (l_divs - 2) * r_divs
         mesh["tris"].append((top_v, next_top_v, top_center_v))
-        mesh["colors"].append(color)
+        if color is not None:
+            mesh["colors"].append(color)
 
     return mesh
 

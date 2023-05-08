@@ -6,6 +6,7 @@
 """
 
 from collections import deque
+import math
 
 import pygame
 
@@ -152,9 +153,11 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
     visible_tri_idcs = []
     clip_verts = list(map(lambda x: project_to_clip_space(x, persp_m), view_verts))
 
+    # TODO clip for textured triangles
+    textured = "texture" in model
+
     # May add new triangles as we loop
     tris = model["tris"]
-    colors = model["colors"]
     num_orig_tris = len(tris)
     for tri_idx in range(num_orig_tris):
         tri = tris[tri_idx]
@@ -192,117 +195,119 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
             if not ((v_0[0] * normal[0] + v_0[1] * normal[1] + v_0[2] * normal[2]) < 0):
                 continue
 
-        # Check if triangle extends behind near clip plane
-        if num_behind == 2:
-            if not v_0_behind:
-                front_point = v_0
-                back_point_1 = v_1
-                back_point_2 = v_2
-                front_point_i = i_0
-                back_point_1_i = i_1
-                back_point_2_i = i_2
-            elif not v_1_behind:
-                front_point = v_1
-                back_point_1 = v_0
-                back_point_2 = v_2
-                front_point_i = i_1
-                back_point_1_i = i_0
-                back_point_2_i = i_2
-            else:
-                front_point = v_2
-                back_point_1 = v_0
-                back_point_2 = v_1
-                front_point_i = i_2
-                back_point_1_i = i_0
-                back_point_2_i = i_1
-            front_point_z = front_point[2]
-            # t = (near - v0.z) / (v1.z - v0.z)
-            intersect_t_1 = (near_clip - front_point_z) / (back_point_1[2] - front_point_z)
-            intersect_t_2 = (near_clip - front_point_z) / (back_point_2[2] - front_point_z)
-            new_back_1 = [
-                front_point[0] + intersect_t_1 * (back_point_1[0] - front_point[0]),
-                front_point[1] + intersect_t_1 * (back_point_1[1] - front_point[1]),
-                front_point[2] + intersect_t_1 * (back_point_1[2] - front_point[2]),
-                1.0
-            ]
-            new_back_2 = [
-                front_point[0] + intersect_t_2 * (back_point_2[0] - front_point[0]),
-                front_point[1] + intersect_t_2 * (back_point_2[1] - front_point[1]),
-                front_point[2] + intersect_t_2 * (back_point_2[2] - front_point[2]),
-                1.0
-            ]
-            # Add the new vertices and their screen projections to the end of the list
-            new_verts_idx = len(view_verts)
-            view_verts.append(new_back_1)
-            clip_verts.append(project_to_clip_space(new_back_1, persp_m))
-            view_verts.append(new_back_2)
-            clip_verts.append(project_to_clip_space(new_back_2, persp_m))
-            # Copy the normals of the original triangle and vertices
-            view_normals.append(view_normals[tri_idx])
-            if vert_normals is not None:
-                vert_normals.append(vert_normals[back_point_1_i])
-                vert_normals.append(vert_normals[back_point_2_i])
-            # Add the new triangle
-            visible_tri_idcs.append(len(tris))
-            tris.append((front_point_i, new_verts_idx, new_verts_idx + 1))
-            # Copy the color of the original triangle
-            colors.append(colors[tri_idx])
-            continue
-        elif num_behind == 1:
-            if v_0_behind:
-                back_point = v_0
-                front_point_1 = v_1
-                front_point_2 = v_2
-                front_point_i_1 = i_1
-                front_point_i_2 = i_2
-            elif v_1_behind:
-                back_point = v_1
-                front_point_1 = v_0
-                front_point_2 = v_2
-                front_point_i_1 = i_0
-                front_point_i_2 = i_2
-            else:
-                back_point = v_2
-                front_point_1 = v_0
-                front_point_2 = v_1
-                front_point_i_1 = i_0
-                front_point_i_2 = i_1
-            back_point_z = back_point[2]
-            intersect_t_1 = (near_clip - back_point_z) / (front_point_1[2] - back_point_z)
-            intersect_t_2 = (near_clip - back_point_z) / (front_point_2[2] - back_point_z)
-            new_front_1 = [
-                back_point[0] + intersect_t_1 * (front_point_1[0] - back_point[0]),
-                back_point[1] + intersect_t_1 * (front_point_1[1] - back_point[1]),
-                back_point[2] + intersect_t_1 * (front_point_1[2] - back_point[2]),
-                1.0
-            ]
-            new_front_2 = [
-                back_point[0] + intersect_t_2 * (front_point_2[0] - back_point[0]),
-                back_point[1] + intersect_t_2 * (front_point_2[1] - back_point[1]),
-                back_point[2] + intersect_t_2 * (front_point_2[2] - back_point[2]),
-                1.0
-            ]
-            # Add the new vertices and their screen projections to the end of the list
-            new_verts_idx = len(view_verts)
-            view_verts.append(new_front_1)
-            clip_verts.append(project_to_clip_space(new_front_1, persp_m))
-            view_verts.append(new_front_2)
-            clip_verts.append(project_to_clip_space(new_front_2, persp_m))
-            # Copy the normals of the original triangle and vertices
-            view_normals.append(view_normals[tri_idx])
-            view_normals.append(view_normals[tri_idx])
-            if vert_normals is not None:
-                vert_normals.append(vert_normals[front_point_i_1])
-                vert_normals.append(vert_normals[front_point_i_2])
-            # Add the two new triangles
-            visible_tri_idcs.append(len(tris))
-            tris.append((front_point_i_1, front_point_i_2, new_verts_idx))
-            visible_tri_idcs.append(len(tris))
-            tris.append((front_point_i_2, new_verts_idx + 1, new_verts_idx))
-            # Copy the colors of the original triangle
-            colors.append(colors[tri_idx])
-            colors.append(colors[tri_idx])
-            continue
+        if not textured: # TODO
+            colors = model["colors"]
+            # Check if triangle extends behind near clip plane
+            if num_behind == 2:
+                if not v_0_behind:
+                    front_point = v_0
+                    back_point_1 = v_1
+                    back_point_2 = v_2
+                    front_point_i = i_0
+                    back_point_1_i = i_1
+                    back_point_2_i = i_2
+                elif not v_1_behind:
+                    front_point = v_1
+                    back_point_1 = v_0
+                    back_point_2 = v_2
+                    front_point_i = i_1
+                    back_point_1_i = i_0
+                    back_point_2_i = i_2
+                else:
+                    front_point = v_2
+                    back_point_1 = v_0
+                    back_point_2 = v_1
+                    front_point_i = i_2
+                    back_point_1_i = i_0
+                    back_point_2_i = i_1
+                front_point_z = front_point[2]
+                # t = (near - v0.z) / (v1.z - v0.z)
+                intersect_t_1 = (near_clip - front_point_z) / (back_point_1[2] - front_point_z)
+                intersect_t_2 = (near_clip - front_point_z) / (back_point_2[2] - front_point_z)
+                new_back_1 = [
+                    front_point[0] + intersect_t_1 * (back_point_1[0] - front_point[0]),
+                    front_point[1] + intersect_t_1 * (back_point_1[1] - front_point[1]),
+                    front_point[2] + intersect_t_1 * (back_point_1[2] - front_point[2]),
+                    1.0
+                ]
+                new_back_2 = [
+                    front_point[0] + intersect_t_2 * (back_point_2[0] - front_point[0]),
+                    front_point[1] + intersect_t_2 * (back_point_2[1] - front_point[1]),
+                    front_point[2] + intersect_t_2 * (back_point_2[2] - front_point[2]),
+                    1.0
+                ]
+                # Add the new vertices and their screen projections to the end of the list
+                new_verts_idx = len(view_verts)
+                view_verts.append(new_back_1)
+                clip_verts.append(project_to_clip_space(new_back_1, persp_m))
+                view_verts.append(new_back_2)
+                clip_verts.append(project_to_clip_space(new_back_2, persp_m))
+                # Copy the normals of the original triangle and vertices
+                view_normals.append(view_normals[tri_idx])
+                if vert_normals is not None:
+                    vert_normals.append(vert_normals[back_point_1_i])
+                    vert_normals.append(vert_normals[back_point_2_i])
+                # Add the new triangle
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i, new_verts_idx, new_verts_idx + 1))
+                # Copy the color of the original triangle
+                colors.append(colors[tri_idx])
+                continue
+            elif num_behind == 1:
+                if v_0_behind:
+                    back_point = v_0
+                    front_point_1 = v_1
+                    front_point_2 = v_2
+                    front_point_i_1 = i_1
+                    front_point_i_2 = i_2
+                elif v_1_behind:
+                    back_point = v_1
+                    front_point_1 = v_0
+                    front_point_2 = v_2
+                    front_point_i_1 = i_0
+                    front_point_i_2 = i_2
+                else:
+                    back_point = v_2
+                    front_point_1 = v_0
+                    front_point_2 = v_1
+                    front_point_i_1 = i_0
+                    front_point_i_2 = i_1
+                back_point_z = back_point[2]
+                intersect_t_1 = (near_clip - back_point_z) / (front_point_1[2] - back_point_z)
+                intersect_t_2 = (near_clip - back_point_z) / (front_point_2[2] - back_point_z)
+                new_front_1 = [
+                    back_point[0] + intersect_t_1 * (front_point_1[0] - back_point[0]),
+                    back_point[1] + intersect_t_1 * (front_point_1[1] - back_point[1]),
+                    back_point[2] + intersect_t_1 * (front_point_1[2] - back_point[2]),
+                    1.0
+                ]
+                new_front_2 = [
+                    back_point[0] + intersect_t_2 * (front_point_2[0] - back_point[0]),
+                    back_point[1] + intersect_t_2 * (front_point_2[1] - back_point[1]),
+                    back_point[2] + intersect_t_2 * (front_point_2[2] - back_point[2]),
+                    1.0
+                ]
+                # Add the new vertices and their screen projections to the end of the list
+                new_verts_idx = len(view_verts)
+                view_verts.append(new_front_1)
+                clip_verts.append(project_to_clip_space(new_front_1, persp_m))
+                view_verts.append(new_front_2)
+                clip_verts.append(project_to_clip_space(new_front_2, persp_m))
+                # Copy the normals of the original triangle and vertices
+                view_normals.append(view_normals[tri_idx])
+                view_normals.append(view_normals[tri_idx])
+                if vert_normals is not None:
+                    vert_normals.append(vert_normals[front_point_i_1])
+                    vert_normals.append(vert_normals[front_point_i_2])
+                # Add the two new triangles
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i_1, front_point_i_2, new_verts_idx))
+                visible_tri_idcs.append(len(tris))
+                tris.append((front_point_i_2, new_verts_idx + 1, new_verts_idx))
+                # Copy the colors of the original triangle
+                colors.append(colors[tri_idx])
+                colors.append(colors[tri_idx])
+                continue
 
         # Append a non-clipped visible triangle
         visible_tri_idcs.append(tri_idx)
@@ -316,6 +321,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     model = instance["model"]
     if not model:
         return
+
+    subdivide_default_max_iterations = 1
 
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
 
@@ -396,15 +403,15 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
     no_culling = ("noCulling" in instance) and instance["noCulling"]
-    model_colors = model["colors"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
-    gouraud_max_iterations = instance["gouraud_max_iterations"] if "gouraud_max_iterations" in instance else 1 # default gouraud is 1 subdivision
+    textured = "texture" in model
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
     pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
     if pointlight_enabled:
         pointlight_falloff = lighting["pointlight_falloff"]
         pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
+    subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
@@ -429,11 +436,15 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     ambient = lighting["ambient"]
     diffuse = lighting["diffuse"]
 
+    if not textured:
+        model_colors = model["colors"]
+
     # Compute colors for each required vertex for Gouraud shading
     vert_colors = [None] * len(view_verts)
     if draw_gouraud_shaded:
         for tri_idx in visible_tri_idcs:
-            tri_color = model_colors[tri_idx]
+            if not textured:
+                tri_color = model_colors[tri_idx]
             tri = model_tris[tri_idx]
             for vert_idx in tri:
                 if vert_colors[vert_idx] is None:
@@ -442,7 +453,10 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                         + proj_light_dir[1] * normal[1]
                         + proj_light_dir[2] * normal[2])
                     intensity = min(1, max(0, ambient + diffuse * dot_prd))
-                    vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
+                    if textured:
+                        vert_colors[vert_idx] = intensity
+                    else:
+                        vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
 
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
@@ -457,7 +471,6 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         if draw_mode == DRAW_MODE_WIREFRAME:
             color_data = model_colors[tri_idx]
         elif draw_mode == DRAW_MODE_FLAT:
-            color = model_colors[tri_idx]
             normal = view_normals[tri_idx]
             dot_prd = max(0, proj_light_dir[0] * normal[0]
                 + proj_light_dir[1] * normal[1]
@@ -476,9 +489,21 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
 
             intensity = min(1, intensity)
-            color_data = (intensity * color[0], intensity * color[1], intensity * color[2])
-        else: # draw_mode == DRAW_MODE_GOURAUD: (tri_color1, tri_color2, tri_color3, gouraud_max_iterations)
-            color_data = [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]
+            textured = "texture" in model
+            color_data = (textured,
+                          intensity, 
+                          model["texture"] if textured else model_colors[tri_idx],
+                          [model["uv"][vert_idx] for vert_idx in tri] if textured else None,
+                          subdivide_max_iterations)
+        else: # draw_mode == DRAW_MODE_GOURAUD:
+            if textured:
+                uv = model["uv"]
+                color_data = [textured, [uv[vert_idx] for vert_idx in tri],
+                              model["texture"],
+                              [vert_colors[vert_idx] for vert_idx in tri],
+                              subdivide_max_iterations]
+            else:
+                color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri], subdivide_max_iterations]
 
         scene_triangles.append((
             z_order,
@@ -491,7 +516,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         del model_tris[num_orig_model_tris:]
         del model_colors[num_orig_model_tris:]
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0):
+def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0, mip_dist=50):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -536,105 +561,122 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
     for z_order,points,color_data,draw_mode in scene_triangles:
         if draw_mode == DRAW_MODE_GOURAUD:
-            gouraud_max_iterations = color_data[3]
+            textured = color_data[0]
+
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
-
-            avg_color = vecmat.get_average_color(color_data[0], color_data[1], color_data[2])
-            col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
-                        for a,i,j,k in zip(avg_color, color_data[0], color_data[1], color_data[2])])
-            if col_diff <= 20:
-                pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+            bary = vecmat.Barycentric2dTriangle(v_a, v_b, v_c)
+            if bary.area_sq == 0:
                 continue
 
-            # v_ab = vecmat.sub_vec3(v_b, v_a)
-            v_ab_0 = v_b[0] - v_a[0]
-            v_ab_1 = v_b[1] - v_a[1]
-            # v_ac = vecmat.sub_vec3(v_c, v_a)
-            v_ac_0 = v_c[0] - v_a[0]
-            v_ac_1 = v_c[1] - v_a[1]
-            # v_n = vecmat.cross_vec3(v_ab, v_ac)
-            v_n = v_ab_0 * v_ac_1 - v_ab_1 * v_ac_0
-            # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
-            area_full_sq = v_n * v_n
+            if not textured:
+                subdivide_max_iterations = color_data[2]
+                colors = color_data[1]
+                avg_color = vecmat.get_average_color(colors[0], colors[1], colors[2])
+                col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
+                            for a,i,j,k in zip(avg_color, colors[0], colors[1], colors[2])])
+                if col_diff <= 20:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    continue
+            else:
+                intensities = color_data[3]
+                subdivide_max_iterations = color_data[4]
 
-            if area_full_sq <= 10:
-                pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
-                continue
-
-            # p = (x, y, 0)
-            # v_bc = vecmat.sub_vec3(v_c, v_b)
-            v_bc_0 = v_c[0] - v_b[0]
-            v_bc_1 = v_c[1] - v_b[1]
-            # v_ca = vecmat.sub_vec3(v_a, v_c)
-            v_ca_0 = v_a[0] - v_c[0]
-            v_ca_1 = v_a[1] - v_c[1]
+            if not textured:
+                if bary.area_sq <= 10:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    continue
 
             def get_interpolated_color(x, y):
-                # v_bp = vecmat.sub_vec3(p, v_b)
-                v_bp_0 = x - v_b[0]
-                v_bp_1 = y - v_b[1]
-                # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
-                v_n1 = v_bc_0 * v_bp_1 - v_bc_1 * v_bp_0
-                # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
-                u = (v_n * v_n1) / area_full_sq
-                # v_cp = vecmat.sub_vec3(p, v_c)
-                v_cp_0 = x - v_c[0]
-                v_cp_1 = y - v_c[1]
-                # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
-                v_n2 = v_ca_0 * v_cp_1 - v_ca_1 * v_cp_0
-                # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
-                v = (v_n * v_n2) / area_full_sq
-                w = 1 - u - v
-
-                r = max(0, min(255, int(color_data[0][0] * u + color_data[1][0] * v + color_data[2][0] * w)))
-                g = max(0, min(255, int(color_data[0][1] * u + color_data[1][1] * v + color_data[2][1] * w)))
-                b = max(0, min(255, int(color_data[0][2] * u + color_data[1][2] * v + color_data[2][2] * w)))
+                u,v,w = bary.get_uvw(x, y)
+                r = max(0, min(255, int(colors[0][0] * u + colors[1][0] * v + colors[2][0] * w)))
+                g = max(0, min(255, int(colors[0][1] * u + colors[1][1] * v + colors[2][1] * w)))
+                b = max(0, min(255, int(colors[0][2] * u + colors[1][2] * v + colors[2][2] * w)))
                 return (r, g, b)
 
-            if gouraud_max_iterations > 0:
-                tri_stack = deque() # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
-                tri_stack.append((v_a, v_b, v_c, vecmat.get_2d_triangle_area(v_a, v_b, v_c), 0))
+            if textured:
+                uv = color_data[1]
+                mip_textures = color_data[2]
+                tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
 
-                while tri_stack:
-                    tri = tri_stack.popleft()
-                    area = tri[3]
-                    iteration = tri[4]
-                    if area < 10 or iteration == gouraud_max_iterations:
-                        c_0 = get_interpolated_color(tri[0][0], tri[0][1])
-                        c_1 = get_interpolated_color(tri[1][0], tri[1][1])
-                        c_2 = get_interpolated_color(tri[2][0], tri[2][1])
-                        avg_color = vecmat.get_average_color(c_0, c_1, c_2)
-                        pygame.draw.polygon(surface, avg_color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
+            if subdivide_max_iterations > 0:
+                area = math.sqrt(bary.area_sq)
+                def cb_subdivide_gouraud(v_0, v_1, v_2, iteration):
+                    if textured:
+                        divisor = 2 ** iteration
+                        uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
+                        pix_w, pix_h = uv_w * tex_ip.tex_w, uv_h * tex_ip.tex_h
+                        if pix_w <= 1 or pix_h <= 1:
+                            centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
+                            x,y = centroid[0], centroid[1]
+                            u,v,w = bary.get_uvw(x, y)
+                            color = tex_ip.get_color(u, v, w)
+                            intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
+                            color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                            pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            return True
                     else:
-                        area /= 4
-                        iteration += 1
-                        v_01 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]]
-                        v_02 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1]]
-
-                        v_01_h = [v_01[0] / 2, v_01[1] / 2]
-                        v_02_h = [v_02[0] / 2, v_02[1] / 2]
-
-                        h_01 = [tri[0][0] + v_01_h[0], tri[0][1] + v_01_h[1]]
-                        h_02 = [tri[0][0] + v_02_h[0], tri[0][1] + v_02_h[1]]
-                        h_12 = [tri[0][0] + v_01_h[0] + v_02_h[0], tri[0][1] + v_01_h[1] + v_02_h[1]]
-
-                        tri_stack.append((tri[0], h_01, h_02, area, iteration))
-                        tri_stack.append((h_02, h_01, h_12, area, iteration))
-                        tri_stack.append((h_01, tri[1], h_12, area, iteration))
-                        tri_stack.append((h_02, h_12, tri[2], area, iteration))
+                        cur_area = area / (4 ** iteration)
+                        if cur_area < 10 or iteration == subdivide_max_iterations:
+                            c_0 = get_interpolated_color(*v_0)
+                            c_1 = get_interpolated_color(*v_1)
+                            c_2 = get_interpolated_color(*v_2)
+                            avg_color = vecmat.get_average_color(c_0, c_1, c_2)
+                            pygame.draw.polygon(surface, avg_color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            return True
+                vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide_gouraud)
             else:
                 # Per pixel Gouraud shading
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
-                for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
-                    if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
-                        continue
-                    r,g,b = get_interpolated_color(x, y)
-                    px_array[x, y] = (r << 16) | (g << 8) | b
+                if textured:
+                    for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                        if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
+                            continue
+                        u,v,w = bary.get_uvw(x, y)
+                        color = tex_ip.get_color(u, v, w)
+                        intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
+                        color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                        px_array[x, y] = color
+                else:
+                    for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
+                        if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
+                            continue
+                        r,g,b = get_interpolated_color(x, y)
+                        px_array[x, y] = (r << 16) | (g << 8) | b
                 del px_array
         elif draw_mode == DRAW_MODE_FLAT:
-            pygame.draw.polygon(surface, color_data, points)
+            textured = color_data[0]
+            intensity = color_data[1]
+            subdivide_max_iterations = color_data[4]
+            if textured:
+                mip_textures = color_data[2]
+                uv = color_data[3]
+                v_a = (points[0][0], points[0][1])
+                v_b = (points[1][0], points[1][1])
+                v_c = (points[2][0], points[2][1])
+                bary = vecmat.Barycentric2dTriangle(v_a, v_b, v_c)
+                if bary.area_sq == 0:
+                    continue
+                tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
+                def cb_subdivide(v_0, v_1, v_2, iteration):
+                    divisor = 2 ** iteration
+                    uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
+                    pix_w, pix_h = uv_w * tex_ip.tex_w, uv_h * tex_ip.tex_h
+                    if pix_w <= 1 or pix_h <= 1 or iteration == subdivide_max_iterations:
+                        centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
+                        x,y = centroid[0], centroid[1]
+                        u,v,w = bary.get_uvw(x, y)
+                        color = tex_ip.get_color(u, v, w)
+                        color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                        pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                        return True
+                    return False
+                vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
+            else:
+                color = color_data[2]
+                color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                pygame.draw.polygon(surface, color, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.draw.lines(surface, color_data, True, points)
         elif draw_mode == DRAW_MODE_BILLBOARD:

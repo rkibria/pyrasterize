@@ -5,6 +5,7 @@
 Vectors, matrices and other math
 """
 
+from collections import deque
 import math
 
 def sub_vec3(v_1, v_2):
@@ -265,3 +266,101 @@ def get_vec3_triangle_centroid(v_a, v_b, v_c):
 def get_average_color(c_0, c_1, c_2):
     """Average of 3 RGB colors"""
     return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]
+
+class Barycentric2dTriangle:
+    def __init__(self, v_a, v_b, v_c) -> None:
+        self.v_a = v_a
+        self.v_b = v_b
+        self.v_c = v_c
+
+        # v_ab = vecmat.sub_vec3(v_b, v_a)
+        v_ab_0 = v_b[0] - v_a[0]
+        v_ab_1 = v_b[1] - v_a[1]
+        # v_ac = vecmat.sub_vec3(v_c, v_a)
+        v_ac_0 = v_c[0] - v_a[0]
+        v_ac_1 = v_c[1] - v_a[1]
+        # v_n = vecmat.cross_vec3(v_ab, v_ac)
+        self.v_n = v_ab_0 * v_ac_1 - v_ab_1 * v_ac_0
+        # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
+        self.area_sq = self.v_n ** 2
+
+        # p = (x, y, 0)
+        # v_bc = vecmat.sub_vec3(v_c, v_b)
+        self.v_bc_0 = v_c[0] - v_b[0]
+        self.v_bc_1 = v_c[1] - v_b[1]
+        # v_ca = vecmat.sub_vec3(v_a, v_c)
+        self.v_ca_0 = v_a[0] - v_c[0]
+        self.v_ca_1 = v_a[1] - v_c[1]
+
+    def get_uvw(self, x, y):
+        # v_bp = vecmat.sub_vec3(p, v_b)
+        v_bp_0 = x - self.v_b[0]
+        v_bp_1 = y - self.v_b[1]
+        # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
+        v_n1 = self.v_bc_0 * v_bp_1 - self.v_bc_1 * v_bp_0
+        # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
+        u = (self.v_n * v_n1) / self.area_sq
+        # v_cp = vecmat.sub_vec3(p, v_c)
+        v_cp_0 = x - self.v_c[0]
+        v_cp_1 = y - self.v_c[1]
+        # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
+        v_n2 = self.v_ca_0 * v_cp_1 - self.v_ca_1 * v_cp_0
+        # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
+        v = (self.v_n * v_n2) / self.area_sq
+        return u, v, 1 - u - v
+
+class TextureInterpolation:
+    def __init__(self, uv, mip_textures, z_order, mip_dist) -> None:
+        self.uv = uv
+        self.uv_extent = TextureInterpolation.get_uv_extent(*uv)
+        num_mip_levels = len(mip_textures)
+        mip_level = num_mip_levels * abs(z_order) / mip_dist
+        mip_level = max(0, min(num_mip_levels - 1, int(mip_level)))
+        self.texture = mip_textures[mip_level]
+        self.tex_w,self.tex_h = len(self.texture[0]), len(self.texture)
+        
+    @staticmethod
+    def get_uv_extent(uv_0, uv_1, uv_2):
+        s_min = min(uv_0[0], uv_1[0], uv_2[0])
+        s_max = max(uv_0[0], uv_1[0], uv_2[0])
+        t_min = min(uv_0[1], uv_1[1], uv_2[1])
+        t_max = max(uv_0[1], uv_1[1], uv_2[1])
+        return s_max - s_min, t_max - t_min
+
+    def get_color(self, u, v, w):
+        s = self.uv[0][0] * u + self.uv[1][0] * v + self.uv[2][0] * w
+        t = self.uv[0][1] * u + self.uv[1][1] * v + self.uv[2][1] * w
+        s_i = min(self.tex_w - 1, max(0, int(s * self.tex_w)))
+        t_i = min(self.tex_h - 1, max(0, int(t * self.tex_h)))
+        color = self.texture[t_i][s_i]
+        return color
+
+def subdivide_2d_triangle(v_a, v_b, v_c, callback):
+    """
+    Callback arguments: vec2: point, vec2: point, vec2: point, int: iteration
+    If returns true, don't split current triangle further
+    """
+    tri_stack = deque()
+    tri_stack.append((v_a, v_b, v_c, 0))
+    while tri_stack:
+        tri = tri_stack.popleft()
+        if callback(*tri):
+            continue
+
+        # Split and recurse
+        iteration = tri[3]
+        iteration += 1
+        v_01 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]]
+        v_02 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1]]
+
+        v_01_h = [v_01[0] / 2, v_01[1] / 2]
+        v_02_h = [v_02[0] / 2, v_02[1] / 2]
+
+        h_01 = [tri[0][0] + v_01_h[0], tri[0][1] + v_01_h[1]]
+        h_02 = [tri[0][0] + v_02_h[0], tri[0][1] + v_02_h[1]]
+        h_12 = [tri[0][0] + v_01_h[0] + v_02_h[0], tri[0][1] + v_01_h[1] + v_02_h[1]]
+
+        tri_stack.append((tri[0], h_01, h_02, iteration))
+        tri_stack.append((h_02, h_01, h_12, iteration))
+        tri_stack.append((h_01, tri[1], h_12, iteration))
+        tri_stack.append((h_02, h_12, tri[2], iteration))
