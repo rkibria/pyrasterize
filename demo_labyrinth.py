@@ -16,6 +16,8 @@ from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import model_file_io
 
+from spritesheet import SpriteSheet
+
 # CONSTANTS
 
 RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
@@ -184,19 +186,6 @@ def update_viewable_area(labyrinth, cell_size, view_max, root_instances):
 
     for row,col in enables:
         enable_cell(row, col, True)
-
-# https://stackoverflow.com/a/48055738
-class SpriteSheet(object):
-    def __init__(self, file_name):
-        # You have to call `convert_alpha`, so that the background of
-        # the surface is transparent.
-        self.sprite_sheet = pygame.image.load(file_name).convert_alpha()
-
-    def get_image(self, x, y, width, height):
-        # Use a transparent surface as the base image (pass pygame.SRCALPHA).
-        image = pygame.Surface([width, height], pygame.SRCALPHA)
-        image.blit(self.sprite_sheet, (0,0), (x, y, width, height))
-        return image
 
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""

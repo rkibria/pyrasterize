@@ -10,6 +10,7 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import textures
+from pyrasterize import model_file_io
 
 # CONSTANTS
 
@@ -32,23 +33,11 @@ def main_function():
     pygame.display.set_caption("pyrasterize demo")
     clock = pygame.time.Clock()
 
-    # mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    # mip_textures = textures.get_mip_textures("assets/Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.png")
-    mip_textures = textures.get_mip_textures("assets/Terrestrial-Clouds-EQUIRECTANGULAR-0-64x32.png")
+    mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
     # mip_textures.pop(0)
-
     scene_graph = {"root": rasterizer.get_model_instance(None)}
-
-    # scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures))
-    # scene_graph["root"]["children"]["sprite"]["gouraud"] = True
-    # scene_graph["root"]["children"]["sprite"]["gouraud_max_iterations"] = 1
-
-    # scene_graph["root"]["children"]["sprite"] = meshes.get_test_texture_cube_instance(mip_textures, True, 1)
-
-    scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 20, 20))
-    scene_graph["root"]["children"]["sprite"]["model"]["texture"] = mip_textures
-    # scene_graph["root"]["children"]["sprite"]["gouraud"] = True
-    # scene_graph["root"]["children"]["sprite"]["gouraud_max_iterations"] = 0
+    scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures))
+    scene_graph["root"]["children"]["sprite"]["subdivide_max_iterations"] = 5
 
     font = pygame.font.Font(None, 30)
     textblock_fps = font.render("", True, (0,0,0))
@@ -67,8 +56,8 @@ def main_function():
         screen.fill((0, 0, 255))
 
         d = 20
-        m = vecmat.get_transl_m4(0, 0, -2)
-        # m = vecmat.get_transl_m4(0, 0, -1 - d + d * abs(math.sin(vecmat.deg_to_rad(frame * 2))))
+        # m = vecmat.get_transl_m4(0, 0, -2)
+        m = vecmat.get_transl_m4(0, 0, -1 - d + d * abs(math.sin(vecmat.deg_to_rad(frame * 2))))
         m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_z_m4(vecmat.deg_to_rad(frame * 1.5)))
         m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5)))
         m = vecmat.mat4_mat4_mul(m, vecmat.get_rot_x_m4(vecmat.deg_to_rad(frame * 1.5)))

@@ -16,6 +16,8 @@ from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import textures
 
+from spritesheet import SpriteSheet
+
 # CONSTANTS
 
 RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
@@ -57,6 +59,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     scene_graphs[1]["root"]["children"]["pedestal"] = rasterizer.get_model_instance(
         meshes.get_cylinder_mesh(0.5, 0.5, 5, (100, 100, 110), True, False),
         xform_m4=vecmat.get_transl_m4(0, 0.25, 0))
+    scene_graphs[1]["root"]["children"]["pedestal"]["gouraud"] = True
+    scene_graphs[1]["root"]["children"]["pedestal"]["subdivide_max_iterations"] = 2
 
     planet_mip_textures = textures.get_mip_textures("assets/Terrestrial-Clouds-EQUIRECTANGULAR-0-64x32.png")
     planet_mip_textures.pop(0)
@@ -106,11 +110,12 @@ def main_function(): # PYGBAG: decorate with 'async'
         scene_graphs[1]["root"]["children"][f"column_{y}_{x}"] = rasterizer.get_model_instance(
             meshes.get_cylinder_mesh(5, 0.5, 10, (100, 100, 110), False, False),
             xform_m4=vecmat.get_transl_m4(y, 2.5, x))
+        scene_graphs[1]["root"]["children"][f"column_{y}_{x}"]["gouraud"] = True
 
     # Interior: walls
     wall_color_1 = (130, 130, 140)
     wall_color_2 = (120, 120, 120)
-    wall_divs = (5, 5)
+    wall_divs = (20, 10)
     scene_graphs[1]["root"]["children"]["north_wall"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
         xform_m4=vecmat.get_transl_m4(0, 2.5, -5.5))
@@ -129,18 +134,25 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # Interior: billboards
     img = pygame.image.load("assets/LampStand.png").convert_alpha()
-    lamp_positions = [(-5, 0), (5, 0), (0, 5)]
+    lamp_positions = [(-1.5, -4.7), (1.5, -4.7)]
     for x,y in lamp_positions:
-        scene_graphs[1]["root"]["children"][f"billboard_{x}_{y}"] = rasterizer.get_model_instance(
+        scene_graphs[1]["root"]["children"][f"lamp_{x}_{y}"] = rasterizer.get_model_instance(
             rasterizer.get_billboard(x, 1, y, 3.5, 3.5, img))
+
+    fire_ss = SpriteSheet("assets/fire1_64.png")
+    fire_imgs = []
+    for y in range(6):
+        for x in range(10):
+            fire_imgs.append(fire_ss.get_image(x * 64, y * 64, 64, 64))
+    for x,y in lamp_positions:
+        scene_graphs[1]["root"]["children"][f"fire_{x}_{y}"] = rasterizer.get_model_instance(
+            rasterizer.get_animated_billboard(x, 2.3, y-0.1, 6, 6, fire_imgs))
 
     # Interior: painting
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    # scene_graphs[1]["root"]["children"]["ceiling_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
-    #     preproc_m4=vecmat.mat4_mat4_mul(vecmat.get_scal_m4(3, 3, 3), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))),
-    #     xform_m4=vecmat.get_transl_m4(0, 4.9, 0))
     scene_graphs[1]["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
-        xform_m4=vecmat.get_transl_m4(0, 1, -5))
+        xform_m4=vecmat.get_transl_m4(0, 1, -5.2))
+    scene_graphs[1]["root"]["children"]["wall_painting"]["subdivide_max_iterations"] = 5
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -154,8 +166,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     def update_hud():
         global CAMERA
         nonlocal textblock_fps
-        pos = [round(p, 2) for p in CAMERA['pos']]
-        textblock_fps = font.render(f"pos: {pos} - mov: {move_dir} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
+        # pos = [round(p, 2) for p in CAMERA['pos']]
+        textblock_fps = font.render(f"{round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
     update_hud()
 
     pygame.mouse.set_visible(False)
@@ -240,6 +252,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
     pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
 
+    first_mouse_move = True
+
     while not done:
         clock.tick(30)
         for event in pygame.event.get():
@@ -255,7 +269,10 @@ def main_function(): # PYGBAG: decorate with 'async'
                 on_key_up(event.key)
             elif event.type == pygame.MOUSEMOTION:
                 mouse_position = pygame.mouse.get_rel()
-                on_mouse_movement(mouse_position[0], mouse_position[1])
+                if first_mouse_move:
+                    first_mouse_move = False
+                else:
+                    on_mouse_movement(mouse_position[0], mouse_position[1])
 
         do_animation()
         do_movement()

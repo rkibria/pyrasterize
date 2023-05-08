@@ -74,7 +74,7 @@ def main_function():
         except:
             print(f"Error loading {file}, skipping")
 
-    gouraud_max_iterations = 1
+    subdivide_max_iterations = 1
     for name,instance in instances:
         scene_graph["root"]["children"][name] = instance
         print(f"- {name}: {len(instance['model']['tris'])} triangles")
@@ -85,7 +85,7 @@ def main_function():
     textblock_drawmode = font.render("", True, TEXT_COLOR)
     textblock_model = font.render("", True, TEXT_COLOR)
     textblock_scale = font.render("", True, TEXT_COLOR)
-    textblock_gouraud_its = font.render("", True, TEXT_COLOR)
+    textblock_subdivide_its = font.render("", True, TEXT_COLOR)
 
     drawing_mode_names = ["Gouraud shading", "Flat shading", "Wireframe with backface culling", "Wireframe"]
     OVERLAY_DRAWING_MODE = 2
@@ -96,25 +96,25 @@ def main_function():
         nonlocal textblock_drawmode
         nonlocal textblock_model
         nonlocal textblock_scale
-        nonlocal textblock_gouraud_its
+        nonlocal textblock_subdivide_its
         textblock_drawmode = font.render(f"Draw mode (Q/A): {drawing_mode_names[drawing_mode]}", True, TEXT_COLOR)
         textblock_model = font.render(f"Model (W/S): {instances[cur_inst][0]}", True, TEXT_COLOR)
         textblock_scale = font.render(f"Scale (wheel up/down): {model_scale}", True, TEXT_COLOR)
-        textblock_gouraud_its = font.render(f"Gouraud subdivions (E/D): {'per pixel' if gouraud_max_iterations == 0 else str(gouraud_max_iterations)}", True, TEXT_COLOR)
+        textblock_subdivide_its = font.render(f"Subdivions (E/D): {'per pixel' if subdivide_max_iterations == 0 else str(subdivide_max_iterations)}", True, TEXT_COLOR)
 
     def set_draw_mode():
         """Set the cube instance's drawing parameters according to current mode"""
         nonlocal drawing_mode
         nonlocal instances
         nonlocal cur_inst
-        nonlocal gouraud_max_iterations
+        nonlocal subdivide_max_iterations
         for i in range(len(instances)):
             instances[i][1]["enabled"] = (i == cur_inst)
         instances[cur_inst][1]["gouraud"] = (drawing_mode == 0)
         instances[cur_inst][1]["wireframe"] = (drawing_mode == 2 or drawing_mode == 3)
         instances[cur_inst][1]["noCulling"] = (drawing_mode == 3)
         instances[cur_inst][1]["preproc_m4"] = vecmat.get_scal_m4(model_scale, model_scale, model_scale)
-        instances[cur_inst][1]["gouraud_max_iterations"] = gouraud_max_iterations
+        instances[cur_inst][1]["subdivide_max_iterations"] = subdivide_max_iterations
         # instances[cur_inst][1]["use_minimum_z_order"] = True
 
     up_scale_factor = 1.1
@@ -181,11 +181,11 @@ def main_function():
                     set_draw_mode()
                     regenerate_textblocks()
                 elif event.key == pygame.K_e:
-                    gouraud_max_iterations += 1
+                    subdivide_max_iterations += 1
                     set_draw_mode()
                     regenerate_textblocks()
                 elif event.key == pygame.K_d:
-                    gouraud_max_iterations = max(0, gouraud_max_iterations - 1)
+                    subdivide_max_iterations = max(0, subdivide_max_iterations - 1)
                     set_draw_mode()
                     regenerate_textblocks()
 
@@ -207,7 +207,7 @@ def main_function():
         screen.blit(textblock_drawmode, (30, 20))
         screen.blit(textblock_model, (30, 50))
         screen.blit(textblock_scale, (30, 80))
-        screen.blit(textblock_gouraud_its, (30, 110))
+        screen.blit(textblock_subdivide_its, (30, 110))
         screen.blit(textblock_fps, (30, 140))
 
         pygame.display.flip()

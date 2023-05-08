@@ -322,6 +322,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     if not model:
         return
 
+    subdivide_default_max_iterations = 1
+
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
 
     if "billboard" in model:
@@ -403,13 +405,13 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     no_culling = ("noCulling" in instance) and instance["noCulling"]
     model_tris = model["tris"]
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
-    gouraud_max_iterations = instance["gouraud_max_iterations"] if "gouraud_max_iterations" in instance else 1 # default gouraud is 1 subdivision
     textured = "texture" in model
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
     pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
     if pointlight_enabled:
         pointlight_falloff = lighting["pointlight_falloff"]
         pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
+    subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
@@ -491,14 +493,17 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             color_data = (textured,
                           intensity, 
                           model["texture"] if textured else model_colors[tri_idx],
-                          [model["uv"][vert_idx] for vert_idx in tri] if textured else None)
+                          [model["uv"][vert_idx] for vert_idx in tri] if textured else None,
+                          subdivide_max_iterations)
         else: # draw_mode == DRAW_MODE_GOURAUD:
             if textured:
                 uv = model["uv"]
-                color_data = [textured, [uv[vert_idx] for vert_idx in tri], model["texture"],
-                              [vert_colors[vert_idx] for vert_idx in tri], gouraud_max_iterations]
+                color_data = [textured, [uv[vert_idx] for vert_idx in tri],
+                              model["texture"],
+                              [vert_colors[vert_idx] for vert_idx in tri],
+                              subdivide_max_iterations]
             else:
-                color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri], gouraud_max_iterations]
+                color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri], subdivide_max_iterations]
 
         scene_triangles.append((
             z_order,
@@ -566,7 +571,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 continue
 
             if not textured:
-                gouraud_max_iterations = color_data[2]
+                subdivide_max_iterations = color_data[2]
                 colors = color_data[1]
                 avg_color = vecmat.get_average_color(colors[0], colors[1], colors[2])
                 col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
@@ -576,7 +581,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     continue
             else:
                 intensities = color_data[3]
-                gouraud_max_iterations = color_data[4]
+                subdivide_max_iterations = color_data[4]
 
             if not textured:
                 if bary.area_sq <= 10:
@@ -595,7 +600,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 mip_textures = color_data[2]
                 tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
 
-            if gouraud_max_iterations > 0:
+            if subdivide_max_iterations > 0:
                 area = math.sqrt(bary.area_sq)
                 def cb_subdivide_gouraud(v_0, v_1, v_2, iteration):
                     if textured:
@@ -613,7 +618,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             return True
                     else:
                         cur_area = area / (4 ** iteration)
-                        if cur_area < 10 or iteration == gouraud_max_iterations:
+                        if cur_area < 10 or iteration == subdivide_max_iterations:
                             c_0 = get_interpolated_color(*v_0)
                             c_1 = get_interpolated_color(*v_1)
                             c_2 = get_interpolated_color(*v_2)
@@ -643,6 +648,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
         elif draw_mode == DRAW_MODE_FLAT:
             textured = color_data[0]
             intensity = color_data[1]
+            subdivide_max_iterations = color_data[4]
             if textured:
                 mip_textures = color_data[2]
                 uv = color_data[3]
@@ -657,7 +663,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     divisor = 2 ** iteration
                     uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
                     pix_w, pix_h = uv_w * tex_ip.tex_w, uv_h * tex_ip.tex_h
-                    if pix_w <= 1 or pix_h <= 1:
+                    if pix_w <= 1 or pix_h <= 1 or iteration == subdivide_max_iterations:
                         centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
                         x,y = centroid[0], centroid[1]
                         u,v,w = bary.get_uvw(x, y)
