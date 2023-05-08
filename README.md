@@ -16,7 +16,7 @@ Shell game demo made with pygbag on itch.io https://pelicanicious.itch.io/pyrast
 
 Gouraud shading / draw modes demo video https://i.imgur.com/XC3njax.mp4
 
-First person game/billboard sprites demo: https://i.imgur.com/5fZugHX.png video https://i.imgur.com/CAEq013.mp4 - on itch.io: https://pelicanicious.itch.io/pyrasterize-firstpersondemo
+First person game-like multiple features demo: https://i.imgur.com/t43Nnqd.mp4 - on itch.io: https://pelicanicious.itch.io/pyrasterize-firstpersondemo
 
 3D labyrinth first person demo: https://i.imgur.com/zLBnNwk.mp4 video - on itch.io: https://pelicanicious.itch.io/pyrasterize-labyrinth
 
