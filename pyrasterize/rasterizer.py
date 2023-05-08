@@ -492,8 +492,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                           intensity, 
                           model["texture"] if textured else model_colors[tri_idx],
                           [model["uv"][vert_idx] for vert_idx in tri] if textured else None)
-        else: # draw_mode == DRAW_MODE_GOURAUD: (tri_color1, tri_color2, tri_color3, gouraud_max_iterations)
-            # color_data = [vert_colors[vert_idx] for vert_idx in tri] + [gouraud_max_iterations]
+        else: # draw_mode == DRAW_MODE_GOURAUD:
             if textured:
                 uv = model["uv"]
                 color_data = [textured, [uv[vert_idx] for vert_idx in tri], model["texture"],
@@ -593,34 +592,23 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
             if textured:
                 uv = color_data[1]
-                # uv_extent = get_uv_extent(*uv)
                 mip_textures = color_data[2]
-                # num_mip_levels = len(mip_textures)
-                # mip_level = num_mip_levels * abs(z_order) / mip_dist
-                # mip_level = max(0, min(num_mip_levels - 1, int(mip_level)))
-                # texture = mip_textures[mip_level]
-                # tex_w,tex_h = len(texture[0]), len(texture)
                 tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
 
             if gouraud_max_iterations > 0:
                 area = math.sqrt(bary.area_sq)
                 def cb_subdivide_gouraud(v_0, v_1, v_2, iteration):
                     if textured:
-                        # divisor = 2 ** iteration
-                        # uv_w, uv_h = uv_extent[0] / divisor, uv_extent[1] / divisor
-                        # pix_w, pix_h = uv_w * tex_w, uv_h * tex_h
-                        # if pix_w <= 1 or pix_h <= 1:
-                        #     centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
-                        #     x,y = centroid[0], centroid[1]
-                        #     u,v,w = get_uvw(x, y)
-                        #     s = uv[0][0] * u + uv[1][0] * v + uv[2][0] * w
-                        #     t = uv[0][1] * u + uv[1][1] * v + uv[2][1] * w
-                        #     s_i = min(tex_w - 1, max(0, int(s * tex_w)))
-                        #     t_i = min(tex_h - 1, max(0, int(t * tex_h)))
-                        #     color = texture[t_i][s_i]
-                        #     pygame.draw.polygon(surface, color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
-                        #     return True
-                        return True
+                        divisor = 2 ** iteration
+                        uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
+                        pix_w, pix_h = uv_w * tex_ip.tex_w, uv_h * tex_ip.tex_h
+                        if pix_w <= 1 or pix_h <= 1:
+                            centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
+                            x,y = centroid[0], centroid[1]
+                            u,v,w = bary.get_uvw(x, y)
+                            color = tex_ip.get_color(u, v, w)
+                            pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            return True
                     else:
                         cur_area = area / (4 ** iteration)
                         if cur_area < 10 or iteration == gouraud_max_iterations:
@@ -631,58 +619,6 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             pygame.draw.polygon(surface, avg_color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
                             return True
                 vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide_gouraud)
-
-                # tri_stack = deque()
-                # # (vec2: point, vec2: point, vec2: point, float: area, int: iteration)
-                # tri_stack.append((v_a, v_b, v_c, vecmat.get_2d_triangle_area(v_a, v_b, v_c), 0))
-
-                # while tri_stack:
-                #     tri = tri_stack.popleft()
-                #     area = tri[3]
-                #     iteration = tri[4]
-
-                #     if textured:
-                #         divisor = 2 ** iteration
-                #         uv_w, uv_h = uv_extent[0] / divisor, uv_extent[1] / divisor
-                #         pix_w, pix_h = uv_w * tex_w, uv_h * tex_h
-                #         if pix_w <= 1 or pix_h <= 1:
-                #             centroid = vecmat.get_vec2_triangle_centroid(tri[0], tri[1], tri[2])
-                #             x,y = centroid[0], centroid[1]
-                #             u,v,w = get_uvw(x, y)
-                #             s = uv[0][0] * u + uv[1][0] * v + uv[2][0] * w
-                #             t = uv[0][1] * u + uv[1][1] * v + uv[2][1] * w
-                #             s_i = min(tex_w - 1, max(0, int(s * tex_w)))
-                #             t_i = min(tex_h - 1, max(0, int(t * tex_h)))
-                #             color = texture[t_i][s_i]
-                #             pygame.draw.polygon(surface, color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
-                #             # pygame.draw.lines(surface, (0, 255, 0), True, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
-                #             continue
-                #     else:
-                #         if area < 10 or iteration == gouraud_max_iterations:
-                #             c_0 = get_interpolated_color(tri[0][0], tri[0][1])
-                #             c_1 = get_interpolated_color(tri[1][0], tri[1][1])
-                #             c_2 = get_interpolated_color(tri[2][0], tri[2][1])
-                #             avg_color = vecmat.get_average_color(c_0, c_1, c_2)
-                #             pygame.draw.polygon(surface, avg_color, ((tri[0][0], tri[0][1]), (tri[1][0], tri[1][1]), (tri[2][0], tri[2][1])))
-                #             continue
-
-                #     # Split and recurse
-                #     area /= 4
-                #     iteration += 1
-                #     v_01 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]]
-                #     v_02 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1]]
-
-                #     v_01_h = [v_01[0] / 2, v_01[1] / 2]
-                #     v_02_h = [v_02[0] / 2, v_02[1] / 2]
-
-                #     h_01 = [tri[0][0] + v_01_h[0], tri[0][1] + v_01_h[1]]
-                #     h_02 = [tri[0][0] + v_02_h[0], tri[0][1] + v_02_h[1]]
-                #     h_12 = [tri[0][0] + v_01_h[0] + v_02_h[0], tri[0][1] + v_01_h[1] + v_02_h[1]]
-
-                #     tri_stack.append((tri[0], h_01, h_02, area, iteration))
-                #     tri_stack.append((h_02, h_01, h_12, area, iteration))
-                #     tri_stack.append((h_01, tri[1], h_12, area, iteration))
-                #     tri_stack.append((h_02, h_12, tri[2], area, iteration))
             else:
                 # Per pixel Gouraud shading
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this

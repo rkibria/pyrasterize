@@ -39,7 +39,7 @@ def main_function():
 
     scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures))
     scene_graph["root"]["children"]["sprite"]["gouraud"] = True
-    scene_graph["root"]["children"]["sprite"]["gouraud_max_iterations"] = 0
+    scene_graph["root"]["children"]["sprite"]["gouraud_max_iterations"] = 1
 
     # scene_graph["root"]["children"]["sprite"] = meshes.get_test_texture_cube_instance(mip_textures)
 
