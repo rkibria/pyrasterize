@@ -607,6 +607,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             x,y = centroid[0], centroid[1]
                             u,v,w = bary.get_uvw(x, y)
                             color = tex_ip.get_color(u, v, w)
+                            intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
+                            color = (intensity * color[0], intensity * color[1], intensity * color[2])
                             pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
                             return True
                     else:
@@ -628,6 +630,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             continue
                         u,v,w = bary.get_uvw(x, y)
                         color = tex_ip.get_color(u, v, w)
+                        intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
+                        color = (intensity * color[0], intensity * color[1], intensity * color[2])
                         px_array[x, y] = color
                 else:
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):

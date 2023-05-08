@@ -108,15 +108,12 @@ def main_function(): # PYGBAG: decorate with 'async'
             rasterizer.get_billboard(x, 1, y, 3.5, 3.5, img))
 
     # Interior: painting
-    texture = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    scene_graphs[1]["root"]["children"]["ceiling_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(),
+    mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
+    scene_graphs[1]["root"]["children"]["ceiling_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
         preproc_m4=vecmat.mat4_mat4_mul(vecmat.get_scal_m4(3, 3, 3), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))),
         xform_m4=vecmat.get_transl_m4(0, 4.9, 0))
-    scene_graphs[1]["root"]["children"]["ceiling_painting"]["model"]["texture"] = texture
-
-    scene_graphs[1]["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(),
+    scene_graphs[1]["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
         xform_m4=vecmat.get_transl_m4(0, 1, -5))
-    scene_graphs[1]["root"]["children"]["wall_painting"]["model"]["texture"] = texture
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)

@@ -44,21 +44,38 @@ def get_test_texture_mesh(mip_textures):
         "texture": mip_textures,
     }
 
-def get_test_texture_cube_instance(mip_textures):
+def get_test_texture_cube_instance(mip_textures, gouraud=False, gouraud_iterations=1):
     inst = rasterizer.get_model_instance(None)
-    front_mesh = get_test_texture_mesh()
-    front_mesh["texture"] = mip_textures
+    front_mesh = get_test_texture_mesh(mip_textures)
     inst["children"]["front"] = rasterizer.get_model_instance(front_mesh, vecmat.get_transl_m4(0, 0, 0.5))
+    inst["children"]["front"]["gouraud"] = gouraud
+    inst["children"]["front"]["gouraud_max_iterations"] = gouraud_iterations
+
     inst["children"]["back"] = rasterizer.get_model_instance(front_mesh,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -0.5), vecmat.get_rot_x_m4(vecmat.deg_to_rad(180))))
+    inst["children"]["back"]["gouraud"] = gouraud
+    inst["children"]["back"]["gouraud_max_iterations"] = gouraud_iterations
+
     inst["children"]["left"] = rasterizer.get_model_instance(front_mesh,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-0.5, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["left"]["gouraud"] = gouraud
+    inst["children"]["left"]["gouraud_max_iterations"] = gouraud_iterations
+
     inst["children"]["right"] = rasterizer.get_model_instance(front_mesh,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0.5, 0, 0), vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))))
+    inst["children"]["right"]["gouraud"] = gouraud
+    inst["children"]["right"]["gouraud_max_iterations"] = gouraud_iterations
+
     inst["children"]["top"] = rasterizer.get_model_instance(front_mesh,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0.5, 0), vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90))))
+    inst["children"]["top"]["gouraud"] = gouraud
+    inst["children"]["top"]["gouraud_max_iterations"] = gouraud_iterations
+
     inst["children"]["bottom"] = rasterizer.get_model_instance(front_mesh,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, -0.5, 0), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))))
+    inst["children"]["bottom"]["gouraud"] = gouraud
+    inst["children"]["bottom"]["gouraud_max_iterations"] = gouraud_iterations
+
     return inst
 
 def get_test_triangle_mesh():
