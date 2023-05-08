@@ -196,13 +196,17 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
     """
     r_divs = max(3, r_divs)
     l_divs = max(2, l_divs)
-    mesh = { "verts": [], "tris": [], "colors": []}
+    mesh = { "verts": [], "tris": [], "uv": []}
+    if color is not None:
+        mesh["colors"] = []
     bottom_y = -radius
     top_y = radius
     bottom_center_v = 0
     top_center_v = 1
     mesh["verts"].append((0, bottom_y, 0))
     mesh["verts"].append((0, top_y, 0))
+    mesh["uv"].append((0, 1))
+    mesh["uv"].append((0, 0))
     r_phi_step = 2 * math.pi / r_divs
     l_phi_step = math.pi / l_divs
 
@@ -217,6 +221,7 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
             x_i = radius_i * math.cos(r_phi)
             z_i = -radius_i * math.sin(r_phi)
             mesh["verts"].append((x_i, y_i, z_i))
+            mesh["uv"].append((1.0 / r_divs * r_i, 1.0 / l_divs * l_i))
 
     for l_i in range(l_divs - 2):
         for r_i in range(r_divs):
@@ -229,8 +234,9 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
                 next_top_v = next_bottom_v + r_divs
             mesh["tris"].append((bottom_v, next_top_v, top_v))
             mesh["tris"].append((bottom_v, next_bottom_v, next_top_v))
-            mesh["colors"].append(color)
-            mesh["colors"].append(color)
+            if color is not None:
+                mesh["colors"].append(color)
+                mesh["colors"].append(color)
 
     for i in range(r_divs): # bottom cap
         bottom_v = 2 + i
@@ -238,7 +244,8 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
         if i == r_divs - 1:
             next_bottom_v = 2
         mesh["tris"].append((next_bottom_v, bottom_v, bottom_center_v))
-        mesh["colors"].append(color)
+        if color is not None:
+            mesh["colors"].append(color)
 
     for i in range(r_divs): # top cap
         top_v = 2 + (l_divs - 2) * r_divs + i
@@ -246,7 +253,8 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
         if i == r_divs - 1:
             next_top_v = 2 + (l_divs - 2) * r_divs
         mesh["tris"].append((top_v, next_top_v, top_center_v))
-        mesh["colors"].append(color)
+        if color is not None:
+            mesh["colors"].append(color)
 
     return mesh
 

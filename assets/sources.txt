@@ -27,6 +27,9 @@ apple.obj, apple.mtl
 https://commons.wikimedia.org/wiki/File:Mona_Lisa.jpg - Public domain
 Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.png
 
+https://opengameart.org/content/10-terrestrial-planet-wrapping-textures by gryphie - CC0 license
+Terrestrial-Clouds-EQUIRECTANGULAR-0-64x32.png
+
 --
 
 Utah teapot obj files available at https://graphics.cs.utah.edu/courses/cs6620/fall2017/?prj=5

@@ -32,8 +32,10 @@ def main_function():
     pygame.display.set_caption("pyrasterize demo")
     clock = pygame.time.Clock()
 
-    mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    mip_textures.pop(0)
+    # mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
+    # mip_textures = textures.get_mip_textures("assets/Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.png")
+    mip_textures = textures.get_mip_textures("assets/Terrestrial-Clouds-EQUIRECTANGULAR-0-64x32.png")
+    # mip_textures.pop(0)
 
     scene_graph = {"root": rasterizer.get_model_instance(None)}
 
@@ -41,7 +43,12 @@ def main_function():
     # scene_graph["root"]["children"]["sprite"]["gouraud"] = True
     # scene_graph["root"]["children"]["sprite"]["gouraud_max_iterations"] = 1
 
-    scene_graph["root"]["children"]["sprite"] = meshes.get_test_texture_cube_instance(mip_textures, True, 1)
+    # scene_graph["root"]["children"]["sprite"] = meshes.get_test_texture_cube_instance(mip_textures, True, 1)
+
+    scene_graph["root"]["children"]["sprite"] = rasterizer.get_model_instance(meshes.get_sphere_mesh(1, 20, 20))
+    scene_graph["root"]["children"]["sprite"]["model"]["texture"] = mip_textures
+    # scene_graph["root"]["children"]["sprite"]["gouraud"] = True
+    # scene_graph["root"]["children"]["sprite"]["gouraud_max_iterations"] = 0
 
     font = pygame.font.Font(None, 30)
     textblock_fps = font.render("", True, (0,0,0))
