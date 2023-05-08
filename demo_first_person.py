@@ -58,18 +58,45 @@ def main_function(): # PYGBAG: decorate with 'async'
         meshes.get_cylinder_mesh(0.5, 0.5, 5, (100, 100, 110), True, False),
         xform_m4=vecmat.get_transl_m4(0, 0.25, 0))
 
+    planet_mip_textures = textures.get_mip_textures("assets/Terrestrial-Clouds-EQUIRECTANGULAR-0-64x32.png")
+    planet_mip_textures.pop(0)
     scene_graphs[1]["root"]["children"]["blue_sphere"] = rasterizer.get_model_instance(
-        meshes.get_sphere_mesh(0.2, 20, 10, (0, 0, 200)))
+        meshes.get_sphere_mesh(0.2, 20, 10))
     blue_sphere = scene_graphs[1]["root"]["children"]["blue_sphere"]
-    blue_sphere["gouraud"] = True
+    blue_sphere["model"]["texture"] = planet_mip_textures
+
+    img = pygame.transform.scale(pygame.image.load("assets/blue_spot.png").convert_alpha(), (5, 5))
+    l_divs = 15
+    r_divs = 15
+    r_phi_step = 2 * math.pi / r_divs
+    l_phi_step = math.pi / l_divs
+    radius = 0.7
+    num_particles = (l_divs - 1) * r_divs
+    particles = rasterizer.get_particles(img, num_particles, 1, 1)
+    blue_sphere["children"]["particles"] = rasterizer.get_model_instance(particles)
+    pos_i = 0
+    for l_i in range(l_divs - 1):
+        for r_i in range(r_divs):
+            # divide surface arc from bottom to top into l_divs
+            l_phi = l_phi_step * (l_i + 1)
+            y_i = -radius * math.cos(l_phi)
+            radius_i = (radius ** 2 - y_i ** 2) ** 0.5
+            r_phi = r_phi_step * r_i
+            x_i = radius_i * math.cos(r_phi)
+            z_i = -radius_i * math.sin(r_phi)
+            pos = particles["positions"][pos_i]
+            pos[0] = x_i
+            pos[1] = y_i
+            pos[2] = z_i
+            pos_i += 1
 
     blue_sphere["children"]["red_sphere"] = rasterizer.get_model_instance(
-        meshes.get_sphere_mesh(0.1, 10, 5, (200, 0, 0)))
+        meshes.get_sphere_mesh(0.1, 10, 5, (80, 60, 20)))
     red_sphere = blue_sphere["children"]["red_sphere"]
     red_sphere["gouraud"] = True
 
     red_sphere["children"]["green_sphere"] = rasterizer.get_model_instance(
-        meshes.get_sphere_mesh(0.05, 10, 5, (0, 200, 0)),
+        meshes.get_sphere_mesh(0.05, 10, 5, (90, 80, 30)),
         xform_m4=vecmat.get_transl_m4(0.15, 0, 0))
     red_sphere["children"]["green_sphere"]["gouraud"] = True
 
@@ -109,9 +136,9 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # Interior: painting
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    scene_graphs[1]["root"]["children"]["ceiling_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
-        preproc_m4=vecmat.mat4_mat4_mul(vecmat.get_scal_m4(3, 3, 3), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))),
-        xform_m4=vecmat.get_transl_m4(0, 4.9, 0))
+    # scene_graphs[1]["root"]["children"]["ceiling_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
+    #     preproc_m4=vecmat.mat4_mat4_mul(vecmat.get_scal_m4(3, 3, 3), vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))),
+    #     xform_m4=vecmat.get_transl_m4(0, 4.9, 0))
     scene_graphs[1]["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
         xform_m4=vecmat.get_transl_m4(0, 1, -5))
 
@@ -198,7 +225,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         nonlocal frame
         nonlocal blue_sphere
         rot_m = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5))
-        m = vecmat.get_transl_m4(0, 1.25, 0)
+        m = vecmat.get_transl_m4(0, 1.5, 0)
         m = vecmat.mat4_mat4_mul(m, rot_m)
         blue_sphere["xform_m4"] = m
         m = vecmat.get_transl_m4(0.5, 0, 0)
