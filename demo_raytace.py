@@ -2,7 +2,7 @@
 Template for demos
 """
 
-import math
+import copy
 import pygame
 import pygame.gfxdraw
 
@@ -31,6 +31,68 @@ class Ray:
         return [self.origin[0] + t * self.direction[0],
                 self.origin[1] + t * self.direction[1],
                 self.origin[2] + t * self.direction[2]]
+
+class HitRecord:
+    def __init__(self) -> None:
+        self.hit_point = [0, 0, 0]
+        self.normal = [0, 0, 0]
+        self.t = 0.0
+        self.front_face = False
+
+    def copy(self, rec : "HitRecord"):
+        self.hit_point = copy.copy(rec.hit_point)
+        self.normal = copy.copy(rec.normal)
+        self.t = rec.t
+        self.front_face = rec.front_face
+
+    def set_face_normal(self, r : Ray, outward_normal):
+        self.front_face = vecmat.dot_product_vec3(r.direction, outward_normal) < 0
+        self.normal = outward_normal if self.front_face else [-outward_normal[i] for i in range(3)]
+
+class Hittable:
+    def __init__(self) -> None:
+        pass
+
+    def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
+        return False
+
+class HittableList:
+    def __init__(self) -> None:
+        self.objects : list(Hittable) = []
+
+    def add(self, object : Hittable) -> None:
+        self.objects.append(object)
+
+    def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
+        temp_rec = HitRecord()
+        hit_anything = False
+        closest_so_far = t_max
+
+        for object in self.objects:
+            if object.hit(r, t_min, t_max, temp_rec):
+                hit_anything = True
+                closest_so_far = temp_rec.t
+                rec.copy(temp_rec)
+
+        return hit_anything
+
+class Sphere(Hittable):
+    def __init__(self, center, radius) -> None:
+        super().__init__()
+        self.center = center
+        self.radius = radius
+
+    def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
+        t = vecmat.ray_sphere_intersect(r.origin, r.direction, self.center, self.radius, t_min, t_max)
+        if t:
+            hit_point = r.at(t)
+            outward_normal = [hit_point[i] - self.center[i] for i in range(3)]
+            rec.hit_point = hit_point
+            rec.set_face_normal(r, outward_normal)
+            rec.t = t
+            return True
+        else:
+            return False
 
 def ray_color(r : Ray):
     sph_origin = [0, 0, -1]
