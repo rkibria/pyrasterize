@@ -33,6 +33,14 @@ class Ray:
                 self.origin[2] + t * self.direction[2]]
 
 def ray_color(r : Ray):
+    sph_origin = [0, 0, -1]
+    sph_radius = 0.5
+    t = vecmat.ray_sphere_intersect(r.origin, r.direction, sph_origin, sph_radius)
+    if t:
+        hit_point = r.at(t)
+        normal = [hit_point[i] - sph_origin[i] for i in range(3)]
+        return [0.5 * (normal[i] + 1) for i in range(3)]
+
     unit_direction = vecmat.norm_vec3(r.direction)
     t = 0.5 * (unit_direction[1] + 1)
     mt = 1.0 - t
