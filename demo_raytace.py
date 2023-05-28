@@ -69,7 +69,7 @@ class HittableList:
         closest_so_far = t_max
 
         for object in self.objects:
-            if object.hit(r, t_min, t_max, temp_rec):
+            if object.hit(r, t_min, closest_so_far, temp_rec):
                 hit_anything = True
                 closest_so_far = temp_rec.t
                 rec.copy(temp_rec)
@@ -86,7 +86,7 @@ class Sphere(Hittable):
         t = vecmat.ray_sphere_intersect(r.origin, r.direction, self.center, self.radius, t_min, t_max)
         if t:
             hit_point = r.at(t)
-            outward_normal = [hit_point[i] - self.center[i] for i in range(3)]
+            outward_normal = [(hit_point[i] - self.center[i]) / self.radius for i in range(3)]
             rec.hit_point = hit_point
             rec.set_face_normal(r, outward_normal)
             rec.t = t
@@ -94,14 +94,11 @@ class Sphere(Hittable):
         else:
             return False
 
-def ray_color(r : Ray):
-    sph_origin = [0, 0, -1]
-    sph_radius = 0.5
-    t = vecmat.ray_sphere_intersect(r.origin, r.direction, sph_origin, sph_radius)
-    if t:
-        hit_point = r.at(t)
-        normal = [hit_point[i] - sph_origin[i] for i in range(3)]
-        return [0.5 * (normal[i] + 1) for i in range(3)]
+def ray_color(r : Ray, world : Hittable):
+    hit_record = HitRecord()
+    if world.hit(r, 0, float("inf"), hit_record):
+        color = [0.5 * (hit_record.normal[i] + 1) for i in range(3)]
+        return color
 
     unit_direction = vecmat.norm_vec3(r.direction)
     t = 0.5 * (unit_direction[1] + 1)
@@ -118,10 +115,13 @@ def raytrace(surface):
         pixel[2] += v[2]
 
     aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
-
     viewport_height = 2.0
     viewport_width = aspect_ratio * viewport_height
     focal_length = 1.0
+
+    world = HittableList()
+    world.add(Sphere([0, 0, -1], 0.5))
+    world.add(Sphere([0, -100.5, -1], 100))
 
     origin = (0, 0, 0)
     horizontal = (viewport_width, 0, 0)
@@ -138,14 +138,14 @@ def raytrace(surface):
                 lower_left_corner[i] + u * horizontal[i] + v * vertical[i] - origin[i] for i in range(3)
             ]
             r = Ray(origin, direction)
-            pixel_color = ray_color(r)
+            pixel_color = ray_color(r, world)
             add_color(x, y, pixel_color)
 
     for y in range(SCR_HEIGHT):
         for x in range(SCR_WIDTH):
             pixel = pixel_data[y][x]
             color = [int(255 * pixel[i]) for i in range(3)]
-            surface.set_at((x,y), color)
+            surface.set_at((x, SCR_HEIGHT - 1 - y), color)
 
 def main_function():
     """Main"""
