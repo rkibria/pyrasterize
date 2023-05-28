@@ -30,6 +30,16 @@ def random_in_unit_sphere_vec3():
             continue
         return p
 
+def random_unit_vector_vec3():
+    return vecmat.norm_vec3(random_in_unit_sphere_vec3())
+
+def random_in_hemisphere(normal : list):
+    in_unit_sphere = random_in_unit_sphere_vec3()
+    if vecmat.dot_product_vec3(in_unit_sphere, normal) > 0:
+        return in_unit_sphere
+    else:
+        return [-in_unit_sphere[i] for i in range(3)]
+
 class Ray:
     def __init__(self, origin, direction) -> None:
         self.origin = origin
@@ -130,7 +140,7 @@ def ray_color(r : Ray, world : Hittable, depth: int):
 
     rec = HitRecord()
     if world.hit(r, 0.001, float("inf"), rec):
-        rand_v = random_in_unit_sphere_vec3()
+        rand_v = random_in_hemisphere(rec.normal)
         target = [rec.hit_point[i] + rec.normal[i] + rand_v[i] for i in range(3)]
         direction = [target[i] - rec.hit_point[i] for i in range(3)]
         rec_color = ray_color(Ray(rec.hit_point, direction), world, depth - 1)
