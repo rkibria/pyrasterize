@@ -40,6 +40,14 @@ def random_in_hemisphere(normal : list):
     else:
         return [-in_unit_sphere[i] for i in range(3)]
 
+def near_zero_vec3(v : list):
+    s = 1e-8
+    return abs(v[0]) < s and abs(v[1]) < s and abs(v[2]) < s
+
+def reflect_vec3(v : list, n : list):
+    dot_vn = vecmat.dot_product_vec3(v, n)
+    return [v[i] - 2 * dot_vn * n[i] for i in range(3)]
+
 class Ray:
     def __init__(self, origin, direction) -> None:
         self.origin = origin
@@ -56,16 +64,54 @@ class HitRecord:
         self.normal = [0, 0, 0]
         self.t = 0.0
         self.front_face = False
+        self.material = None
 
     def copy(self, rec : "HitRecord"):
         self.hit_point = copy.copy(rec.hit_point)
         self.normal = copy.copy(rec.normal)
         self.t = rec.t
         self.front_face = rec.front_face
+        self.material = rec.material
 
     def set_face_normal(self, r : Ray, outward_normal):
         self.front_face = vecmat.dot_product_vec3(r.direction, outward_normal) < 0
         self.normal = outward_normal if self.front_face else [-outward_normal[i] for i in range(3)]
+
+class Material:
+    def __init__(self) -> None:
+        pass
+
+    # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
+    def scatter(self, r_in : Ray, rec : HitRecord):
+        pass
+
+class Lambertian(Material):
+    def __init__(self, albedo : list) -> None:
+        super().__init__()
+        self.albedo = albedo
+
+    # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
+    def scatter(self, r_in : Ray, rec : HitRecord):
+        rand_v = random_unit_vector_vec3()
+        scatter_direction = [rec.normal[i] + rand_v[i] for i in range(3)]
+        # Catch degenerate scatter direction
+        if near_zero_vec3(scatter_direction):
+            scatter_direction = rec.normal
+
+        scattered = Ray(rec.hit_point, scatter_direction)
+        return (True, self.albedo, scattered)
+
+class Metal(Material):
+    def __init__(self, albedo : list) -> None:
+        super().__init__()
+        self.albedo = albedo
+
+    # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
+    def scatter(self, r_in : Ray, rec : HitRecord):
+        norm_r_in_dir = vecmat.norm_vec3(r_in.direction)
+        reflected = reflect_vec3(norm_r_in_dir, rec.normal)
+        scattered = Ray(rec.hit_point, reflected)
+        return (vecmat.dot_product_vec3(scattered.direction, rec.normal) > 0, self.albedo, scattered)
 
 class Hittable:
     def __init__(self) -> None:
@@ -95,10 +141,11 @@ class HittableList:
         return hit_anything
 
 class Sphere(Hittable):
-    def __init__(self, center, radius) -> None:
+    def __init__(self, center : list, radius : float, material : Material) -> None:
         super().__init__()
         self.center = center
         self.radius = radius
+        self.material = material
 
     def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
         t = vecmat.ray_sphere_intersect(r.origin, r.direction, self.center, self.radius, t_min, t_max)
@@ -108,6 +155,7 @@ class Sphere(Hittable):
             rec.hit_point = hit_point
             rec.set_face_normal(r, outward_normal)
             rec.t = t
+            rec.material = self.material
             return True
         else:
             return False
@@ -140,12 +188,11 @@ def ray_color(r : Ray, world : Hittable, depth: int):
 
     rec = HitRecord()
     if world.hit(r, 0.001, float("inf"), rec):
-        rand_v = random_in_hemisphere(rec.normal)
-        target = [rec.hit_point[i] + rec.normal[i] + rand_v[i] for i in range(3)]
-        direction = [target[i] - rec.hit_point[i] for i in range(3)]
-        rec_color = ray_color(Ray(rec.hit_point, direction), world, depth - 1)
-        color = [0.5 * rec_color[i] for i in range(3)]
-        return color
+        is_scattered, attenuation, scattered = rec.material.scatter(r, rec)
+        if is_scattered:
+            rec_color = ray_color(scattered, world, depth - 1)
+            return [attenuation[i] * rec_color[i] for i in range(3)]
+        return [0, 0, 0]
 
     unit_direction = vecmat.norm_vec3(r.direction)
     t = 0.5 * (unit_direction[1] + 1)
@@ -166,9 +213,16 @@ def raytrace(surface):
     viewport_width = aspect_ratio * viewport_height
     focal_length = 1.0
 
+    material_ground = Lambertian([0.8, 0.8, 0.0])
+    material_center = Lambertian([0.7, 0.3, 0.3])
+    material_left = Metal([0.8, 0.8, 0.8])
+    material_right = Metal([0.8, 0.6, 0.2])
+
     world = HittableList()
-    world.add(Sphere([0, 0, -1], 0.5))
-    world.add(Sphere([0, -100.5, -1], 100))
+    world.add(Sphere([0, -100.5, -1], 100, material_ground))
+    world.add(Sphere([0, 0, -1], 0.5, material_center))
+    world.add(Sphere([-1, 0, -1], 0.5, material_left))
+    world.add(Sphere([1, 0, -1], 0.5, material_right))
 
     max_depth = 50
     samples_per_pixel = 2
