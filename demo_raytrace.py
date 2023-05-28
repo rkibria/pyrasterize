@@ -23,6 +23,12 @@ RGB_WHITE = (255, 255, 255)
 CAMERA = { "pos": [0,0,3], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
 
+def random_in_unit_sphere_vec3():
+    while True:
+        p = [random.uniform(-1, 1), random.uniform(-1, 1), random.uniform(-1, 1)]
+        if vecmat.mag_sq_vec3(p) >= 1:
+            continue
+        return p
 
 class Ray:
     def __init__(self, origin, direction) -> None:
@@ -118,10 +124,17 @@ class Camera:
         return Ray(self.origin, direction)
 
 
-def ray_color(r : Ray, world : Hittable):
-    hit_record = HitRecord()
-    if world.hit(r, 0, float("inf"), hit_record):
-        color = [0.5 * (hit_record.normal[i] + 1) for i in range(3)]
+def ray_color(r : Ray, world : Hittable, depth: int):
+    if depth <= 0:
+        return [0, 0, 0]
+
+    rec = HitRecord()
+    if world.hit(r, 0, float("inf"), rec):
+        rand_v = random_in_unit_sphere_vec3()
+        target = [rec.hit_point[i] + rec.normal[i] + rand_v[i] for i in range(3)]
+        direction = [target[i] - rec.hit_point[i] for i in range(3)]
+        rec_color = ray_color(Ray(rec.hit_point, direction), world, depth - 1)
+        color = [0.5 * rec_color[i] for i in range(3)]
         return color
 
     unit_direction = vecmat.norm_vec3(r.direction)
@@ -147,7 +160,8 @@ def raytrace(surface):
     world.add(Sphere([0, 0, -1], 0.5))
     world.add(Sphere([0, -100.5, -1], 100))
 
-    samples_per_pixel = 20
+    max_depth = 50
+    samples_per_pixel = 2
 
     cam = Camera()
     for y in range(SCR_HEIGHT):
@@ -156,7 +170,7 @@ def raytrace(surface):
                 u = (x + random.random()) / float(SCR_WIDTH - 1)
                 v = (y + random.random()) / float(SCR_HEIGHT - 1)
                 r = cam.get_ray(u, v)
-                pixel_color = ray_color(r, world)
+                pixel_color = ray_color(r, world, max_depth)
                 add_color(x, y, pixel_color)
 
     for y in range(SCR_HEIGHT):
