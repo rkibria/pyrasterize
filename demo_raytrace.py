@@ -129,7 +129,7 @@ def ray_color(r : Ray, world : Hittable, depth: int):
         return [0, 0, 0]
 
     rec = HitRecord()
-    if world.hit(r, 0, float("inf"), rec):
+    if world.hit(r, 0.001, float("inf"), rec):
         rand_v = random_in_unit_sphere_vec3()
         target = [rec.hit_point[i] + rec.normal[i] + rand_v[i] for i in range(3)]
         direction = [target[i] - rec.hit_point[i] for i in range(3)]
