@@ -1,5 +1,5 @@
 """
-Template for demos
+https://raytracing.github.io/books/RayTracingInOneWeekend.html
 """
 
 import copy
