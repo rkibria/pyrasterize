@@ -4,6 +4,7 @@ https://raytracing.github.io/books/RayTracingInOneWeekend.html
 
 import copy
 import random
+import math
 
 import pygame
 import pygame.gfxdraw
@@ -204,9 +205,11 @@ class Sphere(Hittable):
             return False
 
 class Camera:
-    def __init__(self) -> None:
-        aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
-        viewport_height = 2.0
+    # vertical field-of-view in degrees
+    def __init__(self, vfov : float, aspect_ratio : float) -> None:
+        theta = vecmat.deg_to_rad(vfov)
+        h = math.tan(theta / 2)
+        viewport_height = 2.0 * h
         viewport_width = aspect_ratio * viewport_height
         focal_length = 1.0
 
@@ -265,7 +268,9 @@ def raytrace(surface):
     max_depth = 50
     samples_per_pixel = 2
 
-    cam = Camera()
+    aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
+    cam = Camera(160, aspect_ratio)
+
     for y in range(SCR_HEIGHT):
         print(f"y = {y}")
         for x in range(SCR_WIDTH):
