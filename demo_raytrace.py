@@ -102,14 +102,17 @@ class Lambertian(Material):
         return (True, self.albedo, scattered)
 
 class Metal(Material):
-    def __init__(self, albedo : list) -> None:
+    def __init__(self, albedo : list, fuzz : float) -> None:
         super().__init__()
         self.albedo = albedo
+        self.fuzz = fuzz if fuzz < 1 else 1
 
     # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
     def scatter(self, r_in : Ray, rec : HitRecord):
         norm_r_in_dir = vecmat.norm_vec3(r_in.direction)
         reflected = reflect_vec3(norm_r_in_dir, rec.normal)
+        rand_v = random_in_unit_sphere_vec3()
+        reflected = [reflected[i] + self.fuzz * rand_v[i] for i in range(3)]
         scattered = Ray(rec.hit_point, reflected)
         return (vecmat.dot_product_vec3(scattered.direction, rec.normal) > 0, self.albedo, scattered)
 
@@ -208,15 +211,10 @@ def raytrace(surface):
         pixel[1] += v[1]
         pixel[2] += v[2]
 
-    aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
-    viewport_height = 2.0
-    viewport_width = aspect_ratio * viewport_height
-    focal_length = 1.0
-
     material_ground = Lambertian([0.8, 0.8, 0.0])
     material_center = Lambertian([0.7, 0.3, 0.3])
-    material_left = Metal([0.8, 0.8, 0.8])
-    material_right = Metal([0.8, 0.6, 0.2])
+    material_left = Metal([0.8, 0.8, 0.8], 0.3)
+    material_right = Metal([0.8, 0.6, 0.2], 1.0)
 
     world = HittableList()
     world.add(Sphere([0, -100.5, -1], 100, material_ground))
