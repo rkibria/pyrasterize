@@ -41,6 +41,13 @@ def random_in_hemisphere(normal : list):
     else:
         return [-in_unit_sphere[i] for i in range(3)]
 
+def random_in_unit_disk_vec3():
+    while True:
+        p = [random.uniform(-1, 1), random.uniform(-1, 1), 0]
+        if vecmat.mag_sq_vec3(p) >= 1:
+            continue
+        return p
+
 def near_zero_vec3(v : list):
     s = 1e-8
     return abs(v[0]) < s and abs(v[1]) < s and abs(v[2]) < s
@@ -210,25 +217,33 @@ class Camera:
                  lookat : list,
                  vup : list,
                  vfov : float, # vertical field-of-view in degrees
-                 aspect_ratio : float) -> None:
+                 aspect_ratio : float,
+                 aperture : float,
+                 focus_dist : float) -> None:
         theta = vecmat.deg_to_rad(vfov)
         h = math.tan(theta / 2)
         viewport_height = 2.0 * h
         viewport_width = aspect_ratio * viewport_height
-        focal_length = 1.0
 
-        w = vecmat.norm_vec3([lookfrom[i] - lookat[i] for i in range(3)])
-        u = vecmat.norm_vec3(vecmat.cross_vec3(vup, w))
-        v = vecmat.cross_vec3(w, u)
+        self.w = vecmat.norm_vec3([lookfrom[i] - lookat[i] for i in range(3)])
+        self.u = vecmat.norm_vec3(vecmat.cross_vec3(vup, self.w))
+        self.v = vecmat.cross_vec3(self.w, self.u)
 
         self.origin = lookfrom
-        self.horizontal = [viewport_width * u[i] for i in range(3)]
-        self.vertical = [viewport_height * v[i] for i in range(3)]
-        self.lower_left_corner = [self.origin[i] - self.horizontal[i]/2 - self.vertical[i]/2 - w[i] for i in range(3)]
+        self.horizontal = [focus_dist * viewport_width * self.u[i] for i in range(3)]
+        self.vertical = [focus_dist * viewport_height * self.v[i] for i in range(3)]
+        self.lower_left_corner = [self.origin[i] - self.horizontal[i]/2 - self.vertical[i]/2 - focus_dist * self.w[i] for i in range(3)]
+
+        self.lens_radius = aperture / 2
 
     def get_ray(self, s : float, t : float):
-        direction = [self.lower_left_corner[i] + s * self.horizontal[i] + t * self.vertical[i] - self.origin[i] for i in range(3)]
-        return Ray(self.origin, direction)
+        rd = random_in_unit_disk_vec3()
+        rd = [self.lens_radius * rd[i] for i in range(3)]
+        offset = [self.u[i] * rd[0] + self.v[i] * rd[1] for i in range(3)]
+
+        origin = [self.origin[i] + offset[i] for i in range(3)]
+        direction = [self.lower_left_corner[i] + s * self.horizontal[i] + t * self.vertical[i] - self.origin[i] - offset[i] for i in range(3)]
+        return Ray(origin, direction)
 
 
 def ray_color(r : Ray, world : Hittable, depth: int):
@@ -273,7 +288,12 @@ def raytrace(surface):
     samples_per_pixel = 2
 
     aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
-    cam = Camera([-2, 2, 1], [0, 0, 1], [0, 1, 0], 90, aspect_ratio)
+    lookfrom = [3, 3, 2]
+    lookat = [0, 0, -1]
+    vup = [0, 1, 0]
+    dist_to_focus = vecmat.mag_vec3([lookfrom[i] - lookat[i] for i in range(3)])
+    aperture = 2.0
+    cam = Camera(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus)
 
     for y in range(SCR_HEIGHT):
         print(f"y = {y}")
