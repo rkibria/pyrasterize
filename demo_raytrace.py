@@ -165,6 +165,7 @@ def raytrace(surface):
 
     cam = Camera()
     for y in range(SCR_HEIGHT):
+        print(f"y = {y}")
         for x in range(SCR_WIDTH):
             for _ in range(samples_per_pixel):
                 u = (x + random.random()) / float(SCR_WIDTH - 1)
@@ -183,7 +184,7 @@ def main_function():
     """Main"""
     pygame.init()
 
-    screen = pygame.display.set_mode(SCR_SIZE, flags=pygame.SCALED)
+    screen = pygame.display.set_mode(SCR_SIZE) # , flags=pygame.SCALED
     pygame.display.set_caption("pyrasterize demo")
     clock = pygame.time.Clock()
 
