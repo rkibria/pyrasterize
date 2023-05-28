@@ -174,10 +174,12 @@ def raytrace(surface):
                 pixel_color = ray_color(r, world, max_depth)
                 add_color(x, y, pixel_color)
 
+    scale = 1.0 / samples_per_pixel
     for y in range(SCR_HEIGHT):
         for x in range(SCR_WIDTH):
             pixel = pixel_data[y][x]
-            color = [int(255 * pixel[i] / samples_per_pixel) for i in range(3)]
+            pixel = [(scale * pixel[i]) ** 0.5 for i in range(3)]
+            color = [int(255 * pixel[i]) for i in range(3)]
             surface.set_at((x, SCR_HEIGHT - 1 - y), color)
 
 def main_function():
