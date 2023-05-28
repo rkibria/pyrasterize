@@ -130,6 +130,13 @@ class Dielectric(Material):
         super().__init__()
         self.index_of_refraction = index_of_refraction
 
+    @staticmethod
+    def reflectance(cosine : float, ref_idx : float) -> float:
+        # Use Schlick's approximation for reflectance
+        r0 = (1-ref_idx) / (1+ref_idx)
+        r0 *= r0
+        return r0 + (1-r0) * ((1 - cosine) ** 5)
+
     # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
     def scatter(self, r_in : Ray, rec : HitRecord):
         refraction_ratio = 1.0 / self.index_of_refraction if rec.front_face else self.index_of_refraction
