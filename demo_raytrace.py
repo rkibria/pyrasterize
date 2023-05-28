@@ -205,26 +205,29 @@ class Sphere(Hittable):
             return False
 
 class Camera:
-    # vertical field-of-view in degrees
-    def __init__(self, vfov : float, aspect_ratio : float) -> None:
+    def __init__(self,
+                 lookfrom : list,
+                 lookat : list,
+                 vup : list,
+                 vfov : float, # vertical field-of-view in degrees
+                 aspect_ratio : float) -> None:
         theta = vecmat.deg_to_rad(vfov)
         h = math.tan(theta / 2)
         viewport_height = 2.0 * h
         viewport_width = aspect_ratio * viewport_height
         focal_length = 1.0
 
-        self.origin = (0, 0, 0)
-        self.horizontal = (viewport_width, 0, 0)
-        self.vertical = (0, viewport_height, 0)
-        self.lower_left_corner = [
-            self.origin[0] - self.horizontal[0]/2 - self.vertical[0]/2,
-            self.origin[1] - self.horizontal[1]/2 - self.vertical[1]/2,
-            self.origin[2] - self.horizontal[2]/2 - self.vertical[2]/2 - focal_length]
+        w = vecmat.norm_vec3([lookfrom[i] - lookat[i] for i in range(3)])
+        u = vecmat.norm_vec3(vecmat.cross_vec3(vup, w))
+        v = vecmat.cross_vec3(w, u)
 
-    def get_ray(self, u : float, v : float):
-        direction = [
-            self.lower_left_corner[i] + u * self.horizontal[i] + v * self.vertical[i] - self.origin[i] for i in range(3)
-        ]
+        self.origin = lookfrom
+        self.horizontal = [viewport_width * u[i] for i in range(3)]
+        self.vertical = [viewport_height * v[i] for i in range(3)]
+        self.lower_left_corner = [self.origin[i] - self.horizontal[i]/2 - self.vertical[i]/2 - w[i] for i in range(3)]
+
+    def get_ray(self, s : float, t : float):
+        direction = [self.lower_left_corner[i] + s * self.horizontal[i] + t * self.vertical[i] - self.origin[i] for i in range(3)]
         return Ray(self.origin, direction)
 
 
@@ -263,13 +266,14 @@ def raytrace(surface):
     world.add(Sphere([0, -100.5, -1], 100, material_ground))
     world.add(Sphere([0, 0, -1], 0.5, material_center))
     world.add(Sphere([-1, 0, -1], 0.5, material_left))
+    world.add(Sphere([-1, 0, -1], -0.45, material_left))
     world.add(Sphere([1, 0, -1], 0.5, material_right))
 
     max_depth = 50
     samples_per_pixel = 2
 
     aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
-    cam = Camera(160, aspect_ratio)
+    cam = Camera([-2, 2, 1], [0, 0, 1], [0, 1, 0], 90, aspect_ratio)
 
     for y in range(SCR_HEIGHT):
         print(f"y = {y}")
