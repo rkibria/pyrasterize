@@ -48,6 +48,15 @@ def reflect_vec3(v : list, n : list):
     dot_vn = vecmat.dot_product_vec3(v, n)
     return [v[i] - 2 * dot_vn * n[i] for i in range(3)]
 
+def refract_vec3(uv : list, n : list, etai_over_etat : float):
+    minus_uv = [-uv[i] for i in range(3)]
+    cos_theta = min(vecmat.dot_product_vec3(minus_uv, n), 1.0)
+    r_out_perp = [etai_over_etat * (uv[i] + cos_theta * n[i]) for i in range(3)]
+    r_out_perp_length_squared = vecmat.mag_sq_vec3(r_out_perp)
+    k = -((abs(1 - r_out_perp_length_squared)) ** 0.5)
+    r_out_parallel = [n[i] * k for i in range(3)]
+    return [r_out_perp[i] + r_out_parallel[i] for i in range(3)]
+
 class Ray:
     def __init__(self, origin, direction) -> None:
         self.origin = origin
@@ -115,6 +124,30 @@ class Metal(Material):
         reflected = [reflected[i] + self.fuzz * rand_v[i] for i in range(3)]
         scattered = Ray(rec.hit_point, reflected)
         return (vecmat.dot_product_vec3(scattered.direction, rec.normal) > 0, self.albedo, scattered)
+
+class Dielectric(Material):
+    def __init__(self, index_of_refraction : float) -> None:
+        super().__init__()
+        self.index_of_refraction = index_of_refraction
+
+    # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
+    def scatter(self, r_in : Ray, rec : HitRecord):
+        refraction_ratio = 1.0 / self.index_of_refraction if rec.front_face else self.index_of_refraction
+        unit_direction = vecmat.norm_vec3(r_in.direction)
+
+        minus_unit_direction = [-unit_direction[i] for i in range(3)]
+        cos_theta = min(vecmat.dot_product_vec3(minus_unit_direction, rec.normal), 1.0)
+        sin_theta = (1.0 - cos_theta ** 2) ** 0.5
+
+        cannot_refract = refraction_ratio * sin_theta > 1.0
+
+        if cannot_refract:
+            direction = reflect_vec3(unit_direction, rec.normal)
+        else:
+            direction = refract_vec3(unit_direction, rec.normal, refraction_ratio)
+
+        scattered = Ray(rec.hit_point, direction)
+        return (True, [1.0, 1.0, 1.0], scattered)
 
 class Hittable:
     def __init__(self) -> None:
@@ -212,9 +245,9 @@ def raytrace(surface):
         pixel[2] += v[2]
 
     material_ground = Lambertian([0.8, 0.8, 0.0])
-    material_center = Lambertian([0.7, 0.3, 0.3])
-    material_left = Metal([0.8, 0.8, 0.8], 0.3)
-    material_right = Metal([0.8, 0.6, 0.2], 1.0)
+    material_center = Lambertian([0.1, 0.2, 0.5])
+    material_left = Dielectric(1.5)
+    material_right = Metal([0.8, 0.6, 0.2], 0.0)
 
     world = HittableList()
     world.add(Sphere([0, -100.5, -1], 100, material_ground))
