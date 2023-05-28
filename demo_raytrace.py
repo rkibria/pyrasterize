@@ -3,6 +3,8 @@ Template for demos
 """
 
 import copy
+import random
+
 import pygame
 import pygame.gfxdraw
 
@@ -94,6 +96,28 @@ class Sphere(Hittable):
         else:
             return False
 
+class Camera:
+    def __init__(self) -> None:
+        aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
+        viewport_height = 2.0
+        viewport_width = aspect_ratio * viewport_height
+        focal_length = 1.0
+
+        self.origin = (0, 0, 0)
+        self.horizontal = (viewport_width, 0, 0)
+        self.vertical = (0, viewport_height, 0)
+        self.lower_left_corner = [
+            self.origin[0] - self.horizontal[0]/2 - self.vertical[0]/2,
+            self.origin[1] - self.horizontal[1]/2 - self.vertical[1]/2,
+            self.origin[2] - self.horizontal[2]/2 - self.vertical[2]/2 - focal_length]
+
+    def get_ray(self, u : float, v : float):
+        direction = [
+            self.lower_left_corner[i] + u * self.horizontal[i] + v * self.vertical[i] - self.origin[i] for i in range(3)
+        ]
+        return Ray(self.origin, direction)
+
+
 def ray_color(r : Ray, world : Hittable):
     hit_record = HitRecord()
     if world.hit(r, 0, float("inf"), hit_record):
@@ -123,28 +147,22 @@ def raytrace(surface):
     world.add(Sphere([0, 0, -1], 0.5))
     world.add(Sphere([0, -100.5, -1], 100))
 
-    origin = (0, 0, 0)
-    horizontal = (viewport_width, 0, 0)
-    vertical = (0, viewport_height, 0)
-    lower_left_corner = [
-        origin[0] - horizontal[0]/2 - vertical[0]/2,
-        origin[1] - horizontal[1]/2 - vertical[1]/2,
-        origin[2] - horizontal[2]/2 - vertical[2]/2 - focal_length]
+    samples_per_pixel = 20
+
+    cam = Camera()
     for y in range(SCR_HEIGHT):
         for x in range(SCR_WIDTH):
-            u = x / float(SCR_WIDTH - 1)
-            v = y / float(SCR_HEIGHT - 1)
-            direction = [
-                lower_left_corner[i] + u * horizontal[i] + v * vertical[i] - origin[i] for i in range(3)
-            ]
-            r = Ray(origin, direction)
-            pixel_color = ray_color(r, world)
-            add_color(x, y, pixel_color)
+            for _ in range(samples_per_pixel):
+                u = (x + random.random()) / float(SCR_WIDTH - 1)
+                v = (y + random.random()) / float(SCR_HEIGHT - 1)
+                r = cam.get_ray(u, v)
+                pixel_color = ray_color(r, world)
+                add_color(x, y, pixel_color)
 
     for y in range(SCR_HEIGHT):
         for x in range(SCR_WIDTH):
             pixel = pixel_data[y][x]
-            color = [int(255 * pixel[i]) for i in range(3)]
+            color = [int(255 * pixel[i] / samples_per_pixel) for i in range(3)]
             surface.set_at((x, SCR_HEIGHT - 1 - y), color)
 
 def main_function():
