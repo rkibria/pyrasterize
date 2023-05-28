@@ -272,27 +272,49 @@ def raytrace(surface):
         pixel[1] += v[1]
         pixel[2] += v[2]
 
-    material_ground = Lambertian([0.8, 0.8, 0.0])
-    material_center = Lambertian([0.1, 0.2, 0.5])
-    material_left = Dielectric(1.5)
-    material_right = Metal([0.8, 0.6, 0.2], 0.0)
-
     world = HittableList()
-    world.add(Sphere([0, -100.5, -1], 100, material_ground))
-    world.add(Sphere([0, 0, -1], 0.5, material_center))
-    world.add(Sphere([-1, 0, -1], 0.5, material_left))
-    world.add(Sphere([-1, 0, -1], -0.45, material_left))
-    world.add(Sphere([1, 0, -1], 0.5, material_right))
+
+    material_ground = Lambertian([0.5, 0.5, 0.5])
+    world.add(Sphere([0, -1000, 0], 1000, material_ground))
+
+    for a in range(-11, 11):
+        for b in range(-11, 11):
+            choose_mat = random.random()
+            center = (a + 0.9 * random.random(), 0.2, b + 0.9 * random.random())
+            if vecmat.mag_vec3([center[0] - 4, center[1] - 0.2, center[2] - 0]) > 0.9:
+                if choose_mat < 0.8:
+                    albedo_1 = [random.random(), random.random(), random.random()]
+                    albedo_2 = [random.random(), random.random(), random.random()]
+                    albedo = [albedo_1[i] * albedo_2[i] for i in range(3)]
+                    sphere_material = Lambertian(albedo)
+                    world.add(Sphere(center, 0.2, sphere_material))
+                elif choose_mat < 0.95:
+                    albedo = [random.uniform(0.5, 1), random.uniform(0.5, 1), random.uniform(0.5, 1)]
+                    fuzz = random.uniform(0.5, 1)
+                    sphere_material = Metal(albedo, fuzz)
+                    world.add(Sphere(center, 0.2, sphere_material))
+                else:
+                    sphere_material = Dielectric(1.5)
+                    world.add(Sphere(center, 0.2, sphere_material))
+
+    material1 = Dielectric(1.5)
+    world.add(Sphere([0, 1, 0], 1, material1))
+
+    material2 = Lambertian([0.4, 0.2, 0.1])
+    world.add(Sphere([-4, 1, 0], 1, material2))
+
+    material3 = Metal([0.7, 0.6, 0.5], 0.0)
+    world.add(Sphere([4, 1, 0], 1, material3))
 
     max_depth = 50
     samples_per_pixel = 2
 
     aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
-    lookfrom = [3, 3, 2]
-    lookat = [0, 0, -1]
+    lookfrom = [13, 2, 3]
+    lookat = [0, 0, 0]
     vup = [0, 1, 0]
-    dist_to_focus = vecmat.mag_vec3([lookfrom[i] - lookat[i] for i in range(3)])
-    aperture = 2.0
+    dist_to_focus = 10.0
+    aperture = 0.1
     cam = Camera(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus)
 
     for y in range(SCR_HEIGHT):
@@ -309,8 +331,8 @@ def raytrace(surface):
     for y in range(SCR_HEIGHT):
         for x in range(SCR_WIDTH):
             pixel = pixel_data[y][x]
-            pixel = [(scale * pixel[i]) ** 0.5 for i in range(3)]
-            color = [int(255 * pixel[i]) for i in range(3)]
+            gamma_pixel = [(scale * pixel[i]) ** 0.5 for i in range(3)]
+            color = [int(255 * gamma_pixel[i]) for i in range(3)]
             surface.set_at((x, SCR_HEIGHT - 1 - y), color)
 
 def main_function():
