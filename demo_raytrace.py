@@ -10,12 +10,11 @@ import pygame
 import pygame.gfxdraw
 
 from pyrasterize import vecmat
-from pyrasterize import rasterizer
-from pyrasterize import meshes
+from pyrasterize import raytracer
 
 # CONSTANTS
 
-SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 320, 240
+SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 320//2, 240//2
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
 RGB_BLACK = (0, 0, 0)
@@ -23,47 +22,6 @@ RGB_WHITE = (255, 255, 255)
 
 CAMERA = { "pos": [0,0,3], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
-
-def random_in_unit_sphere_vec3():
-    while True:
-        p = [random.uniform(-1, 1), random.uniform(-1, 1), random.uniform(-1, 1)]
-        if vecmat.mag_sq_vec3(p) >= 1:
-            continue
-        return p
-
-def random_unit_vector_vec3():
-    return vecmat.norm_vec3(random_in_unit_sphere_vec3())
-
-def random_in_hemisphere(normal : list):
-    in_unit_sphere = random_in_unit_sphere_vec3()
-    if vecmat.dot_product_vec3(in_unit_sphere, normal) > 0:
-        return in_unit_sphere
-    else:
-        return [-in_unit_sphere[i] for i in range(3)]
-
-def random_in_unit_disk_vec3():
-    while True:
-        p = [random.uniform(-1, 1), random.uniform(-1, 1), 0]
-        if vecmat.mag_sq_vec3(p) >= 1:
-            continue
-        return p
-
-def near_zero_vec3(v : list):
-    s = 1e-8
-    return abs(v[0]) < s and abs(v[1]) < s and abs(v[2]) < s
-
-def reflect_vec3(v : list, n : list):
-    dot_vn = vecmat.dot_product_vec3(v, n)
-    return [v[i] - 2 * dot_vn * n[i] for i in range(3)]
-
-def refract_vec3(uv : list, n : list, etai_over_etat : float):
-    minus_uv = [-uv[i] for i in range(3)]
-    cos_theta = min(vecmat.dot_product_vec3(minus_uv, n), 1.0)
-    r_out_perp = [etai_over_etat * (uv[i] + cos_theta * n[i]) for i in range(3)]
-    r_out_perp_length_squared = vecmat.mag_sq_vec3(r_out_perp)
-    k = -((abs(1 - r_out_perp_length_squared)) ** 0.5)
-    r_out_parallel = [n[i] * k for i in range(3)]
-    return [r_out_perp[i] + r_out_parallel[i] for i in range(3)]
 
 class Ray:
     def __init__(self, origin, direction) -> None:
@@ -109,10 +67,10 @@ class Lambertian(Material):
 
     # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
     def scatter(self, r_in : Ray, rec : HitRecord):
-        rand_v = random_unit_vector_vec3()
+        rand_v = vecmat.random_unit_vector_vec3()
         scatter_direction = [rec.normal[i] + rand_v[i] for i in range(3)]
         # Catch degenerate scatter direction
-        if near_zero_vec3(scatter_direction):
+        if vecmat.near_zero_vec3(scatter_direction):
             scatter_direction = rec.normal
 
         scattered = Ray(rec.hit_point, scatter_direction)
@@ -127,8 +85,8 @@ class Metal(Material):
     # Return (is_scattered : bool, attenuation : vec3, scattered : Ray)
     def scatter(self, r_in : Ray, rec : HitRecord):
         norm_r_in_dir = vecmat.norm_vec3(r_in.direction)
-        reflected = reflect_vec3(norm_r_in_dir, rec.normal)
-        rand_v = random_in_unit_sphere_vec3()
+        reflected = vecmat.reflect_vec3(norm_r_in_dir, rec.normal)
+        rand_v = vecmat.random_in_unit_sphere_vec3()
         reflected = [reflected[i] + self.fuzz * rand_v[i] for i in range(3)]
         scattered = Ray(rec.hit_point, reflected)
         return (vecmat.dot_product_vec3(scattered.direction, rec.normal) > 0, self.albedo, scattered)
@@ -157,9 +115,9 @@ class Dielectric(Material):
         cannot_refract = refraction_ratio * sin_theta > 1.0
 
         if cannot_refract:
-            direction = reflect_vec3(unit_direction, rec.normal)
+            direction = vecmat.reflect_vec3(unit_direction, rec.normal)
         else:
-            direction = refract_vec3(unit_direction, rec.normal, refraction_ratio)
+            direction = vecmat.refract_vec3(unit_direction, rec.normal, refraction_ratio)
 
         scattered = Ray(rec.hit_point, direction)
         return (True, [1.0, 1.0, 1.0], scattered)
@@ -237,13 +195,26 @@ class Camera:
         self.lens_radius = aperture / 2
 
     def get_ray(self, s : float, t : float):
-        rd = random_in_unit_disk_vec3()
+        rd = vecmat.random_in_unit_disk_vec3()
         rd = [self.lens_radius * rd[i] for i in range(3)]
         offset = [self.u[i] * rd[0] + self.v[i] * rd[1] for i in range(3)]
 
         origin = [self.origin[i] + offset[i] for i in range(3)]
         direction = [self.lower_left_corner[i] + s * self.horizontal[i] + t * self.vertical[i] - self.origin[i] - offset[i] for i in range(3)]
         return Ray(origin, direction)
+
+class Interval:
+    def __init__(self,
+                 min: float = float('inf'),
+                 max: float = float('-inf')
+                 ) -> None:
+        self.min = min
+        self.max = max
+    
+    def size(self):
+        return self.max - self.min
+    
+
 
 
 def ray_color(r : Ray, world : Hittable, depth: int):
@@ -277,8 +248,8 @@ def raytrace(surface):
     material_ground = Lambertian([0.5, 0.5, 0.5])
     world.add(Sphere([0, -1000, 0], 1000, material_ground))
 
-    for a in range(-11, 11):
-        for b in range(-11, 11):
+    for a in range(-1, 1):
+        for b in range(-1, 1):
             choose_mat = random.random()
             center = (a + 0.9 * random.random(), 0.2, b + 0.9 * random.random())
             if vecmat.mag_vec3([center[0] - 4, center[1] - 0.2, center[2] - 0]) > 0.9:
