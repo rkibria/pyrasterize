@@ -191,12 +191,56 @@ class Camera:
         return Ray(origin, direction)
 
 class Interval:
+    """Default interval is empty"""
+
     def __init__(self,
                  min: float = float('inf'),
                  max: float = float('-inf')
                  ) -> None:
         self.min = min
         self.max = max
-    
+
+    def __str__(self) -> str:
+        return f"Interval({self.min}, {self.max})"
+
+    def __eq__(self, __value: object) -> bool:
+        return self.min == __value.min and self.max == __value.max
+
     def size(self):
         return self.max - self.min
+
+    def expand(self, delta : float):
+        padding = delta / 2
+        return Interval(self.min - padding, self.max + padding)
+
+class AABB:
+    """The default AABB is empty, since intervals are empty by default"""
+
+    def __init__(self, ix = None, iy = None, iz = None) -> None:
+        if ix is None:
+            self.x = Interval()
+            self.y = Interval()
+            self.z = Interval()
+        elif isinstance(ix, Interval):
+            self.x = ix
+            self.y = iy
+            self.z = iz
+        elif isinstance(ix, list): # ix = vec3, iy = vec3
+            # Treat the two points a and b as extrema for the bounding box, so we don't require a
+            # particular minimum/maximum coordinate order.
+            a = ix
+            b = iy
+            self.x = Interval(min(a[0],b[0]), max(a[0],b[0]))
+            self.y = Interval(min(a[1],b[1]), max(a[1],b[1]))
+            self.z = Interval(min(a[2],b[2]), max(a[2],b[2]))
+        self.pad_to_minimums()
+
+    def pad_to_minimums(self):
+        """Adjust the AABB so that no side is narrower than some delta, padding if necessary"""
+        delta = 0.0001
+        if self.x.size() < delta:
+            self.x = self.x.expand(delta)
+        if self.y.size() < delta:
+            self.y = self.y.expand(delta)
+        if self.z.size() < delta:
+            self.z = self.z.expand(delta)
