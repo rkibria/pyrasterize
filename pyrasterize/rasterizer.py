@@ -5,7 +5,6 @@
 3D rasterizer engine
 """
 
-from collections import deque
 import math
 
 import pygame
