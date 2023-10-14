@@ -11,7 +11,7 @@ import copy
 import math
 
 class Ray:
-    def __init__(self, origin, direction) -> None:
+    def __init__(self, origin : list, direction : list) -> None:
         self.origin = origin
         self.direction = direction
 
@@ -244,3 +244,29 @@ class AABB:
             self.y = self.y.expand(delta)
         if self.z.size() < delta:
             self.z = self.z.expand(delta)
+
+    def hit(self, r : Ray, ray_t : Interval) -> bool:
+        for a,axis in zip([0, 1, 2], [self.x, self.y, self.z]):
+            r_dir = r.direction[a]
+
+            if r_dir:
+                invD = 1 / r_dir
+            else:
+                invD = math.inf
+
+            orig = r.origin[a]
+
+            t0 = (axis.min - orig) * invD
+            t1 = (axis.max - orig) * invD
+
+            if invD < 0:
+                t1, t0 = t0, t1
+
+            if t0 > ray_t.min:
+                ray_t.min = t0
+            if t1 < ray_t.max:
+                ray_t.max = t1
+            
+            if ray_t.max <= ray_t.min:
+                return False
+        return True

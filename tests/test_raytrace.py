@@ -22,3 +22,8 @@ def test_aabb():
     assert a.x == Interval(1, 4)
     assert a.y == Interval(2, 5)
     assert a.z == Interval(3, 6)
+
+def test_aabb_hit():
+    box = AABB([-10, -10, -1], [20, 20, -2])
+    assert box.hit(Ray([0, 0, 0], [-1, -1, -1]), Interval(0, math.inf))
+    assert not box.hit(Ray([0, 0, 0], [1, 1, 1]), Interval(0, math.inf))
