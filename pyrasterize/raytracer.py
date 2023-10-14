@@ -5,10 +5,13 @@
 Raytracer engine
 """
 
+from __future__ import annotations 
+
 from . import vecmat
 
 import copy
 import math
+import numbers
 
 class Ray:
     def __init__(self, origin : list, direction : list) -> None:
@@ -116,6 +119,9 @@ class Hittable:
     def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
         return False
 
+    def bounding_box(self) -> AABB:
+        return None
+
 class HittableList:
     def __init__(self) -> None:
         self.objects : list(Hittable) = []
@@ -142,6 +148,7 @@ class Sphere(Hittable):
         self.center = center
         self.radius = radius
         self.material = material
+        self.bbox = AABB([center[i] - radius for i in range(3)], [center[i] + radius for i in range(3)])
 
     def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
         t = vecmat.ray_sphere_intersect(r.origin, r.direction, self.center, self.radius, t_min, t_max)
@@ -192,13 +199,16 @@ class Camera:
 
 class Interval:
     """Default interval is empty"""
-
-    def __init__(self,
-                 min: float = float('inf'),
-                 max: float = float('-inf')
-                 ) -> None:
-        self.min = min
-        self.max = max
+    def __init__(self, a = None, b = None) -> None:
+        if a is None:
+            self.min = float('inf')
+            self.max = float('-inf')
+        elif isinstance(a, numbers.Number):
+            self.min = a
+            self.max = b
+        elif isinstance(a, Interval):
+            self.min = min(a.min, b.min)
+            self.max = max(a.max, b.max)
 
     def __str__(self) -> str:
         return f"Interval({self.min}, {self.max})"
