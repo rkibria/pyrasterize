@@ -233,6 +233,14 @@ class BvhNode(Hittable):
     def box_z_compare(a : Hittable, b : Hittable) -> bool:
         return BvhNode.box_compare(a, b, 2)
 
+    def __str__(self) -> str:
+        s = f"BvhNode({self.bbox})["
+        s += str(self.left) if self.left is not None else "-"
+        s += ","
+        s += str(self.right) if self.right is not None else "-"
+        s += "]"
+        return s
+
     def __init__(self, src_objects_ : None, start : int = 0, end : int = 0) -> None:
         self.left = None
         self.right = None
@@ -367,6 +375,9 @@ class Sphere(Hittable):
         self.radius = radius
         self.material = material
         self.bbox = AABB([center[i] - radius for i in range(3)], [center[i] + radius for i in range(3)])
+
+    def __str__(self) -> str:
+        return f"Sphere({self.center},{self.radius},{self.bbox})"
 
     def bounding_box(self) -> AABB:
         return self.bbox
