@@ -12,6 +12,7 @@ from . import vecmat
 import copy
 import math
 import numbers
+import functools
 
 class Interval:
     """Default interval is empty"""
@@ -53,6 +54,14 @@ class Interval:
         else:
             return x
 
+    @staticmethod
+    def empty():
+        return Interval(float('inf'), float('-inf'))
+
+    @staticmethod
+    def universe():
+        return Interval(float('-inf'), float('inf'))
+
 class AABB:
     """The default AABB is empty, since intervals are empty by default"""
 
@@ -84,6 +93,13 @@ class AABB:
 
     def __eq__(self, __value: object) -> bool:
         return self.x == __value.x and self.y == __value.y and self.z == __value.z
+
+    def axis(self, n : int):
+        if n == 1:
+            return self.y
+        if n == 2:
+            return self.z
+        return self.x
 
     def pad_to_minimums(self):
         """Adjust the AABB so that no side is narrower than some delta, padding if necessary"""
@@ -120,6 +136,21 @@ class AABB:
             if ray_t.max <= ray_t.min:
                 return False
         return True
+
+    def longest_axis(self) -> int:
+        """Returns the index of the longest axis of the bounding box"""
+        if self.x.size() > self.y.size():
+            return 0 if self.x.size() > self.z.size() else 2
+        else:
+            return 1 if self.y.size() > self.z.size() else 2
+
+    @staticmethod
+    def empty() -> AABB:
+        return AABB(Interval.empty(), Interval.empty(), Interval.empty())
+
+    @staticmethod
+    def universe() -> AABB:
+        return AABB(Interval.universe(), Interval.universe(), Interval.universe())
 
 class Ray:
     def __init__(self, origin : list, direction : list) -> None:
@@ -184,6 +215,80 @@ class HittableList:
                 rec.copy(temp_rec)
 
         return hit_anything
+
+class BvhNode(Hittable):
+    @staticmethod
+    def box_compare(a : Hittable, b : Hittable, axis_index : int) -> bool:
+        return a.bounding_box().axis(axis_index).min < b.bounding_box().axis(axis_index).min
+
+    @staticmethod
+    def box_x_compare(a : Hittable, b : Hittable) -> bool:
+        return BvhNode.box_compare(a, b, 0)
+
+    @staticmethod
+    def box_y_compare(a : Hittable, b : Hittable) -> bool:
+        return BvhNode.box_compare(a, b, 1)
+
+    @staticmethod
+    def box_z_compare(a : Hittable, b : Hittable) -> bool:
+        return BvhNode.box_compare(a, b, 2)
+
+    def __init__(self, src_objects_ : None, start : int = 0, end : int = 0) -> None:
+        self.left = None
+        self.right = None
+        self.bbox = AABB.empty()
+
+        if src_objects_ is None:
+            raise RuntimeError("Need argument")
+        elif isinstance(src_objects_, HittableList):
+            src_objects = src_objects_.objects
+            start = 0
+            end = len(src_objects)
+        else:
+            src_objects = src_objects_
+
+        objects: list(Hittable) = copy.copy(src_objects)
+
+        for object_index in range(start, end):
+            self.bbox = AABB(self.bbox, objects[object_index].bounding_box())
+
+        axis = self.bbox.longest_axis()
+
+        comparator = None
+        if axis == 0:
+            comparator = BvhNode.box_x_compare
+        elif axis == 1:
+            comparator = BvhNode.box_y_compare
+        else:
+            comparator = BvhNode.box_z_compare
+
+        object_span = end - start
+
+        if object_span == 1:
+            self.left = self.right = objects[start]
+        elif object_span == 2:
+            if comparator(objects[start], objects[start+1]):
+                self.left = objects[start]
+                self.right = objects[start + 1]
+            else:
+                self.left = objects[start + 1]
+                self.right = objects[start]
+        else:
+            objects[start:end] = sorted(objects[start:end], key=functools.cmp_to_key(comparator))
+            mid = start + object_span // 2
+            self.left = BvhNode(objects, start, mid)
+            self.right = BvhNode(objects, mid, end)
+
+    def bounding_box(self) -> AABB:
+        return self.bbox
+
+    def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
+        if not self.bbox.hit(r, ray_t):
+            return False
+        
+        hit_left = self.left.hit(r, ray_t, rec) if self.left is not None else False
+        hit_right = self.right.hit(r, Interval(ray_t.min, rec.t if hit_left else ray_t.max), rec) if self.right is not None else False
+        return hit_left or hit_right
 
 class Material:
     def __init__(self) -> None:
@@ -254,23 +359,6 @@ class Dielectric(Material):
 
         scattered = Ray(rec.hit_point, direction)
         return (True, [1.0, 1.0, 1.0], scattered)
-
-class BvhNode(Hittable):
-    def __init__(self, src_objects : None, start : None, end : None) -> None:
-        self.left = None
-        self.right = None
-        self.bbox = AABB()
-        if src_objects is None:
-            raise RuntimeError("Need argument")
-        elif isinstance(src_objects, Hittable):
-            pass
-
-    def bounding_box(self) -> AABB:
-        return self.bbox
-
-    def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
-        pass
-
 
 class Sphere(Hittable):
     def __init__(self, center : list, radius : float, material : Material) -> None:
