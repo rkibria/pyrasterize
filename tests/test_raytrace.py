@@ -23,6 +23,11 @@ def test_aabb():
     assert a.y == Interval(2, 5)
     assert a.z == Interval(3, 6)
 
+    a = AABB([-2, 0, -1], [-1, 1, -2])
+    b = AABB([1, 0, -1], [2, 1, -2])
+    c = AABB(a, b)
+    assert c == AABB([-2, 0, -1], [2, 1, -2])
+
 def test_aabb_hit():
     box = AABB([-10, -10, -1], [20, 20, -2])
     assert box.hit(Ray([0, 0, 0], [-1, -1, -1]), Interval(0, math.inf))
