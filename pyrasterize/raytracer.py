@@ -125,9 +125,14 @@ class Hittable:
 class HittableList:
     def __init__(self) -> None:
         self.objects : list(Hittable) = []
+        self.bbox = AABB()
+
+    def bounding_box(self) -> AABB:
+        return self.bbox
 
     def add(self, object : Hittable) -> None:
         self.objects.append(object)
+        self.bbox = AABB(self.bbox, object.bounding_box())
 
     def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
         temp_rec = HitRecord()
