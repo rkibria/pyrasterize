@@ -27,3 +27,7 @@ def test_aabb_hit():
     box = AABB([-10, -10, -1], [20, 20, -2])
     assert box.hit(Ray([0, 0, 0], [-1, -1, -1]), Interval(0, math.inf))
     assert not box.hit(Ray([0, 0, 0], [1, 1, 1]), Interval(0, math.inf))
+
+def test_sphere_bbox():
+    sphere = Sphere([2, 3, 4], 1, None)
+    assert sphere.bounding_box() == AABB(Interval(1, 3), Interval(2, 4), Interval(3, 5))

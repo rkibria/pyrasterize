@@ -150,6 +150,9 @@ class Sphere(Hittable):
         self.material = material
         self.bbox = AABB([center[i] - radius for i in range(3)], [center[i] + radius for i in range(3)])
 
+    def bounding_box(self) -> AABB:
+        return self.bbox
+
     def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
         t = vecmat.ray_sphere_intersect(r.origin, r.direction, self.center, self.radius, t_min, t_max)
         if t:
@@ -243,7 +246,17 @@ class AABB:
             self.x = Interval(min(a[0],b[0]), max(a[0],b[0]))
             self.y = Interval(min(a[1],b[1]), max(a[1],b[1]))
             self.z = Interval(min(a[2],b[2]), max(a[2],b[2]))
+        elif isinstance(ix, AABB):
+            self.x = Interval(ix.x, iy.x)
+            self.y = Interval(ix.y, iy.y)
+            self.z = Interval(ix.z, iy.z)
         self.pad_to_minimums()
+
+    def __str__(self) -> str:
+        return f"AABB({self.x}, {self.y}, {self.z})"
+
+    def __eq__(self, __value: object) -> bool:
+        return self.x == __value.x and self.y == __value.y and self.z == __value.z
 
     def pad_to_minimums(self):
         """Adjust the AABB so that no side is narrower than some delta, padding if necessary"""
