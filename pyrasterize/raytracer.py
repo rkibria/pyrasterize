@@ -13,6 +13,114 @@ import copy
 import math
 import numbers
 
+class Interval:
+    """Default interval is empty"""
+    def __init__(self, a = None, b = None) -> None:
+        if a is None:
+            self.min = float('inf')
+            self.max = float('-inf')
+        elif isinstance(a, numbers.Number):
+            self.min = a
+            self.max = b
+        elif isinstance(a, Interval):
+            self.min = min(a.min, b.min)
+            self.max = max(a.max, b.max)
+
+    def __str__(self) -> str:
+        return f"Interval({self.min}, {self.max})"
+
+    def __eq__(self, __value: object) -> bool:
+        return self.min == __value.min and self.max == __value.max
+
+    def size(self) -> float:
+        return self.max - self.min
+
+    def expand(self, delta : float) -> Interval:
+        padding = delta / 2
+        return Interval(self.min - padding, self.max + padding)
+
+    def contains(self, x : float) -> float:
+        return self.min <= x and x <= self.max
+    
+    def surrounds(self, x : float) -> float:
+        return self.min < x and x < self.max
+
+    def clamp(self, x : float) -> float:
+        if x < self.min:
+            return self.min
+        elif x > self.max:
+            return self.max
+        else:
+            return x
+
+class AABB:
+    """The default AABB is empty, since intervals are empty by default"""
+
+    def __init__(self, ix = None, iy = None, iz = None) -> None:
+        if ix is None:
+            self.x = Interval()
+            self.y = Interval()
+            self.z = Interval()
+        elif isinstance(ix, Interval):
+            self.x = ix
+            self.y = iy
+            self.z = iz
+        elif isinstance(ix, list): # ix = vec3, iy = vec3
+            # Treat the two points a and b as extrema for the bounding box, so we don't require a
+            # particular minimum/maximum coordinate order.
+            a = ix
+            b = iy
+            self.x = Interval(min(a[0],b[0]), max(a[0],b[0]))
+            self.y = Interval(min(a[1],b[1]), max(a[1],b[1]))
+            self.z = Interval(min(a[2],b[2]), max(a[2],b[2]))
+        elif isinstance(ix, AABB):
+            self.x = Interval(ix.x, iy.x)
+            self.y = Interval(ix.y, iy.y)
+            self.z = Interval(ix.z, iy.z)
+        self.pad_to_minimums()
+
+    def __str__(self) -> str:
+        return f"AABB({self.x}, {self.y}, {self.z})"
+
+    def __eq__(self, __value: object) -> bool:
+        return self.x == __value.x and self.y == __value.y and self.z == __value.z
+
+    def pad_to_minimums(self):
+        """Adjust the AABB so that no side is narrower than some delta, padding if necessary"""
+        delta = 0.0001
+        if self.x.size() < delta:
+            self.x = self.x.expand(delta)
+        if self.y.size() < delta:
+            self.y = self.y.expand(delta)
+        if self.z.size() < delta:
+            self.z = self.z.expand(delta)
+
+    def hit(self, r : Ray, ray_t : Interval) -> bool:
+        for a,axis in zip([0, 1, 2], [self.x, self.y, self.z]):
+            r_dir = r.direction[a]
+
+            if r_dir:
+                invD = 1 / r_dir
+            else:
+                invD = math.inf
+
+            orig = r.origin[a]
+
+            t0 = (axis.min - orig) * invD
+            t1 = (axis.max - orig) * invD
+
+            if invD < 0:
+                t1, t0 = t0, t1
+
+            if t0 > ray_t.min:
+                ray_t.min = t0
+            if t1 < ray_t.max:
+                ray_t.max = t1
+            
+            if ray_t.max <= ray_t.min:
+                return False
+        return True
+
 class Ray:
     def __init__(self, origin : list, direction : list) -> None:
         self.origin = origin
@@ -31,7 +139,7 @@ class HitRecord:
         self.front_face = False
         self.material = None
 
-    def copy(self, rec : "HitRecord"):
+    def copy(self, rec : HitRecord):
         self.hit_point = copy.copy(rec.hit_point)
         self.normal = copy.copy(rec.normal)
         self.t = rec.t
@@ -41,6 +149,41 @@ class HitRecord:
     def set_face_normal(self, r : Ray, outward_normal):
         self.front_face = vecmat.dot_product_vec3(r.direction, outward_normal) < 0
         self.normal = outward_normal if self.front_face else [-outward_normal[i] for i in range(3)]
+
+class Hittable:
+    def __init__(self) -> None:
+        pass
+
+    def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
+        return False
+
+    def bounding_box(self) -> AABB:
+        return None
+
+class HittableList:
+    def __init__(self) -> None:
+        self.objects : list(Hittable) = []
+        self.bbox = AABB()
+
+    def bounding_box(self) -> AABB:
+        return self.bbox
+
+    def add(self, object : Hittable) -> None:
+        self.objects.append(object)
+        self.bbox = AABB(self.bbox, object.bounding_box())
+
+    def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
+        temp_rec = HitRecord()
+        hit_anything = False
+        closest_so_far = ray_t.max
+
+        for object in self.objects:
+            if object.hit(r, Interval(ray_t.min, closest_so_far), temp_rec):
+                hit_anything = True
+                closest_so_far = temp_rec.t
+                rec.copy(temp_rec)
+
+        return hit_anything
 
 class Material:
     def __init__(self) -> None:
@@ -112,40 +255,22 @@ class Dielectric(Material):
         scattered = Ray(rec.hit_point, direction)
         return (True, [1.0, 1.0, 1.0], scattered)
 
-class Hittable:
-    def __init__(self) -> None:
-        pass
-
-    def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
-        return False
-
-    def bounding_box(self) -> AABB:
-        return None
-
-class HittableList:
-    def __init__(self) -> None:
-        self.objects : list(Hittable) = []
+class BvhNode(Hittable):
+    def __init__(self, src_objects : None, start : None, end : None) -> None:
+        self.left = None
+        self.right = None
         self.bbox = AABB()
+        if src_objects is None:
+            raise RuntimeError("Need argument")
+        elif isinstance(src_objects, Hittable):
+            pass
 
     def bounding_box(self) -> AABB:
         return self.bbox
 
-    def add(self, object : Hittable) -> None:
-        self.objects.append(object)
-        self.bbox = AABB(self.bbox, object.bounding_box())
+    def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
+        pass
 
-    def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
-        temp_rec = HitRecord()
-        hit_anything = False
-        closest_so_far = t_max
-
-        for object in self.objects:
-            if object.hit(r, t_min, closest_so_far, temp_rec):
-                hit_anything = True
-                closest_so_far = temp_rec.t
-                rec.copy(temp_rec)
-
-        return hit_anything
 
 class Sphere(Hittable):
     def __init__(self, center : list, radius : float, material : Material) -> None:
@@ -158,8 +283,8 @@ class Sphere(Hittable):
     def bounding_box(self) -> AABB:
         return self.bbox
 
-    def hit(self, r : Ray, t_min : float, t_max : float, rec: HitRecord) -> bool:
-        t = vecmat.ray_sphere_intersect(r.origin, r.direction, self.center, self.radius, t_min, t_max)
+    def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
+        t = vecmat.ray_sphere_intersect(r.origin, r.direction, self.center, self.radius, ray_t.min, ray_t.max)
         if t:
             hit_point = r.at(t)
             outward_normal = [(hit_point[i] - self.center[i]) / self.radius for i in range(3)]
@@ -204,97 +329,3 @@ class Camera:
         origin = [self.origin[i] + offset[i] for i in range(3)]
         direction = [self.lower_left_corner[i] + s * self.horizontal[i] + t * self.vertical[i] - self.origin[i] - offset[i] for i in range(3)]
         return Ray(origin, direction)
-
-class Interval:
-    """Default interval is empty"""
-    def __init__(self, a = None, b = None) -> None:
-        if a is None:
-            self.min = float('inf')
-            self.max = float('-inf')
-        elif isinstance(a, numbers.Number):
-            self.min = a
-            self.max = b
-        elif isinstance(a, Interval):
-            self.min = min(a.min, b.min)
-            self.max = max(a.max, b.max)
-
-    def __str__(self) -> str:
-        return f"Interval({self.min}, {self.max})"
-
-    def __eq__(self, __value: object) -> bool:
-        return self.min == __value.min and self.max == __value.max
-
-    def size(self):
-        return self.max - self.min
-
-    def expand(self, delta : float):
-        padding = delta / 2
-        return Interval(self.min - padding, self.max + padding)
-
-class AABB:
-    """The default AABB is empty, since intervals are empty by default"""
-
-    def __init__(self, ix = None, iy = None, iz = None) -> None:
-        if ix is None:
-            self.x = Interval()
-            self.y = Interval()
-            self.z = Interval()
-        elif isinstance(ix, Interval):
-            self.x = ix
-            self.y = iy
-            self.z = iz
-        elif isinstance(ix, list): # ix = vec3, iy = vec3
-            # Treat the two points a and b as extrema for the bounding box, so we don't require a
-            # particular minimum/maximum coordinate order.
-            a = ix
-            b = iy
-            self.x = Interval(min(a[0],b[0]), max(a[0],b[0]))
-            self.y = Interval(min(a[1],b[1]), max(a[1],b[1]))
-            self.z = Interval(min(a[2],b[2]), max(a[2],b[2]))
-        elif isinstance(ix, AABB):
-            self.x = Interval(ix.x, iy.x)
-            self.y = Interval(ix.y, iy.y)
-            self.z = Interval(ix.z, iy.z)
-        self.pad_to_minimums()
-
-    def __str__(self) -> str:
-        return f"AABB({self.x}, {self.y}, {self.z})"
-
-    def __eq__(self, __value: object) -> bool:
-        return self.x == __value.x and self.y == __value.y and self.z == __value.z
-
-    def pad_to_minimums(self):
-        """Adjust the AABB so that no side is narrower than some delta, padding if necessary"""
-        delta = 0.0001
-        if self.x.size() < delta:
-            self.x = self.x.expand(delta)
-        if self.y.size() < delta:
-            self.y = self.y.expand(delta)
-        if self.z.size() < delta:
-            self.z = self.z.expand(delta)
-
-    def hit(self, r : Ray, ray_t : Interval) -> bool:
-        for a,axis in zip([0, 1, 2], [self.x, self.y, self.z]):
-            r_dir = r.direction[a]
-
-            if r_dir:
-                invD = 1 / r_dir
-            else:
-                invD = math.inf
-
-            orig = r.origin[a]
-
-            t0 = (axis.min - orig) * invD
-            t1 = (axis.max - orig) * invD
-
-            if invD < 0:
-                t1, t0 = t0, t1
-
-            if t0 > ray_t.min:
-                ray_t.min = t0
-            if t1 < ray_t.max:
-                ray_t.max = t1
-            
-            if ray_t.max <= ray_t.min:
-                return False
-        return True
