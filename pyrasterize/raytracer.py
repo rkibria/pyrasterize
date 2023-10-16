@@ -291,11 +291,16 @@ class BvhNode(Hittable):
         return self.bbox
 
     def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
-        if not self.bbox.hit(r, ray_t):
+        if not self.bbox.hit(r, copy.copy(ray_t)):
             return False
         
-        hit_left = self.left.hit(r, ray_t, rec) if self.left is not None else False
-        hit_right = self.right.hit(r, Interval(ray_t.min, rec.t if hit_left else ray_t.max), rec) if self.right is not None else False
+        hit_left = False
+        if self.left:
+            hit_left = self.left.hit(r, copy.copy(ray_t), rec)
+        
+        hit_right = False
+        if self.right:
+            hit_right = self.right.hit(r, Interval(ray_t.min, rec.t if hit_left else ray_t.max), rec)
         return hit_left or hit_right
 
 class Material:
