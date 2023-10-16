@@ -3,7 +3,7 @@ https://raytracing.github.io/books/RayTracingInOneWeekend.html
 """
 
 import random
-import math
+from timeit import default_timer as timer
 
 import pygame
 import pygame.gfxdraw
@@ -13,7 +13,7 @@ from pyrasterize.raytracer import *
 
 # CONSTANTS
 
-SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 320//2, 240//2
+SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 320, 240
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
 RGB_BLACK = (0, 0, 0)
@@ -54,58 +54,56 @@ def raytrace(surface):
     material_ground = Lambertian([0.5, 0.5, 0.5])
     world.add(Sphere([0, -1000, 0], 1000, material_ground))
 
-    # for a in range(-10, 10):
-    #     for b in range(-10, 10):
-    #         choose_mat = random.random()
-    #         center = (a + 0.9 * random.random(), 0.2, b + 0.9 * random.random())
-    #         print(f"center {center}")
-    #         if vecmat.mag_vec3([center[0] - 4, center[1] - 0.2, center[2] - 0]) > 0.9:
-    #             if choose_mat < 0.8:
-    #                 albedo_1 = [random.random(), random.random(), random.random()]
-    #                 albedo_2 = [random.random(), random.random(), random.random()]
-    #                 albedo = [albedo_1[i] * albedo_2[i] for i in range(3)]
-    #                 sphere_material = Lambertian(albedo)
-    #                 world.add(Sphere(center, 0.2, sphere_material))
-    #             elif choose_mat < 0.95:
-    #                 albedo = [random.uniform(0.5, 1), random.uniform(0.5, 1), random.uniform(0.5, 1)]
-    #                 fuzz = random.uniform(0.5, 1)
-    #                 sphere_material = Metal(albedo, fuzz)
-    #                 world.add(Sphere(center, 0.2, sphere_material))
-    #             else:
-    #                 sphere_material = Dielectric(1.5)
-    #                 world.add(Sphere(center, 0.2, sphere_material))
+    for a in range(-3, 3):
+        for b in range(-3, 3):
+            choose_mat = random.random()
+            center = (a + 0.9 * random.random(), 0.2, b + 0.9 * random.random())
+            if vecmat.mag_vec3([center[0] - 4, center[1] - 0.2, center[2] - 0]) > 0.9:
+                if choose_mat < 0.8:
+                    albedo_1 = [random.random(), random.random(), random.random()]
+                    albedo_2 = [random.random(), random.random(), random.random()]
+                    albedo = [albedo_1[i] * albedo_2[i] for i in range(3)]
+                    sphere_material = Lambertian(albedo)
+                    world.add(Sphere(center, 0.2, sphere_material))
+                elif choose_mat < 0.95:
+                    albedo = [random.uniform(0.5, 1), random.uniform(0.5, 1), random.uniform(0.5, 1)]
+                    fuzz = random.uniform(0.5, 1)
+                    sphere_material = Metal(albedo, fuzz)
+                    world.add(Sphere(center, 0.2, sphere_material))
+                else:
+                    sphere_material = Dielectric(1.5)
+                    world.add(Sphere(center, 0.2, sphere_material))
 
-    # material1 = Dielectric(1.5)
-    # world.add(Sphere([0, 1, 0], 1, material1))
+    material1 = Dielectric(1.5)
+    world.add(Sphere([0, 1, 0], 1, material1))
 
-    # material2 = Lambertian([0.4, 0.2, 0.1])
-    # world.add(Sphere([-4, 1, 0], 1, material2))
+    material2 = Lambertian([0.4, 0.2, 0.1])
+    world.add(Sphere([-4, 1, 0], 1, material2))
 
-    # material3 = Metal([0.7, 0.6, 0.5], 0.0)
-    # world.add(Sphere([4, 1, 0], 1, material3))
+    material3 = Metal([0.7, 0.6, 0.5], 0.0)
+    world.add(Sphere([4, 1, 0], 1, material3))
 
-    zz = 10
-    for i in range(zz):
-        center = [(-zz/2 + i), 2.2, 0]
-        print(f"center {center}")
-        # albedo_1 = [random.random(), random.random(), random.random()]
-        # albedo_2 = [random.random(), random.random(), random.random()]
-        # albedo = [albedo_1[i] * albedo_2[i] for i in range(3)]
-        albedo = [0.9, 1.0 / zz * (i + 1), 0.0]
-        sphere_material = Lambertian(albedo)
-        world.add(Sphere(center, 0.2, sphere_material))
+    # zz = 10
+    # for i in range(zz):
+    #     center = [(-zz/2 + i), 2.2, 0]
+    #     print(f"center {center}")
+    #     # albedo_1 = [random.random(), random.random(), random.random()]
+    #     # albedo_2 = [random.random(), random.random(), random.random()]
+    #     # albedo = [albedo_1[i] * albedo_2[i] for i in range(3)]
+    #     albedo = [0.9, 1.0 / zz * (i + 1), 0.0]
+    #     sphere_material = Lambertian(albedo)
+    #     world.add(Sphere(center, 0.2, sphere_material))
 
     bvh_world = BvhNode(world)
     scene = HittableList()
     scene.add(bvh_world)
     # scene = world #########
 
-    max_depth = 2 # 50
-    samples_per_pixel = 1 # 2
+    max_depth = 50
+    samples_per_pixel = 2
 
     aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
-    # lookfrom = [13, 2, 3]
-    lookfrom = [0, 3, 33]
+    lookfrom = [13, 2, 3]
     lookat = [0, 0, 0]
     vup = [0, 1, 0]
     dist_to_focus = 10.0
@@ -113,7 +111,8 @@ def raytrace(surface):
     cam = Camera(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus)
 
     for y in range(SCR_HEIGHT):
-        # print(f"y = {y}")
+        if y % 10 == 0:
+            print(f"y = {y}")
         for x in range(SCR_WIDTH):
             for _ in range(samples_per_pixel):
                 u = (x + random.random()) / float(SCR_WIDTH - 1)
@@ -143,7 +142,10 @@ def main_function():
     offscreen = pygame.Surface(SCR_SIZE)
     offscreen.fill(RGB_BLACK)
 
+    start = timer()
     raytrace(offscreen)
+    end = timer()
+    print(f"Render time {end - start}")
 
     frame = 0
     done = False
