@@ -106,6 +106,8 @@ def random_in_unit_disk_vec3():
 
 # RAY TRACER CODE
 
+# Interval is faster as simple lists instead of a class because we create so many of them
+
 def make_interval(a = float('inf'), b = float('-inf')) -> list:
     """0 = min, 1 = max"""
     return [a, b]
@@ -570,24 +572,13 @@ def raytrace(surface):
     material3 = Metal([0.7, 0.6, 0.5], 0.0)
     world.add(Sphere([4, 1, 0], 1, material3))
 
-    # zz = 10
-    # for i in range(zz):
-    #     center = [(-zz/2 + i), 2.2, 0]
-    #     print(f"center {center}")
-    #     # albedo_1 = [random.random(), random.random(), random.random()]
-    #     # albedo_2 = [random.random(), random.random(), random.random()]
-    #     # albedo = [albedo_1[i] * albedo_2[i] for i in range(3)]
-    #     albedo = [0.9, 1.0 / zz * (i + 1), 0.0]
-    #     sphere_material = Lambertian(albedo)
-    #     world.add(Sphere(center, 0.2, sphere_material))
-
     bvh_world = BvhNode(world)
     scene = HittableList()
     scene.add(bvh_world)
-    # scene = world #########
+    # scene = world # comment out above and uncomment this to not use BVH
 
     max_depth = 50
-    samples_per_pixel = 2
+    samples_per_pixel = 10
 
     aspect_ratio = SCR_WIDTH / float(SCR_HEIGHT)
     lookfrom = [13, 2, 3]
@@ -599,7 +590,7 @@ def raytrace(surface):
 
     for y in range(SCR_HEIGHT):
         if y % 10 == 0:
-            print(f"y = {y}")
+            print(f"Rendering line {y}...")
         for x in range(SCR_WIDTH):
             for _ in range(samples_per_pixel):
                 u = (x + random.random()) / float(SCR_WIDTH - 1)
@@ -630,7 +621,7 @@ def main_function():
     start = timer()
     raytrace(offscreen)
     end = timer()
-    print(f"Render time {end - start}")
+    print(f"Render time {end - start} s")
 
     frame = 0
     done = False
