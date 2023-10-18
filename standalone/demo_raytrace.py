@@ -13,7 +13,6 @@ import math
 import functools
 
 import pygame
-import pygame.gfxdraw
 
 # CONSTANTS
 
