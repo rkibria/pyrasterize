@@ -16,16 +16,16 @@ import functools
 
 class Interval:
     """Default interval is empty"""
-    def __init__(self, a = None, b = None) -> None:
-        if a is None:
-            self.min = float('inf')
-            self.max = float('-inf')
-        elif isinstance(a, numbers.Number):
-            self.min = a
-            self.max = b
-        elif isinstance(a, Interval):
-            self.min = min(a.min, b.min)
-            self.max = max(a.max, b.max)
+    def __init__(self, a = float('inf'), b = float('-inf')) -> None:
+        self.min = a
+        self.max = b
+
+    @staticmethod
+    def from_intervals(a : Interval, b : Interval) -> Interval:
+        return Interval(min(a.min, b.min), max(a.max, b.max))
+
+    def copy(self) -> Interval:
+        return Interval(self.min, self.max)
 
     def __str__(self) -> str:
         return f"Interval({self.min}, {self.max})"
@@ -83,9 +83,9 @@ class AABB:
             self.y = Interval(min(a[1],b[1]), max(a[1],b[1]))
             self.z = Interval(min(a[2],b[2]), max(a[2],b[2]))
         elif isinstance(ix, AABB):
-            self.x = Interval(ix.x, iy.x)
-            self.y = Interval(ix.y, iy.y)
-            self.z = Interval(ix.z, iy.z)
+            self.x = Interval.from_intervals(ix.x, iy.x)
+            self.y = Interval.from_intervals(ix.y, iy.y)
+            self.z = Interval.from_intervals(ix.z, iy.z)
         self.pad_to_minimums()
 
     def __str__(self) -> str:
@@ -291,12 +291,12 @@ class BvhNode(Hittable):
         return self.bbox
 
     def hit(self, r : Ray, ray_t : Interval, rec: HitRecord) -> bool:
-        if not self.bbox.hit(r, copy.copy(ray_t)):
+        if not self.bbox.hit(r, ray_t.copy()):
             return False
         
         hit_left = False
         if self.left:
-            hit_left = self.left.hit(r, copy.copy(ray_t), rec)
+            hit_left = self.left.hit(r, ray_t.copy(), rec)
         
         hit_right = False
         if self.right:

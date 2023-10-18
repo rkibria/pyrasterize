@@ -13,7 +13,7 @@ from pyrasterize.raytracer import *
 
 # CONSTANTS
 
-SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 320, 240
+SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 320//2, 240//2
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
 RGB_BLACK = (0, 0, 0)
