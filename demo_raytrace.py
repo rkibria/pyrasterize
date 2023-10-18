@@ -28,7 +28,7 @@ def ray_color(r : Ray, world : Hittable, depth: int):
         return [0, 0, 0]
 
     rec = HitRecord()
-    if world.hit(r, Interval(0.001, float("inf")), rec):
+    if world.hit(r, make_interval(0.001, float("inf")), rec):
         is_scattered, attenuation, scattered = rec.material.scatter(r, rec)
         if is_scattered:
             rec_color = ray_color(scattered, world, depth - 1)
