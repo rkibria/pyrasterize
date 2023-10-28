@@ -261,5 +261,7 @@ if __name__ == '__main__':
         rasterVerts = getRasterVerts(ndcVerts, width, height)
         drawObject(drawIdxList, cubeIdxs, rasterVerts)
 
+        # https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrix-introduction.html
+
         pygame.display.flip()
         frame += 1
