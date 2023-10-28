@@ -1,4 +1,4 @@
-import pygame, math
+import pygame, math, random
 
 # OpenGL coord system: -z goes into the screen
 # 8 vertices form corners of the unit cube
@@ -58,8 +58,8 @@ def matMatMult(m1, m2):
 
 def vecMatMult(m, v):
         """
-        4x4 Matrix on the left side
-        4x1 Vector is on the right side
+        4x4 matrix on the left side
+        4x1 (column) vector is on the right side
         (other way around doesn't work)
         """
         return (
@@ -107,13 +107,12 @@ def getRotateZMatrix(phi):
                 0.0,            0.0,            0.0,            1.0,
                 ]
 
-def getPerspectiveMatrix(near, far, right, top):
-        farMinusNear = far - near
+def getOrthoMatrix():
         return [
-                near/right, 0.0,       0.0,                      0.0,
-                0.0,        near/top,  0.0,                      0.0,
-                0.0,        0.0,       -(far+near)/farMinusNear, -2*far*near/farMinusNear,
-                0.0,        0.0,       -1.0,                     1.0,
+                1.0,            0.0,       0.0,            0.0,
+                0.0,            1.0,       0.0,            0.0,
+                0.0,            0.0,       0.0,            0.0,
+                0.0,            0.0,       0.0,            1.0,
                 ]
 
 def projectVerts(m, srcV):
@@ -126,25 +125,6 @@ def projectVerts(m, srcV):
         v4 = (vec[0], vec[1], vec[2], 1)
         pvec = vecMatMult(m, v4)
         dstV.append(pvec)
-    return dstV
-
-def perspectiveDivide(srcV):
-    """
-    Takes vec4
-    Returns vec2
-    """
-    dstV = []
-    for vec4 in srcV:
-        x = vec4[0]
-        y = vec4[1]
-        z = vec4[2]
-        w = vec4[3]
-        x /= w
-        y /= w
-        z /= w
-        x /= z
-        y /= z
-        dstV.append((x, y))
     return dstV
 
 def cullBackfaces(viewPoint, srcIdcs, worldVerts, disable=False):
@@ -165,8 +145,6 @@ if __name__ == '__main__':
     pygame.init()
 
     size = width, height = 800, 600
-    o_x = width/2
-    o_y = height/2
 
     RGB_BLACK = (0, 0, 0)
     RGB_WHITE = (255, 255, 255)
@@ -178,26 +156,22 @@ if __name__ == '__main__':
     done = False
     clock = pygame.time.Clock()
 
-    def drawEdge(p0, p1):
+    def drawEdge(p0, p1, color):
         # x1 = o_x + p0[0] * o_x
-        # y1 = o_y - p0[1] * o_y * (width/height)
+        # y1 = o_y - p0[1] * o_y
         # x2 = o_x + p1[0] * o_x
-        # y2 = o_y - p1[1] * o_y * (width/height)
-        # pygame.draw.line(screen, RGB_WHITE, (x1, y1), (x2, y2), 1)
+        # y2 = o_y - p1[1] * o_y
+        x1 = p0[0]
+        y1 = p0[1]
+        x2 = p1[0]
+        y2 = p1[1]
+        pygame.draw.line(screen, color, (x1, y1), (x2, y2), 1)
 
-        x1 = o_x + p0[0] * o_x
-        y1 = o_y - p0[1] * o_y
-        x2 = o_x + p1[0] * o_x
-        y2 = o_y - p1[1] * o_y
-        pygame.draw.line(screen, RGB_WHITE, (x1, y1), (x2, y2), 1)
-
-        # x1 = o_x + p0[0]
-        # y1 = o_y - p0[1]
-        # x2 = o_x + p1[0]
-        # y2 = o_y - p1[1]
-        # pygame.draw.line(screen, RGB_WHITE, (x1, y1), (x2, y2), 1)
-
-
+    colors = [(255,0,0), (0,255,0), (0,0,255),
+              (255,255,0), (0,255,255), (255,0,255),
+              (255,255,255), (127,255,0), (127,0,255),
+              (127,0,0), (0,127,0), (0,0,127),
+              ]
     def drawObject(culledIdxList, idcs, perspVerts):
         for idx in culledIdxList:
             idc = idcs[idx]
@@ -207,9 +181,51 @@ if __name__ == '__main__':
             p0 = perspVerts[i0]
             p1 = perspVerts[i1]
             p2 = perspVerts[i2]
-            drawEdge(p0, p1)
-            drawEdge(p0, p2)
-            drawEdge(p1, p2)
+            color = colors[idx % len(colors)]
+            drawEdge(p0, p1, color)
+            drawEdge(p0, p2, color)
+            drawEdge(p1, p2, color)
+
+    def perspectiveDivide(srcV):
+        """
+        Takes vec4
+        Returns vec2
+        """
+        dstV = []
+        for vec4 in srcV:
+            x = vec4[0]
+            y = vec4[1]
+            z = vec4[2]
+            w = vec4[3]
+            x /= w
+            y /= w
+            z /= -w
+            if z != 0:
+                x /= z
+                y /= z
+            dstV.append((x, y))
+        return dstV
+
+    def getPerspectiveMatrix(near, far, right, top):
+            farMinusNear = far - near
+            return [
+                    near/right, 0.0,       0.0,                      0.0,
+                    0.0,        near/top,  0.0,                      0.0,
+                    0.0,        0.0,       -(far+near)/farMinusNear, -2*far*near/farMinusNear,
+                    0.0,        0.0,       -1.0,                     1.0,
+                    ]
+
+    def getNDCVerts(screenspaceVerts, w, h):
+        result = []
+        for x,y in screenspaceVerts:
+            result.append(((x + w/2)/w, (y + h/2)/h))
+        return result
+
+    def getRasterVerts(ndcVerts, w, h):
+        result = []
+        for x,y in ndcVerts:
+            result.append((w * x, h * (1 - y)))
+        return result
 
     frame = 0
     while not done:
@@ -219,30 +235,30 @@ if __name__ == '__main__':
                 done = True
         screen.fill(RGB_BLACK)
 
-        angle = math.pi / 180 * frame
+        angle = math.pi / 180 * frame # math.pi / 180 * frame
 
         m = getRotateXMatrix(angle)
         m = matMatMult(getRotateYMatrix(angle), m)
         m = matMatMult(getRotateZMatrix(angle), m)
         # m = matMatMult(getTranslationMatrix(math.sin(0), math.cos(0), -3), m)
-        m = matMatMult(getTranslationMatrix(0, 0, -3), m)
-        m = matMatMult(getPerspectiveMatrix(0.5, 5000.0, 1.0, 1.0), m)
-        # operation order: (P * (T * (Z * (Y * X)))) => rotate first, then translate
+        m = matMatMult(getTranslationMatrix(1, 0, -2.5), m)
+        # m = matMatMult(getPerspectiveMatrix(0.5, 5000.0, 1.0, 1.0), m)
+        # m = matMatMult(getOrthoMatrix(), m)
+        # operation order: (P * (T * (Z * (Y * X)))) * point => rotate first, then translate
+        # Same result: ((T * Z) * (Y * X)) * point
+        #              (((T * Z) * Y) * X) * point
 
-        # m = matMatMult(getTranslationMatrix(math.sin(angle), math.cos(angle), -3), getRotateZMatrix(angle))
-        # m = matMatMult(m, getRotateYMatrix(angle))
-        # m = matMatMult(m, getRotateXMatrix(angle))
-        # # operation order: (((T * Z) * Y) * X) * point => rotate first, then translate
-
-        # Same result: ((T * Z) * (Y * X))
-        # m1 = matMatMult(getTranslationMatrix(math.sin(angle), math.cos(angle), -3), getRotateZMatrix(angle))
-        # m2 = matMatMult(getRotateYMatrix(angle), getRotateXMatrix(angle))
-        # m = matMatMult(m1, m2)
+        # World space to camera space.
+        # Camera space to screen space.
+        # Screen space to NDC space.
+        # NDC space to raster space.
 
         clipVerts = projectVerts(m, cubeVerts)
-        drawIdxList = cullBackfaces((0, 0, 0), cubeIdxs, clipVerts)
-        screenVerts = perspectiveDivide(clipVerts)
-        drawObject(drawIdxList, cubeIdxs, screenVerts)
+        drawIdxList = cullBackfaces((0, 0, 0), cubeIdxs, clipVerts, True)
+        screenspaceVerts = perspectiveDivide(clipVerts)
+        ndcVerts = getNDCVerts(screenspaceVerts, 2, 2)
+        rasterVerts = getRasterVerts(ndcVerts, width, height)
+        drawObject(drawIdxList, cubeIdxs, rasterVerts)
 
         pygame.display.flip()
         frame += 1
