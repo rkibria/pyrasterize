@@ -248,6 +248,7 @@ if __name__ == '__main__':
         # Same result: ((T * Z) * (Y * X)) * point
         #              (((T * Z) * Y) * X) * point
 
+        # https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points.html
         # World space to camera space.
         # Camera space to screen space.
         # Screen space to NDC space.
