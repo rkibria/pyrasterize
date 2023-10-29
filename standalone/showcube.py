@@ -1,8 +1,10 @@
 import pygame, math, random
 
+# Unit cube centered at origin
+
 # OpenGL coord system: -z goes into the screen
 # 8 vertices form corners of the unit cube
-cubeVerts = [
+cubeVertices = [
 ( 0.5,  0.5, 0.5),  # front top right     0
 ( 0.5, -0.5, 0.5),  # front bottom right  1
 (-0.5, -0.5, 0.5),  # front bottom left   2
@@ -13,7 +15,7 @@ cubeVerts = [
 (-0.5,  0.5, -0.5)  # back top left       7
 ]
 
-cubeIdxs = [
+cubeFaces = [
 (0, 1, 3), # front face  3 0
 (2, 3, 1), #             2 1
 (3, 2, 7), # left face   7 3
@@ -38,6 +40,13 @@ def crossProduct(a, b):
     return (a[1]*b[2] - a[2]*b[1],
         a[2]*b[0] - a[0]*b[2],
         a[0]*b[1] - a[1]*b[0])
+
+def get_unit_m4():
+    """Return 4x4 unit matrix"""
+    return [1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0]
 
 def matMatMult(m1, m2):
     """
@@ -76,6 +85,12 @@ def getTranslationMatrix(dx, dy, dz):
                 0.0, 0.0, 1.0, float(dz),
                 0.0, 0.0, 0.0, 1.0,
                 ]
+
+def getScaleMatrix(s_x, s_y, s_z):
+    return [float(s_x), 0.0,       0.0,       0.0,
+            0.0,       float(s_y), 0.0,       0.0,
+            0.0,       0.0,       float(s_z), 0.0,
+            0.0,       0.0,       0.0,        1.0]
 
 def getRotateXMatrix(phi):
         cos_phi = math.cos(phi)
@@ -117,12 +132,12 @@ def getOrthoMatrix():
 
 def projectVerts(m, srcV):
     """
-    Takes vec3 verts
+    Takes vec3 or vec4 verts
     Returns vec4
     """
     dstV = []
     for vec in srcV:
-        v4 = (vec[0], vec[1], vec[2], 1)
+        v4 = (vec[0], vec[1], vec[2], 1 if len(vec) < 4 else vec[3])
         pvec = vecMatMult(m, v4)
         dstV.append(pvec)
     return dstV
@@ -141,7 +156,94 @@ def cullBackfaces(viewPoint, srcIdcs, worldVerts, disable=False):
         i += 1
     return idcs
 
-if __name__ == '__main__':
+def perspectiveDivide(srcV):
+    """
+    Takes vec4
+    Returns vec3
+    """
+    dstV = []
+    for vec4 in srcV:
+        x = vec4[0]
+        y = vec4[1]
+        z = vec4[2]
+        w = vec4[3]
+        x /= w
+        y /= w
+        z /= w
+        if z != 0:
+            x /= z
+            y /= z
+        dstV.append((x, y, z))
+    return dstV
+
+def getNDCVerts(screenspaceVerts, w, h):
+    result = []
+    for x,y,_ in screenspaceVerts:
+        result.append(((x + w/2)/w, (y + h/2)/h))
+    return result
+
+def getRasterVerts(ndcVerts, w, h):
+    result = []
+    for x,y in ndcVerts:
+        result.append((w * x, h * (1 - y)))
+    return result
+
+def getPerspectiveMatrix(l, r, b, t, n, f):
+    """
+    In contrast to the other matrices this will affect the w component of the vector!
+    We will also need a division by w to get a non-homogenous point.
+    """
+    return [
+            2*n/(r-l), 0.0,       -(r+l)/(r-l),                      0.0,
+            0.0,        2*n/(t-b),  -(t+b)/(t-b),                      0.0,
+            0.0,        0.0,       (f+n)/(f-n), -2*f*n/(f-n),
+            0.0,        0.0,       1.0,                     0.0,
+            ]
+
+def getSimplePerspectiveMatrix(d=1):
+    """
+    In contrast to the other matrices this will affect the w component of the vector!
+    We will also need a division by w to get a non-homogenous point.
+    """
+    return [
+            1.0, 0.0, 0.0,    0.0,
+            0.0, 1.0, 0.0,    0.0,
+            0.0, 0.0, 1.0,    0.0,
+            0.0, 0.0, -1.0/d, 0.0,
+            ]
+
+def drawText():
+    # https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points.html
+    # World space to camera space.
+    # Camera space to screen space.
+    # Screen space to NDC space.
+    # NDC space to raster space.
+    # https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrix-introduction.html
+
+    frustumVrts = [
+    (3,  3, -3),  # front top right
+    (3, -3, -3),  # front bottom right
+    (-3, -3, -3),  # front bottom left
+    (-3, 3, -3),  # front top left
+    (13,  13, -13),  # back top right
+    (13, -13, -13),  # back bottom right
+    (-13, -13, -13),  # back bottom left
+    (-13, 13, -13),  # back top left
+    ]
+
+    viewspaceVrts = projectVerts(get_unit_m4(), frustumVrts)
+    print(f"Frustum in view space: {viewspaceVrts}")
+
+    # clipspaceVrts = projectVerts(getSimplePerspectiveMatrix(), viewspaceVrts)
+    clipspaceVrts = projectVerts(getPerspectiveMatrix(-3, 3,
+                                                      -3, 3,
+                                                      -3, -13), viewspaceVrts)
+    print(f"Frustum in clip space: {clipspaceVrts}")
+
+    screenspaceVrts = perspectiveDivide(clipspaceVrts)
+    print(f"Frustum in screen space: {screenspaceVrts}")
+
+def drawMain():
     pygame.init()
 
     size = width, height = 800, 600
@@ -186,47 +288,6 @@ if __name__ == '__main__':
             drawEdge(p0, p2, color)
             drawEdge(p1, p2, color)
 
-    def perspectiveDivide(srcV):
-        """
-        Takes vec4
-        Returns vec2
-        """
-        dstV = []
-        for vec4 in srcV:
-            x = vec4[0]
-            y = vec4[1]
-            z = vec4[2]
-            w = vec4[3]
-            x /= w
-            y /= w
-            z /= -w
-            if z != 0:
-                x /= z
-                y /= z
-            dstV.append((x, y))
-        return dstV
-
-    def getPerspectiveMatrix(near, far, right, top):
-            farMinusNear = far - near
-            return [
-                    near/right, 0.0,       0.0,                      0.0,
-                    0.0,        near/top,  0.0,                      0.0,
-                    0.0,        0.0,       -(far+near)/farMinusNear, -2*far*near/farMinusNear,
-                    0.0,        0.0,       -1.0,                     1.0,
-                    ]
-
-    def getNDCVerts(screenspaceVerts, w, h):
-        result = []
-        for x,y in screenspaceVerts:
-            result.append(((x + w/2)/w, (y + h/2)/h))
-        return result
-
-    def getRasterVerts(ndcVerts, w, h):
-        result = []
-        for x,y in ndcVerts:
-            result.append((w * x, h * (1 - y)))
-        return result
-
     frame = 0
     while not done:
         clock.tick(30)
@@ -243,25 +304,22 @@ if __name__ == '__main__':
         # m = matMatMult(getTranslationMatrix(math.sin(0), math.cos(0), -3), m)
         m = matMatMult(getTranslationMatrix(1, 0, -2.5), m)
         # m = matMatMult(getPerspectiveMatrix(0.5, 5000.0, 1.0, 1.0), m)
+        prePerspectiveVerts = projectVerts(m, cubeVertices)
+        m = matMatMult(getSimplePerspectiveMatrix(), m)
         # m = matMatMult(getOrthoMatrix(), m)
         # operation order: (P * (T * (Z * (Y * X)))) * point => rotate first, then translate
         # Same result: ((T * Z) * (Y * X)) * point
         #              (((T * Z) * Y) * X) * point
 
-        # https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points.html
-        # World space to camera space.
-        # Camera space to screen space.
-        # Screen space to NDC space.
-        # NDC space to raster space.
-
-        clipVerts = projectVerts(m, cubeVerts)
-        drawIdxList = cullBackfaces((0, 0, 0), cubeIdxs, clipVerts, True)
+        clipVerts = projectVerts(m, cubeVertices)
+        drawIdxList = cullBackfaces((0, 0, 0), cubeFaces, clipVerts, True)
         screenspaceVerts = perspectiveDivide(clipVerts)
         ndcVerts = getNDCVerts(screenspaceVerts, 2, 2)
         rasterVerts = getRasterVerts(ndcVerts, width, height)
-        drawObject(drawIdxList, cubeIdxs, rasterVerts)
-
-        # https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrix-introduction.html
+        drawObject(drawIdxList, cubeFaces, rasterVerts)
 
         pygame.display.flip()
         frame += 1
+
+if __name__ == '__main__':
+    drawText()
