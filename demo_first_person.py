@@ -142,9 +142,18 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # Interior: painting
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    world_graph["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
-        xform_m4=vecmat.get_transl_m4(0, 1, -5.2))
-    world_graph["root"]["children"]["wall_painting"]["subdivide_max_iterations"] = 5
+    painting_pos = (0, 1, -5.2)
+    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
+        xform_m4=vecmat.get_transl_m4(*painting_pos))
+    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 5
+
+    world_graph["root"]["children"]["painting_wall"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
+    painting_wall_inst = world_graph["root"]["children"]["painting_wall"]
+    painting_wall_inst["xform_m4"] = vecmat.get_transl_m4(0, 1.5, painting_pos[2] - 0.6)
+    painting_wall_inst["preproc_m4"] = vecmat.get_scal_m4(3, 3, 0.3)
+    painting_wall_inst["gouraud"] = True
+    painting_wall_inst["subdivide_max_iterations"] = 2
+
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
