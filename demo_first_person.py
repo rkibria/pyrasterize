@@ -199,6 +199,12 @@ def main_function(): # PYGBAG: decorate with 'async'
         elif key == pygame.K_a or key == pygame.K_d:
             move_dir[0] = 0
 
+    def do_sky():
+        """The sky moves along with the camera's x/z position"""
+        cam_pos = CAMERA["pos"]
+        sky_m = vecmat.get_transl_m4(cam_pos[0], 0, cam_pos[2])
+        sky_instance["xform_m4"] = sky_m
+
     def do_movement():
         """"""
         global CAMERA
@@ -224,8 +230,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
         # Move sky along with camera
-        sky_m = vecmat.get_transl_m4(cam_pos[0], 0, cam_pos[2])
-        sky_instance["xform_m4"] = sky_m
+        do_sky()
 
     def do_animation():
         nonlocal frame
@@ -245,6 +250,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.draw.rect(cross_surface, rgb_cross, (cross_size - cross_width, 0, cross_width * 2, cross_size * 2))
     pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
     pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
+
+    do_sky()
 
     first_mouse_move = True
 
