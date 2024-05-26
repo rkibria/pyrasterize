@@ -40,33 +40,44 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
-    # Use separate scene graphs for ground and other objects to avoid problems with overlapping
+    # Use separate scene graphs for sky, ground and everything else to avoid problems with overlapping
     scene_graphs = [
+        { "root": rasterizer.get_model_instance(None) },
         { "root": rasterizer.get_model_instance(None) },
         { "root": rasterizer.get_model_instance(None) }
     ]
+    sky_graph = scene_graphs[0]
+    ground_graph = scene_graphs[1]
+    world_graph = scene_graphs[2]
 
-    # Ground and ceiling graph
-    scene_graphs[0]["root"]["children"]["ground"] = rasterizer.get_model_instance(
+    # Sky graph
+    wall_color_1 = (130, 130, 140)
+    wall_color_2 = (120, 120, 120)
+    wall_divs = (1, 10)
+    sky_graph["root"]["children"]["sky"] = rasterizer.get_model_instance(None)
+    sky_instance = sky_graph["root"]["children"]["sky"]
+    sky_instance["children"]["north"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
+        xform_m4=vecmat.get_transl_m4(0, 2.5, -5.5))
+
+    # Ground graph
+    ground_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((11, 11), (11, 11), ((180, 180, 180), (60, 60, 60))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
-    scene_graphs[0]["root"]["children"]["ceiling"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11, 11), (1, 1), ((180, 180, 180), (60, 60, 60))),
-        vecmat.get_rot_x_m4(vecmat.deg_to_rad(90)),
-        vecmat.get_transl_m4(0, 5, 0))
 
+    # World graph
     # Interior: pedestal and spheres
-    scene_graphs[1]["root"]["children"]["pedestal"] = rasterizer.get_model_instance(
+    world_graph["root"]["children"]["pedestal"] = rasterizer.get_model_instance(
         meshes.get_cylinder_mesh(0.5, 0.5, 5, (100, 100, 110), True, False),
         xform_m4=vecmat.get_transl_m4(0, 0.25, 0))
-    scene_graphs[1]["root"]["children"]["pedestal"]["gouraud"] = True
-    scene_graphs[1]["root"]["children"]["pedestal"]["subdivide_max_iterations"] = 2
+    world_graph["root"]["children"]["pedestal"]["gouraud"] = True
+    world_graph["root"]["children"]["pedestal"]["subdivide_max_iterations"] = 2
 
     planet_mip_textures = textures.get_mip_textures("assets/Terrestrial-Clouds-EQUIRECTANGULAR-0-64x32.png")
     planet_mip_textures.pop(0)
-    scene_graphs[1]["root"]["children"]["blue_sphere"] = rasterizer.get_model_instance(
+    world_graph["root"]["children"]["blue_sphere"] = rasterizer.get_model_instance(
         meshes.get_sphere_mesh(0.2, 20, 10))
-    blue_sphere = scene_graphs[1]["root"]["children"]["blue_sphere"]
+    blue_sphere = world_graph["root"]["children"]["blue_sphere"]
     blue_sphere["model"]["texture"] = planet_mip_textures
 
     img = pygame.transform.scale(pygame.image.load("assets/blue_spot.png").convert_alpha(), (5, 5))
@@ -107,36 +118,16 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: columns
     column_positions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
     for x,y in column_positions:
-        scene_graphs[1]["root"]["children"][f"column_{y}_{x}"] = rasterizer.get_model_instance(
+        world_graph["root"]["children"][f"column_{y}_{x}"] = rasterizer.get_model_instance(
             meshes.get_cylinder_mesh(5, 0.5, 10, (100, 100, 110), False, False),
             xform_m4=vecmat.get_transl_m4(y, 2.5, x))
-        scene_graphs[1]["root"]["children"][f"column_{y}_{x}"]["gouraud"] = True
-
-    # Interior: walls
-    wall_color_1 = (130, 130, 140)
-    wall_color_2 = (120, 120, 120)
-    wall_divs = (20, 10)
-    scene_graphs[1]["root"]["children"]["north_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
-        xform_m4=vecmat.get_transl_m4(0, 2.5, -5.5))
-    scene_graphs[1]["root"]["children"]["south_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
-        vecmat.get_rot_y_m4(vecmat.deg_to_rad(180)),
-        xform_m4=vecmat.get_transl_m4(0, 2.5, 5.5))
-    scene_graphs[1]["root"]["children"]["west_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
-        vecmat.get_rot_y_m4(vecmat.deg_to_rad(90)),
-        xform_m4=vecmat.get_transl_m4(-5.5, 2.5, 0))
-    scene_graphs[1]["root"]["children"]["east_wall"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
-        vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90)),
-        xform_m4=vecmat.get_transl_m4(5.5, 2.5, 0))
+        world_graph["root"]["children"][f"column_{y}_{x}"]["gouraud"] = True
 
     # Interior: billboards
     img = pygame.image.load("assets/LampStand.png").convert_alpha()
     lamp_positions = [(-1.5, -4.7), (1.5, -4.7)]
     for x,y in lamp_positions:
-        scene_graphs[1]["root"]["children"][f"lamp_{x}_{y}"] = rasterizer.get_model_instance(
+        world_graph["root"]["children"][f"lamp_{x}_{y}"] = rasterizer.get_model_instance(
             rasterizer.get_billboard(x, 1, y, 3.5, 3.5, img))
 
     fire_ss = SpriteSheet("assets/fire1_64.png")
@@ -145,14 +136,14 @@ def main_function(): # PYGBAG: decorate with 'async'
         for x in range(10):
             fire_imgs.append(fire_ss.get_image(x * 64, y * 64, 64, 64))
     for x,y in lamp_positions:
-        scene_graphs[1]["root"]["children"][f"fire_{x}_{y}"] = rasterizer.get_model_instance(
+        world_graph["root"]["children"][f"fire_{x}_{y}"] = rasterizer.get_model_instance(
             rasterizer.get_animated_billboard(x, 2.3, y-0.1, 6, 6, fire_imgs))
 
     # Interior: painting
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    scene_graphs[1]["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
+    world_graph["root"]["children"]["wall_painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
         xform_m4=vecmat.get_transl_m4(0, 1, -5.2))
-    scene_graphs[1]["root"]["children"]["wall_painting"]["subdivide_max_iterations"] = 5
+    world_graph["root"]["children"]["wall_painting"]["subdivide_max_iterations"] = 5
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -232,6 +223,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         speed = move_dir[0]
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
+        # Move sky along with camera
+        sky_m = vecmat.get_transl_m4(cam_pos[0], 0, cam_pos[2])
+        sky_instance["xform_m4"] = sky_m
 
     def do_animation():
         nonlocal frame
@@ -255,7 +249,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     first_mouse_move = True
 
     while not done:
-        clock.tick(30)
+        clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
