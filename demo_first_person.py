@@ -68,8 +68,9 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # World graph
     # Interior: pedestal and spheres
+    stone_color = (100, 100, 110)
     world_graph["root"]["children"]["pedestal"] = rasterizer.get_model_instance(
-        meshes.get_cylinder_mesh(0.5, 0.5, 5, (100, 100, 110), True, False),
+        meshes.get_cylinder_mesh(0.5, 0.5, 5, stone_color, True, False),
         xform_m4=vecmat.get_transl_m4(0, 0.25, 0))
     world_graph["root"]["children"]["pedestal"]["gouraud"] = True
     world_graph["root"]["children"]["pedestal"]["subdivide_max_iterations"] = 2
@@ -120,9 +121,17 @@ def main_function(): # PYGBAG: decorate with 'async'
     column_positions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
     for x,y in column_positions:
         world_graph["root"]["children"][f"column_{y}_{x}"] = rasterizer.get_model_instance(
-            meshes.get_cylinder_mesh(5, 0.5, 10, (100, 100, 110), False, False),
+            meshes.get_cylinder_mesh(5, 0.5, 10, stone_color, False, False),
             xform_m4=vecmat.get_transl_m4(y, 2.5, x))
         world_graph["root"]["children"][f"column_{y}_{x}"]["gouraud"] = True
+
+    ground_graph["root"]["children"]["column_top"] = rasterizer.get_model_instance(meshes.get_cube_mesh(stone_color))
+    column_top_inst = ground_graph["root"]["children"]["column_top"]
+    column_top_inst["xform_m4"] = vecmat.get_transl_m4(0, 5, 0)
+    column_top_inst["preproc_m4"] = vecmat.get_scal_m4(6, 1, 6)
+    column_top_inst["gouraud"] = True
+    column_top_inst["subdivide_max_iterations"] = 2
+
 
     # Interior: billboards
     img = pygame.image.load("assets/LampStand.png").convert_alpha()
@@ -147,7 +156,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         xform_m4=vecmat.get_transl_m4(*painting_pos))
     world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 5
 
-    world_graph["root"]["children"]["painting_wall"] = rasterizer.get_model_instance(meshes.get_cube_mesh())
+    world_graph["root"]["children"]["painting_wall"] = rasterizer.get_model_instance(meshes.get_cube_mesh(stone_color))
     painting_wall_inst = world_graph["root"]["children"]["painting_wall"]
     painting_wall_inst["xform_m4"] = vecmat.get_transl_m4(0, 1.5, painting_pos[2] - 0.6)
     painting_wall_inst["preproc_m4"] = vecmat.get_scal_m4(3, 3, 0.3)
