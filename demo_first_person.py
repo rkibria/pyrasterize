@@ -23,8 +23,6 @@ from spritesheet import SpriteSheet
 RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
-
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
 CAMERA = { "pos": [0, 1, 2.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
@@ -65,7 +63,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # Ground graph
     ground_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11, 11), (11, 11), ((180, 180, 180), (60, 60, 60))),
+        meshes.get_rect_mesh((11 * 4, 11 * 4), (11, 11), ((180, 180, 180), (60, 60, 60))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
 
     # World graph
@@ -280,7 +278,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         do_movement()
         do_sky()
 
-        screen.fill(RGB_BLACK)
+        screen.fill(sky_color_2)
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         cam_m = vecmat.get_simple_camera_m(CAMERA)
