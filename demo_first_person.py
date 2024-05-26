@@ -51,14 +51,17 @@ def main_function(): # PYGBAG: decorate with 'async'
     world_graph = scene_graphs[2]
 
     # Sky graph
-    wall_color_1 = (130, 130, 140)
-    wall_color_2 = (120, 120, 120)
-    wall_divs = (1, 10)
+    sky_color_1 = (98, 207, 244)
+    sky_color_2 = (44, 103, 242)
+    wall_divs = (1, 20)
     sky_graph["root"]["children"]["sky"] = rasterizer.get_model_instance(None)
     sky_instance = sky_graph["root"]["children"]["sky"]
+    sky_width = 11 * 5
+    sky_height = 5 * 5
     sky_instance["children"]["north"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11,5), wall_divs, (wall_color_1, wall_color_2)),
-        xform_m4=vecmat.get_transl_m4(0, 2.5, -5.5))
+        meshes.get_rect_mesh((sky_width, sky_height), wall_divs, (sky_color_1, sky_color_2), make_gradient=2),
+        xform_m4=vecmat.get_transl_m4(0, sky_height / 2, -5.5))
+    sky_instance["children"]["north"]["ignore_lighting"] = True
 
     # Ground graph
     ground_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
@@ -200,9 +203,11 @@ def main_function(): # PYGBAG: decorate with 'async'
             move_dir[0] = 0
 
     def do_sky():
-        """The sky moves along with the camera's x/z position"""
+        """The sky moves along with the camera's x/z position & y rotation"""
         cam_pos = CAMERA["pos"]
         sky_m = vecmat.get_transl_m4(cam_pos[0], 0, cam_pos[2])
+        cam_rot = CAMERA["rot"]
+        sky_m = vecmat.mat4_mat4_mul(sky_m, vecmat.get_rot_y_m4(cam_rot[1]))
         sky_instance["xform_m4"] = sky_m
 
     def do_movement():
@@ -229,8 +234,6 @@ def main_function(): # PYGBAG: decorate with 'async'
         speed = move_dir[0]
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
-        # Move sky along with camera
-        do_sky()
 
     def do_animation():
         nonlocal frame
@@ -250,8 +253,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.draw.rect(cross_surface, rgb_cross, (cross_size - cross_width, 0, cross_width * 2, cross_size * 2))
     pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
     pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
-
-    do_sky()
 
     first_mouse_move = True
 
@@ -277,21 +278,24 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         do_animation()
         do_movement()
+        do_sky()
 
         screen.fill(RGB_BLACK)
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
+        cam_m = vecmat.get_simple_camera_m(CAMERA)
         t = time.perf_counter()
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-                vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+                cam_m, persp_m, LIGHTING)
+
         elapsed_time = time.perf_counter() - t
         if frame % 30 == 0:
             print(f"render time: {round(elapsed_time, 3)} s")
 
         screen.blit(cross_surface, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_size), special_flags=pygame.BLEND_RGBA_ADD)
 
-        if frame % 3 == 0:
+        if frame % 30 == 0:
             update_hud()
         screen.blit(textblock_fps, (30, 30))
 

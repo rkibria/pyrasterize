@@ -29,10 +29,11 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary
     Optional keys:
-    * wireframe (boolean): draw model as wireframe instead of filled triangles
-    * bound_sph_r (float): sets radius of the bounding sphere of this model, can check for e.g. selection
-    * noCulling (boolean): don't cull back face triangles when drawing this model
-    * gouraud (boolean):   draw model with Gouraud shaded triangles
+    *       wireframe (boolean): draw model as wireframe instead of filled triangles
+    *       bound_sph_r (float): sets radius of the bounding sphere of this model, can check for e.g. selection
+    *       noCulling (boolean): don't cull back face triangles when drawing this model
+    *         gouraud (boolean): draw model with Gouraud shaded triangles
+    * ignore_lighting (boolean): ignore lighting, draw with flat triangle color
     """
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
@@ -412,6 +413,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         pointlight_falloff = lighting["pointlight_falloff"]
         pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
     subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
+    ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
@@ -471,22 +473,25 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         if draw_mode == DRAW_MODE_WIREFRAME:
             color_data = model_colors[tri_idx]
         elif draw_mode == DRAW_MODE_FLAT:
-            normal = view_normals[tri_idx]
-            dot_prd = max(0, proj_light_dir[0] * normal[0]
-                + proj_light_dir[1] * normal[1]
-                + proj_light_dir[2] * normal[2])
-            intensity = min(1, max(0, ambient + diffuse * dot_prd))
+            if not ignore_lighting:
+                normal = view_normals[tri_idx]
+                dot_prd = max(0, proj_light_dir[0] * normal[0]
+                    + proj_light_dir[1] * normal[1]
+                    + proj_light_dir[2] * normal[2])
+                intensity = min(1, max(0, ambient + diffuse * dot_prd))
 
-            fade_factor = 1
-            if fade_distance > 0:
-                z = abs(z_order)
-                fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-                intensity *= fade_factor
+                fade_factor = 1
+                if fade_distance > 0:
+                    z = abs(z_order)
+                    fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
+                    intensity *= fade_factor
 
-            if pointlight_enabled:
-                centroid = vecmat.get_vec3_triangle_centroid(view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]])
-                dist_to_light = vecmat.mag_vec3(vecmat.sub_vec3(centroid, pointlight_cam_pos))
-                intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+                if pointlight_enabled:
+                    centroid = vecmat.get_vec3_triangle_centroid(view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]])
+                    dist_to_light = vecmat.mag_vec3(vecmat.sub_vec3(centroid, pointlight_cam_pos))
+                    intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+            else:
+                intensity = 1
 
             intensity = min(1, intensity)
             textured = "texture" in model
