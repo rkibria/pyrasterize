@@ -29,7 +29,7 @@ CAMERA = { "pos": [0, 1, 2.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WID
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
-            "pointlight_enabled": True, "pointlight": [0.5, 1, -5.2, 1], "pointlight_falloff": 1.5}
+            "pointlight_enabled": True, "pointlight": [0.5, 1, -5.2, 1], "pointlight_falloff": 2.5}
 
 
 def main_function(): # PYGBAG: decorate with 'async'
@@ -57,7 +57,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     sky_graph["root"]["children"]["sky"] = rasterizer.get_model_instance(None)
     sky_instance = sky_graph["root"]["children"]["sky"]
     sky_width = 11 * 5
-    sky_height = 5 * 5
+    sky_height = 1 * 5
     sky_instance["children"]["north"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((sky_width, sky_height), wall_divs, (sky_color_1, sky_color_2), make_gradient=2),
         xform_m4=vecmat.get_transl_m4(0, sky_height / 2, -5.5))
@@ -163,7 +163,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     painting_wall_inst["xform_m4"] = vecmat.get_transl_m4(0, 1.5, painting_pos[2] - 0.6)
     painting_wall_inst["preproc_m4"] = vecmat.get_scal_m4(3, 3, 0.3)
     painting_wall_inst["gouraud"] = True
-    painting_wall_inst["subdivide_max_iterations"] = 2
+    painting_wall_inst["subdivide_max_iterations"] = 3
 
 
     font = pygame.font.Font(None, 30)
@@ -265,9 +265,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         red_sphere["xform_m4"] = m
         if frame % 9 == 0:
             d = 0.08
-            LIGHTING["pointlight"] = [random.uniform(-d, d) + 0.5,
+            LIGHTING["pointlight"] = [random.uniform(-d, d) + 1,
                                       random.uniform(-d, d) + 1,
                                       random.uniform(-d, d) + -5, 1]
+            LIGHTING["pointlight_falloff"] = random.uniform(1.5, 1.6)
 
     cross_size = 20
     cross_width = 2
