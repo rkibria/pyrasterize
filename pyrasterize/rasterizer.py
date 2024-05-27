@@ -441,6 +441,13 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     if not textured:
         model_colors = model["colors"]
 
+    def apply_pointlight(tri):
+        if pointlight_enabled:
+            centroid = vecmat.get_vec3_triangle_centroid(view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]])
+            dist_to_light = vecmat.mag_vec3(vecmat.sub_vec3(centroid, pointlight_cam_pos))
+            nonlocal intensity
+            intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+
     # Compute colors for each required vertex for Gouraud shading
     vert_colors = [None] * len(view_verts)
     if draw_gouraud_shaded:
@@ -455,6 +462,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                         + proj_light_dir[1] * normal[1]
                         + proj_light_dir[2] * normal[2])
                     intensity = min(1, max(0, ambient + diffuse * dot_prd))
+                    apply_pointlight(tri)
                     if textured:
                         vert_colors[vert_idx] = intensity
                     else:
@@ -485,11 +493,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     z = abs(z_order)
                     fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
                     intensity *= fade_factor
-
-                if pointlight_enabled:
-                    centroid = vecmat.get_vec3_triangle_centroid(view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]])
-                    dist_to_light = vecmat.mag_vec3(vecmat.sub_vec3(centroid, pointlight_cam_pos))
-                    intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+                apply_pointlight(tri)
             else:
                 intensity = 1
 

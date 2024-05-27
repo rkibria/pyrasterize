@@ -6,6 +6,7 @@ Demonstrates movement in a first person view environment
 
 import time
 import math
+import random
 
 import pygame
 import pygame.mouse
@@ -27,7 +28,8 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 CAMERA = { "pos": [0, 1, 2.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
+            "pointlight_enabled": True, "pointlight": [0.5, 1, -5.2, 1], "pointlight_falloff": 1.5}
 
 
 def main_function(): # PYGBAG: decorate with 'async'
@@ -261,6 +263,11 @@ def main_function(): # PYGBAG: decorate with 'async'
         m = vecmat.get_transl_m4(0.5, 0, 0)
         m = vecmat.mat4_mat4_mul(m, rot_m)
         red_sphere["xform_m4"] = m
+        if frame % 9 == 0:
+            d = 0.08
+            LIGHTING["pointlight"] = [random.uniform(-d, d) + 0.5,
+                                      random.uniform(-d, d) + 1,
+                                      random.uniform(-d, d) + -5, 1]
 
     cross_size = 20
     cross_width = 2
