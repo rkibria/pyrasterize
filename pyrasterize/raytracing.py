@@ -9,12 +9,20 @@ from __future__ import annotations
 
 import math
 
+class Ray:
+    def __init__(self, origin : list, direction : list) -> None:
+        self.origin = origin
+        self.direction = direction
+
+    def at(self, t):
+        return [self.origin[0] + t * self.direction[0],
+                self.origin[1] + t * self.direction[1],
+                self.origin[2] + t * self.direction[2]]
+
+
 def make_interval(a = float('inf'), b = float('-inf')) -> list:
     """0 = min, 1 = max"""
     return [a, b]
-
-def make_interval_from_intervals(a : list, b : list) -> list:
-    return [min(a[0], b[0]), max(a[1], b[1])]
 
 def interval_size(iv : list) -> float:
     return iv[1] - iv[0]
@@ -62,9 +70,9 @@ class AABB:
                 self.y = make_interval(min(a[1],b[1]), max(a[1],b[1]))
                 self.z = make_interval(min(a[2],b[2]), max(a[2],b[2]))
         elif isinstance(ix, AABB):
-            self.x = make_interval_from_intervals(ix.x, iy.x)
-            self.y = make_interval_from_intervals(ix.y, iy.y)
-            self.z = make_interval_from_intervals(ix.z, iy.z)
+            self.x = ix.x.copy()
+            self.y = ix.y.copy()
+            self.z = ix.z.copy()
         self.pad_to_minimums()
 
     def __str__(self) -> str:
@@ -116,6 +124,16 @@ class AABB:
                 return False
         return True
 
+    def get_translated(self, dx, dy, dz) -> AABB:
+        translated = AABB(self)
+        translated.x[0] += dx
+        translated.x[1] += dx
+        translated.y[0] += dy
+        translated.y[1] += dy
+        translated.z[0] += dz
+        translated.z[1] += dz
+        return translated
+
     @staticmethod
     def empty() -> AABB:
         return AABB(INTERVAL_EMPTY, INTERVAL_EMPTY, INTERVAL_EMPTY)
@@ -123,13 +141,3 @@ class AABB:
     @staticmethod
     def universe() -> AABB:
         return AABB(INTERVAL_UNIVERSE, INTERVAL_UNIVERSE, INTERVAL_UNIVERSE)
-
-class Ray:
-    def __init__(self, origin : list, direction : list) -> None:
-        self.origin = origin
-        self.direction = direction
-
-    def at(self, t):
-        return [self.origin[0] + t * self.direction[0],
-                self.origin[1] + t * self.direction[1],
-                self.origin[2] + t * self.direction[2]]

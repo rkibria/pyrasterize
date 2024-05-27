@@ -25,7 +25,7 @@ BILLBOARD_PLAY_ALWAYS = 0
 BILLBOARD_PLAY_ONCE = 1
 
 
-def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
+def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None) -> dict:
     """Return model instance
     These are the key values in a scene graph {name_1: instance_1, ...} dictionary
     Optional keys:
@@ -33,6 +33,7 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None):
     *       bound_sph_r (float): sets radius of the bounding sphere of this model, can check for e.g. selection
     *       noCulling (boolean): don't cull back face triangles when drawing this model
     *         gouraud (boolean): draw model with Gouraud shaded triangles
+    * instance_normal (boolean): Skip instance if it faces away from camera (visible if dot_product(v_0, normal) < 0)
     * ignore_lighting (boolean): ignore lighting, draw with flat triangle color
     """
     if preproc_m4 is None:
@@ -98,7 +99,7 @@ def visit_instances(scene_graph, func, enabled_only=False):
                 visit_instances(instance["children"], func, enabled_only)
 
 
-def get_proj_light_dir(lighting, camera_m):
+def get_proj_light_dir(lighting, camera_m) -> list:
     """
     Get the resulting light direction for the given camera
     """
@@ -418,7 +419,6 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
         proj_inst_normal = vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
-        # Skip instance if it faces away from camera (visible if dot_product(v_0, normal) < 0)
         v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
         if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
             return
