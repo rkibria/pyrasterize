@@ -54,14 +54,23 @@ def main_function(): # PYGBAG: decorate with 'async'
     sky_color_1 = (98, 207, 244)
     sky_color_2 = (44, 103, 242)
     wall_divs = (1, 20)
-    sky_graph["root"]["children"]["sky"] = rasterizer.get_model_instance(None)
-    sky_instance = sky_graph["root"]["children"]["sky"]
+    sky_graph["root"]["children"]["blue_sky"] = rasterizer.get_model_instance(None)
+    blue_sky_instance = sky_graph["root"]["children"]["blue_sky"]
     sky_width = 11 * 5
     sky_height = 1 * 5
-    sky_instance["children"]["north"] = rasterizer.get_model_instance(
+    blue_sky_instance["children"]["north"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((sky_width, sky_height), wall_divs, (sky_color_1, sky_color_2), make_gradient=2),
         xform_m4=vecmat.get_transl_m4(0, sky_height / 2, -5.5))
-    sky_instance["children"]["north"]["ignore_lighting"] = True
+    blue_sky_instance["children"]["north"]["ignore_lighting"] = True
+
+    sky_graph["root"]["children"]["billboards"] = rasterizer.get_model_instance(None)
+    sky_billboards_instance = sky_graph["root"]["children"]["billboards"]
+    sky_billboards_instance["children"]["sun"] = rasterizer.get_model_instance(
+        rasterizer.get_billboard(0, 1.5, -1, 1, 1, pygame.image.load("assets/sun.png").convert_alpha()))
+    sky_billboards_instance["children"]["cloud_1"] = rasterizer.get_model_instance(
+        rasterizer.get_billboard(-1, 1.2, -1, 0.7, 0.5, pygame.image.load("assets/smoke4.png").convert_alpha()))
+    sky_billboards_instance["children"]["cloud_2"] = rasterizer.get_model_instance(
+        rasterizer.get_billboard(1, 1.2, -1, 0.7, 0.5, pygame.image.load("assets/smoke2.png").convert_alpha()))
 
     # Ground graph
     ground_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
@@ -224,9 +233,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         """The sky moves along with the camera's x/z position & y rotation"""
         cam_pos = CAMERA["pos"]
         sky_m = vecmat.get_transl_m4(cam_pos[0], 0, cam_pos[2])
+        sky_billboards_instance["xform_m4"] = sky_m
         cam_rot = CAMERA["rot"]
         sky_m = vecmat.mat4_mat4_mul(sky_m, vecmat.get_rot_y_m4(cam_rot[1]))
-        sky_instance["xform_m4"] = sky_m
+        blue_sky_instance["xform_m4"] = sky_m
 
     def do_movement():
         """"""
