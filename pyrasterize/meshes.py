@@ -162,11 +162,15 @@ def get_block_instance(sx, sy, sz, front_divs, side_divs, top_divs, colors=(MESH
     # TODO top
     return inst
 
-def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR)):
+def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR), make_gradient=0):
     """
     Return 2D rectangle mesh of given size and subdivision with checkerboard coloring
     The rectangle is created in the x/y plane facing toward z, i.e.
     an observer near origin looking to -z would see a "wall"
+    Coloring settings:
+    make_gradient=0: checkerboard
+    make_gradient=1: x gradient
+    make_gradient=2: y gradient
     """
     mesh = { "verts": [], "tris": [], "colors": []}
     d_x,d_y = r_divs
@@ -184,9 +188,23 @@ def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR
             u_l = i_x + i_y * (d_x + 1)
             mesh["tris"].append((u_l, u_l + 1, u_l + 1 + (d_x + 1)))
             mesh["tris"].append((u_l, u_l + 1 + (d_x + 1), u_l + (d_x + 1)))
-            color = colors[0] if (i_x + i_y) % 2 == 0 else colors[1]
-            mesh["colors"].append(color)
-            mesh["colors"].append(color)
+            if make_gradient == 0:
+                color = colors[0] if (i_x + i_y) % 2 == 0 else colors[1]
+                mesh["colors"].append(color)
+                mesh["colors"].append(color)
+            else:
+                color_1 = colors[0]
+                color_2 = colors[1]
+                if make_gradient == 1:
+                    coord_ratio = i_x / d_x
+                else:
+                    coord_ratio = i_y / d_y
+                coord_ratio_inv = 1.0 - coord_ratio
+                color = (coord_ratio_inv * color_1[0] + coord_ratio * color_2[0],
+                         coord_ratio_inv * color_1[1] + coord_ratio * color_2[1],
+                         coord_ratio_inv * color_1[2] + coord_ratio * color_2[2])
+                mesh["colors"].append(color)
+                mesh["colors"].append(color)
     return mesh
 
 def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):

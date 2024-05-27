@@ -7,6 +7,7 @@ Vectors, matrices and other math
 
 from collections import deque
 import math
+import random
 
 def sub_vec3(v_1, v_2):
     """Return v1 - v2"""
@@ -364,3 +365,44 @@ def subdivide_2d_triangle(v_a, v_b, v_c, callback):
         tri_stack.append((h_02, h_01, h_12, iteration))
         tri_stack.append((h_01, tri[1], h_12, iteration))
         tri_stack.append((h_02, h_12, tri[2], iteration))
+
+def random_in_unit_sphere_vec3():
+    while True:
+        p = [random.uniform(-1, 1), random.uniform(-1, 1), random.uniform(-1, 1)]
+        if mag_sq_vec3(p) >= 1:
+            continue
+        return p
+
+def random_unit_vector_vec3():
+    return norm_vec3(random_in_unit_sphere_vec3())
+
+def random_in_hemisphere(normal : list):
+    in_unit_sphere = random_in_unit_sphere_vec3()
+    if dot_product_vec3(in_unit_sphere, normal) > 0:
+        return in_unit_sphere
+    else:
+        return [-in_unit_sphere[i] for i in range(3)]
+
+def random_in_unit_disk_vec3():
+    while True:
+        p = [random.uniform(-1, 1), random.uniform(-1, 1), 0]
+        if mag_sq_vec3(p) >= 1:
+            continue
+        return p
+
+def near_zero_vec3(v : list):
+    s = 1e-8
+    return abs(v[0]) < s and abs(v[1]) < s and abs(v[2]) < s
+
+def reflect_vec3(v : list, n : list):
+    dot_vn = dot_product_vec3(v, n)
+    return [v[i] - 2 * dot_vn * n[i] for i in range(3)]
+
+def refract_vec3(uv : list, n : list, etai_over_etat : float):
+    minus_uv = [-uv[i] for i in range(3)]
+    cos_theta = min(dot_product_vec3(minus_uv, n), 1.0)
+    r_out_perp = [etai_over_etat * (uv[i] + cos_theta * n[i]) for i in range(3)]
+    r_out_perp_length_squared = mag_sq_vec3(r_out_perp)
+    k = -((abs(1 - r_out_perp_length_squared)) ** 0.5)
+    r_out_parallel = [n[i] * k for i in range(3)]
+    return [r_out_perp[i] + r_out_parallel[i] for i in range(3)]
