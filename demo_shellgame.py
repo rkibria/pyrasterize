@@ -271,8 +271,9 @@ def on_left_down(pos, game_state, scene_graph):
     if game_state["state"] == GS_WAIT_FOR_START or game_state["state"] == GS_GAME_OVER:
         game_state["button_pressed"] = True
     elif game_state["state"] == GS_WAIT_FOR_CHOICE:
-        game_state["selected_shell"] = selecting.get_selection(SCR_AREA, pos, scene_graph,
-            vecmat.get_simple_camera_m(CAMERA))
+        m = vecmat.mat4_mat4_mul(vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"]),
+                                vecmat.get_simple_camera_m(CAMERA))
+        game_state["selected_shell"] = selecting.get_selection(SCR_AREA, pos, scene_graph, m)
 
 # PYGAME MAIN
 
