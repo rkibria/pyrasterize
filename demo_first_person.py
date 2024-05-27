@@ -313,9 +313,9 @@ def main_function(): # PYGBAG: decorate with 'async'
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
                 cam_m, persp_m, LIGHTING)
 
-        elapsed_time = time.perf_counter() - t
-        if frame % 30 == 0:
-            print(f"render time: {round(elapsed_time, 3)} s")
+        # elapsed_time = time.perf_counter() - t
+        # if frame % 30 == 0:
+        #     print(f"render time: {round(elapsed_time, 3)} s")
 
         screen.blit(cross_surface, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_size), special_flags=pygame.BLEND_RGBA_ADD)
 
