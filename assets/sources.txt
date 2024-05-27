@@ -34,6 +34,10 @@ Terrestrial-Clouds-EQUIRECTANGULAR-0-64x32.png
 https://opengameart.org/content/animated-fire by BenHickling - CC0 license
 fire1_64.png
 
+https://opengameart.org/content/smoke-vapor-particles by Fupi - CC0 license
+smoke2.png
+smoke4.png
+
 --
 
 CC0 license: https://creativecommons.org/publicdomain/zero/1.0/
