@@ -39,7 +39,7 @@ def create_scene_graph():
             meshes.get_sphere_mesh(0.5, 10, 10),
             xform_m4=vecmat.get_transl_m4(placement_radius * math.cos(phi),
                 placement_radius * math.sin(phi), 0))
-        scene_graph["root"]["children"][name]["bound_sph_r"] = 1
+        scene_graph["root"]["children"][name]["bound_sph_r"] = 0.5
     return scene_graph
 
 def draw_scene_graph(surface, frame, scene_graph):
@@ -59,8 +59,9 @@ def draw_scene_graph(surface, frame, scene_graph):
 def on_left_down(pos, scene_graph):
     """Handle left button down"""
     global CUR_SELECTED
-    selection = selecting.get_selection(SCR_AREA, pos, scene_graph,
-        vecmat.get_simple_camera_m(CAMERA))
+    m = vecmat.mat4_mat4_mul(vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"]),
+                             vecmat.get_simple_camera_m(CAMERA))
+    selection = selecting.get_selection(SCR_AREA, pos, scene_graph, m)
     if CUR_SELECTED is not None:
         CUR_SELECTED[1]["wireframe"] = False
         CUR_SELECTED[1]["noCulling"] = False
@@ -75,7 +76,7 @@ def main_function():
     """Main"""
     pygame.init()
 
-    screen = pygame.display.set_mode(SCR_SIZE)
+    screen = pygame.display.set_mode(SCR_SIZE, pygame.SCALED)
     pygame.display.set_caption("PyRasterize")
     clock = pygame.time.Clock()
 
@@ -91,6 +92,9 @@ def main_function():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_left_down(pygame.mouse.get_pos(), scene_graph)
 
