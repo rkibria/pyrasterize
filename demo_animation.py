@@ -38,7 +38,7 @@ def main_function():
         "run": ("assets/dummy-run.zip", (1, 35))
         }
         ))
-    scene_graph["root"]["children"]["my_animation"]["model"]["animation"] = "walk"
+    scene_graph["root"]["children"]["my_animation"]["animation"] = "walk"
     phases = ["idle", "walk", "run"]
 
     frame = 0
@@ -63,7 +63,7 @@ def main_function():
         frame += 1
 
         if frame % 200 == 0:
-            scene_graph["root"]["children"]["my_animation"]["model"]["animation"] = phases[(frame // 200) % 3]
+            scene_graph["root"]["children"]["my_animation"]["animation"] = phases[(frame // 200) % 3]
 
 if __name__ == '__main__':
     main_function()

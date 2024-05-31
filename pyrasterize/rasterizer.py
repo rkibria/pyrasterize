@@ -106,7 +106,12 @@ def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list =
         "model": model,
         "preproc_m4": preproc_m4,
         "xform_m4": xform_m4,
-        "children": children
+        "children": children,
+
+        # Settings for animation-type models
+        "animation": None,
+        "animation_frame": 0.0,
+        "animation_speed": 1.0
         }
 
 
@@ -422,12 +427,12 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         return
 
     if model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
-        animation_name = model["animation"]
-        model["frame"] += model["speed"]
+        animation_name = instance["animation"]
+        instance["animation_frame"] += instance["animation_speed"]
         meshes = model["animations"][animation_name]
-        cur_frame = int(round(model["frame"]))
+        cur_frame = int(round(instance["animation_frame"]))
         if cur_frame >= len(meshes):
-            model["frame"] = 0.0
+            instance["animation_frame"] = 0.0
             cur_frame = 0
         model = meshes[cur_frame]
 

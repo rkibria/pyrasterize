@@ -141,10 +141,7 @@ def load_animation(names_files : dict) -> dict:
 
     model = {
         "model_type": MODEL_TYPE_ANIMATED_MESH,
-        "animations": animations,
-        "animation": list(names_files.keys())[0],
-        "frame": 0.0,
-        "speed": 1.0
+        "animations": animations
         }
 
     return model
