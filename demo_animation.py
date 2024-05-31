@@ -32,12 +32,14 @@ def main_function():
 
     scene_graph = {"root": rasterizer.get_model_instance(None)}
 
-    meshes = {
-        "idle" : model_file_io.get_animation_from_zip_file("assets/dummy-idle.zip", (1, 60)),
-        "walk" : model_file_io.get_animation_from_zip_file("assets/dummy-walk.zip", (1, 180)),
-        "run" : model_file_io.get_animation_from_zip_file("assets/dummy-run.zip", (1, 35)),
-    }
-    scene_graph["root"]["children"]["model"] = rasterizer.get_model_instance(meshes["run"][0])
+    scene_graph["root"]["children"]["my_animation"] = rasterizer.get_model_instance(model_file_io.load_animation({
+        "idle": ("assets/dummy-idle.zip", (1, 60)),
+        "walk": ("assets/dummy-walk.zip", (63, 123)),
+        "run": ("assets/dummy-run.zip", (1, 35))
+        }
+        ))
+    scene_graph["root"]["children"]["my_animation"]["model"]["animation"] = "walk"
+    phases = ["idle", "walk", "run"]
 
     frame = 0
     done = False
@@ -52,13 +54,16 @@ def main_function():
                     done = True
         screen.fill(RGB_BLACK)
 
-        scene_graph["root"]["xform_m4"] = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 1.5))
+        scene_graph["root"]["xform_m4"] = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 0.5))
 
         rasterizer.render(screen, SCR_AREA, scene_graph,
             vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
 
         pygame.display.flip()
         frame += 1
+
+        if frame % 200 == 0:
+            scene_graph["root"]["children"]["my_animation"]["model"]["animation"] = phases[(frame // 200) % 3]
 
 if __name__ == '__main__':
     main_function()

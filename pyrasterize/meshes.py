@@ -25,6 +25,7 @@ def scale_vertices(model, s_x, s_y, s_z):
 def get_test_texture_mesh(mip_textures):
     """centered square with texture"""
     return {
+        "model_type": rasterizer.MODEL_TYPE_MESH,
         "verts" : [
             [-0.5, -0.5, 0],
             [0.5, -0.5, 0],
@@ -81,6 +82,7 @@ def get_test_texture_cube_instance(mip_textures, gouraud=False, gouraud_iteratio
 def get_test_triangle_mesh():
     """triangle to 1,1,0"""
     return {
+        "model_type": rasterizer.MODEL_TYPE_MESH,
         "verts" : [
             [0, 0, 0],
             [1, 0, 0],
@@ -106,6 +108,7 @@ def get_cube_mesh(color=MESH_DEFAULT_COLOR):
     if color is not None: 'colors': triangle colors (float vec3s of triangle RGB color)
     """
     model = {
+        "model_type": rasterizer.MODEL_TYPE_MESH,
         "verts" : [
             [ 0.5,  0.5, 0.5],  # front top right     0
             [ 0.5, -0.5, 0.5],  # front bottom right  1
@@ -172,7 +175,7 @@ def get_rect_mesh(r_size, r_divs, colors=(MESH_DEFAULT_COLOR, MESH_DEFAULT_COLOR
     make_gradient=1: x gradient
     make_gradient=2: y gradient
     """
-    mesh = { "verts": [], "tris": [], "colors": []}
+    mesh = {"model_type": rasterizer.MODEL_TYPE_MESH, "verts": [], "tris": [], "colors": []}
     d_x,d_y = r_divs
 
     start_x = -r_size[0] / 2.0
@@ -214,7 +217,7 @@ def get_sphere_mesh(radius, r_divs, l_divs, color=MESH_DEFAULT_COLOR):
     """
     r_divs = max(3, r_divs)
     l_divs = max(2, l_divs)
-    mesh = { "verts": [], "tris": [], "uv": []}
+    mesh = {"model_type": rasterizer.MODEL_TYPE_MESH, "verts": [], "tris": [], "uv": []}
     if color is not None:
         mesh["colors"] = []
     bottom_y = -radius
@@ -286,7 +289,7 @@ def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR,
     along the y axis.
     """
     r_divs = max(3, r_divs)
-    mesh = { "verts": [], "tris": [], "colors": []}
+    mesh = {"model_type": rasterizer.MODEL_TYPE_MESH, "verts": [], "tris": [], "colors": []}
     bottom_y = -length/2
     top_y = length/2
     bottom_center_v = 0

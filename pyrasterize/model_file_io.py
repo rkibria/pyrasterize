@@ -8,15 +8,17 @@ Model file loading functions
 import os
 import zipfile
 
+from .rasterizer import MODEL_TYPE_MESH, MODEL_TYPE_ANIMATED_MESH
+
 def parse_obj_file(obj_lines : list, mtl_lines : list) -> dict:
     """
     Get model from Wavefront .obj/.mtl
 
     :param obj_lines: Stripped lines  with .obj contents
     :param mtl_lines: Optional, Stripped lines with .mtl contents
-    :returns: Mesh dict
+    :returns: Mesh-type model
     """
-    mesh = {"verts": [], "tris": [], "colors": [], "uv": []}
+    mesh = {"model_type": MODEL_TYPE_MESH, "verts": [], "tris": [], "colors": [], "uv": []}
     cur_color = (200, 200, 200)
     vts = []
     mtl_colors = {}
@@ -78,7 +80,7 @@ def get_model_from_obj_file(fname : str) -> dict:
     Load Wavefront .obj file, loads referenced .mtl file from same path if present
 
     :param fname: File path
-    :returns: Mesh dict
+    :returns: Mesh-type model
     """
     with open(fname, encoding="utf-8") as file:
         obj_str = file.readlines()
@@ -100,14 +102,14 @@ def get_model_from_obj_file(fname : str) -> dict:
     return parse_obj_file(obj_lines, mtl_lines)
 
 
-def get_animation_from_zip_file(fname : str, frame_range : tuple) -> list:
+def get_animation_meshes_from_zip_file(fname : str, frame_range : tuple) -> list:
     """
     Load models in the given frame range (start, end) from zip file
     containing .obj/.mtl files. The file names must be frameN.*!
 
     :param fname: File path
     :param frame_range: 2-tuple with start and end frame
-    :returns: List of mesh dicts
+    :returns: List of meshes
     """
     meshes = []
     archive = zipfile.ZipFile(fname, 'r')
@@ -118,3 +120,31 @@ def get_animation_from_zip_file(fname : str, frame_range : tuple) -> list:
         mtl_lines = archive.read(mtl_fname).decode("utf-8").split("\n")
         meshes.append(parse_obj_file(obj_lines, mtl_lines))
     return meshes
+
+
+def load_animation(names_files : dict) -> dict:
+    """
+    Create an animation instance from files
+
+    Load models in the given frame range (start, end) from zip file
+    containing .obj/.mtl files. The file names must be frameN.*!
+
+    :param names_files: {"anim_name1": "anim_file1", ...}
+    :returns: Animation-type model
+    """
+    animations = {}
+
+    for name,args in names_files.items():
+        fname,frame_range = args
+        meshes = get_animation_meshes_from_zip_file(fname, frame_range)
+        animations[name] = meshes
+
+    model = {
+        "model_type": MODEL_TYPE_ANIMATED_MESH,
+        "animations": animations,
+        "animation": list(names_files.keys())[0],
+        "frame": 0.0,
+        "speed": 1.0
+        }
+
+    return model
