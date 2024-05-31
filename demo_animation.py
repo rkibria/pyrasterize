@@ -32,8 +32,12 @@ def main_function():
 
     scene_graph = {"root": rasterizer.get_model_instance(None)}
 
-    meshes = model_file_io.get_animation_from_zip_file("assets/dummy-run.zip", (1, 35))
-    scene_graph["root"]["children"]["model"] = rasterizer.get_model_instance(meshes[0])
+    meshes = {
+        "idle" : model_file_io.get_animation_from_zip_file("assets/dummy-idle.zip", (1, 60)),
+        "walk" : model_file_io.get_animation_from_zip_file("assets/dummy-walk.zip", (1, 180)),
+        "run" : model_file_io.get_animation_from_zip_file("assets/dummy-run.zip", (1, 35)),
+    }
+    scene_graph["root"]["children"]["model"] = rasterizer.get_model_instance(meshes["run"][0])
 
     frame = 0
     done = False
