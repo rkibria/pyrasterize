@@ -16,6 +16,7 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import textures
+from pyrasterize import model_file_io
 
 from spritesheet import SpriteSheet
 
@@ -174,6 +175,15 @@ def main_function(): # PYGBAG: decorate with 'async'
     painting_wall_inst["gouraud"] = True
     painting_wall_inst["subdivide_max_iterations"] = 3
 
+    # Interior: NPC
+    world_graph["root"]["children"]["npc"] = rasterizer.get_model_instance(model_file_io.load_animation({
+        "idle": ("assets/dummy-idle.zip", (1, 60)),
+        "walk": ("assets/dummy-walk.zip", (63, 123)),
+        "run": ("assets/dummy-run.zip", (1, 35))
+        }
+        ), xform_m4=vecmat.get_transl_m4(3, 0, 0))
+    world_graph["root"]["children"]["npc"]["model"]["animation"] = "walk"
+
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -263,6 +273,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         cam_pos[0] -= cam_v_right[0] * speed
         cam_pos[2] -= cam_v_right[2] * speed
 
+    npc_phases = ["idle", "walk", "run"]
     def do_animation():
         nonlocal frame
         nonlocal blue_sphere
@@ -279,6 +290,10 @@ def main_function(): # PYGBAG: decorate with 'async'
                                       random.uniform(-d, d) + 1,
                                       random.uniform(-d, d) + -5, 1]
             LIGHTING["pointlight_falloff"] = random.uniform(1.5, 1.6)
+
+        npc_dur = 300
+        if frame % npc_dur == 0:
+            world_graph["root"]["children"]["npc"]["model"]["animation"] = npc_phases[(frame // npc_dur) % 3]
 
     cross_size = 20
     cross_width = 2
