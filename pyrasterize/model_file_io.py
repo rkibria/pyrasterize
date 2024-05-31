@@ -6,6 +6,7 @@ Model file loading functions
 """
 
 import os
+import zipfile
 
 def parse_obj_file(obj_lines : list, mtl_lines : list) -> dict:
     """
@@ -71,11 +72,12 @@ def parse_obj_file(obj_lines : list, mtl_lines : list) -> dict:
                 mesh["uv"].append((0.0, 0.0))
     return mesh
 
+
 def get_model_from_obj_file(fname : str) -> dict:
     """
     Load Wavefront .obj file, loads referenced .mtl file from same path if present
 
-    :param fname: String with .obj contents
+    :param fname: File path
     :returns: Mesh dict
     """
     with open(fname, encoding="utf-8") as file:
@@ -96,3 +98,23 @@ def get_model_from_obj_file(fname : str) -> dict:
                 pass
 
     return parse_obj_file(obj_lines, mtl_lines)
+
+
+def get_animation_from_zip_file(fname : str, frame_range : tuple) -> list:
+    """
+    Load models in the given frame range (start, end) from zip file
+    containing .obj/.mtl files. The file names must be frameN.*!
+
+    :param fname: File path
+    :param frame_range: 2-tuple with start and end frame
+    :returns: List of mesh dicts
+    """
+    meshes = []
+    archive = zipfile.ZipFile(fname, 'r')
+    for frame in range(frame_range[0], frame_range[1] + 1, 1):
+        obj_fname = f"frame{frame}.obj"
+        obj_lines = archive.read(obj_fname).decode("utf-8").split("\n")
+        mtl_fname = f"frame{frame}.mtl"
+        mtl_lines = archive.read(mtl_fname).decode("utf-8").split("\n")
+        meshes.append(parse_obj_file(obj_lines, mtl_lines))
+    return meshes
