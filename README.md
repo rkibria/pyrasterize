@@ -31,3 +31,5 @@ First person game-like multiple features demo: https://i.imgur.com/bsGH7YP.mp4 -
 Particles demo: https://i.imgur.com/WGhYuGs.mp4
 
 Fast pseudo Gouraud implementation demo: https://www.reddit.com/r/pygame/comments/1347a71/a_pseudo_gouraud_shading_algorithm_for_software/
+
+Animated meshes demo: https://i.imgur.com/w8k9R32.mp4
