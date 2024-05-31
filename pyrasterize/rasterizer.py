@@ -5,7 +5,6 @@
 3D rasterizer engine
 """
 
-from collections import deque
 import math
 
 import pygame
@@ -24,17 +23,31 @@ DRAW_MODE_PARTICLE = 4
 BILLBOARD_PLAY_ALWAYS = 0
 BILLBOARD_PLAY_ONCE = 1
 
+MODEL_TYPE_MESH = 0
+MODEL_TYPE_BILLBOARD = 1
+MODEL_TYPE_PARTICLES = 2
+MODEL_TYPE_ANIMATED_MESH = 3
 
-def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None) -> dict:
-    """Return model instance
-    These are the key values in a scene graph {name_1: instance_1, ...} dictionary
-    Optional keys:
+
+def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None) -> dict:
+    """
+    Create a model instance
+    
+    Instances reference an actual mesh (model) and store a transformation matrix
+    and a preprocessing matrix (applied BEFORE the transformation matrix).
+    All children (dictionary) inherit the transform of the parent (but not the preprocess).
+
+    The model may be an animation dict: {"animation_1": [mesh_frame1, mesh_frame2, ...], "animation_2": ...}
+    Instance key "animation" chooses which to display.
+
+    Adding extra keys to the instance has different effects:
     *       wireframe (boolean): draw model as wireframe instead of filled triangles
     *       bound_sph_r (float): sets radius of the bounding sphere of this model, can check for e.g. selection
     *       noCulling (boolean): don't cull back face triangles when drawing this model
     *         gouraud (boolean): draw model with Gouraud shaded triangles
     * instance_normal (boolean): Skip instance if it faces away from camera (visible if dot_product(v_0, normal) < 0)
     * ignore_lighting (boolean): ignore lighting, draw with flat triangle color
+    
     """
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
@@ -43,41 +56,50 @@ def get_model_instance(model, preproc_m4=None, xform_m4=None, children=None) -> 
     if children is None:
         children = {}
 
-    # It's about 10% faster not to have to create temporary vec4s for matmults
-    if model is not None and "billboard" not in model and "particles" not in model:
-        model["verts"] = list([model_v[0], model_v[1], model_v[2], 1.0] for model_v in model["verts"])
+    def preprocess_mesh(mesh):
+        """
+        Cache some values, compute normals and vertex normals for the mesh
+        """
+        # It's about 10% faster not to have to create temporary vec4s for matmults
+        mesh["verts"] = list([model_v[0], model_v[1], model_v[2], 1.0] for model_v in mesh["verts"])
 
-    if model is not None and "billboard" not in model and "particles" not in model and "normals" not in model:
-        normals = []
-        verts = model["verts"]
-        sum_normals = [[0, 0, 0] for _ in range(len(verts))]
-        for tri in model["tris"]:
-            i_0 = tri[0]
-            i_1 = tri[1]
-            i_2 = tri[2]
-            v_0 = verts[i_0]
-            v_1 = verts[i_1]
-            v_2 = verts[i_2]
-            v_a = vecmat.sub_vec3(v_1, v_0)
-            v_b = vecmat.sub_vec3(v_2, v_0)
-            normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
-            normals.append(normal)
+        if "normals" not in mesh:
+            normals = []
+            verts = mesh["verts"]
+            sum_normals = [[0, 0, 0] for _ in range(len(verts))]
+            for tri in mesh["tris"]:
+                i_0 = tri[0]
+                i_1 = tri[1]
+                i_2 = tri[2]
+                v_0 = verts[i_0]
+                v_1 = verts[i_1]
+                v_2 = verts[i_2]
+                v_a = vecmat.sub_vec3(v_1, v_0)
+                v_b = vecmat.sub_vec3(v_2, v_0)
+                normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
+                normals.append(normal)
+                n_x = normal[0]
+                n_y = normal[1]
+                n_z = normal[2]
+                sum_normals[i_0][0] += n_x
+                sum_normals[i_0][1] += n_y
+                sum_normals[i_0][2] += n_z
+                sum_normals[i_1][0] += n_x
+                sum_normals[i_1][1] += n_y
+                sum_normals[i_1][2] += n_z
+                sum_normals[i_2][0] += n_x
+                sum_normals[i_2][1] += n_y
+                sum_normals[i_2][2] += n_z
+            mesh["normals"] = [[*v, 0.0] for v in normals]
+            mesh["vert_normals"] = list(map(lambda v: [*vecmat.norm_vec3(v), 0.0], sum_normals))
 
-            n_x = normal[0]
-            n_y = normal[1]
-            n_z = normal[2]
-            sum_normals[i_0][0] += n_x
-            sum_normals[i_0][1] += n_y
-            sum_normals[i_0][2] += n_z
-            sum_normals[i_1][0] += n_x
-            sum_normals[i_1][1] += n_y
-            sum_normals[i_1][2] += n_z
-            sum_normals[i_2][0] += n_x
-            sum_normals[i_2][1] += n_y
-            sum_normals[i_2][2] += n_z
-
-        model["normals"] = [[*v, 0.0] for v in normals]
-        model["vert_normals"] = list(map(lambda v: [*vecmat.norm_vec3(v), 0.0], sum_normals))
+    if model is not None:
+        if model["model_type"] == MODEL_TYPE_MESH:
+            preprocess_mesh(model)
+        elif model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
+            for _,meshes in model["animations"].items():
+                for mesh in meshes:
+                    preprocess_mesh(mesh)
 
     return {
         "enabled" : True,
@@ -328,7 +350,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
 
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
 
-    if "billboard" in model:
+    if model["model_type"] == MODEL_TYPE_BILLBOARD:
         cam_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
         cur_z = cam_pos[2]
         if cur_z > near_clip or cur_z < far_clip:
@@ -373,8 +395,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 scale_img,
                 DRAW_MODE_BILLBOARD))
         return
-
-    if "particles" in model:
+    elif model["model_type"] == MODEL_TYPE_PARTICLES:
         img = model["img"]
         size = model["size"]
         enabled = model["enabled"]
@@ -399,6 +420,16 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     scale_img,
                     DRAW_MODE_PARTICLE))
         return
+
+    if model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
+        animation_name = model["animation"]
+        model["frame"] += model["speed"]
+        meshes = model["animations"][animation_name]
+        cur_frame = int(round(model["frame"]))
+        if cur_frame >= len(meshes):
+            model["frame"] = 0.0
+            cur_frame = 0
+        model = meshes[cur_frame]
 
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
     view_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["normals"]))
@@ -696,7 +727,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
     return {
-        "billboard": True,
+        "model_type": MODEL_TYPE_BILLBOARD,
         "translate": [dx, dy, dz, 1.0],
         "size": [sx, sy],
         "size_scale": 1.0,
@@ -713,7 +744,7 @@ def get_billboard(dx, dy, dz, sx, sy, img):
 def get_particles(img, num_particles, sx, sy):
     """Create a particles object"""
     return {
-        "particles": True,
+        "model_type": MODEL_TYPE_PARTICLES,
         "positions": [[0.0, 0.0, 0.0, 1.0] for _ in range(num_particles)],
         "enabled": [True] * num_particles,
         "img": img,

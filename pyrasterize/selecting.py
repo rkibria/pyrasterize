@@ -6,7 +6,6 @@
 """
 
 from . import vecmat
-from . import raytracing
 
 def get_selection(screen_area, mouse_pos, scene_graph, camera_m):
     """
