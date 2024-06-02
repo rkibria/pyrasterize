@@ -647,8 +647,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
 
             if subdivide_max_iterations > 0:
-                area = math.sqrt(bary.area_sq)
+                area = math.sqrt(bary.area_sq) / 2
                 def cb_subdivide_gouraud(v_0, v_1, v_2, iteration):
+                    cur_area = area / (2 ** iteration)
                     if textured:
                         divisor = 2 ** iteration
                         uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
@@ -663,8 +664,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
                             return True
                     else:
-                        cur_area = area / (4 ** iteration)
-                        if cur_area < 10 or iteration == subdivide_max_iterations:
+                        if cur_area <= 5 or iteration == subdivide_max_iterations:
                             c_0 = get_interpolated_color(bary, colors, *v_0)
                             c_1 = get_interpolated_color(bary, colors, *v_1)
                             c_2 = get_interpolated_color(bary, colors, *v_2)

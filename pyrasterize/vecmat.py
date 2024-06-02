@@ -348,7 +348,7 @@ class TextureInterpolation:
         color = self.texture[t_i][s_i]
         return color
 
-def subdivide_2d_triangle(v_a, v_b, v_c, callback):
+def subdivide_2d_triangle_x4(v_a, v_b, v_c, callback):
     """
     Callback arguments: vec2: point, vec2: point, vec2: point, int: iteration
     If returns true, don't split current triangle further
@@ -385,6 +385,40 @@ def subdivide_2d_triangle(v_a, v_b, v_c, callback):
         tri_stack.append((h_02, h_01, h_12, iteration))
         tri_stack.append((h_01, tri[1], h_12, iteration))
         tri_stack.append((h_02, h_12, tri[2], iteration))
+
+
+def subdivide_2d_triangle(v_a, v_b, v_c, callback):
+    """
+    Callback arguments: vec2: point, vec2: point, vec2: point, int: iteration
+    If returns true, don't split current triangle further
+    """
+    tri_stack = deque()
+    tri_stack.append((v_a, v_b, v_c, 0))
+    while tri_stack:
+        tri = tri_stack.popleft()
+        if callback(*tri):
+            continue
+
+        # Split and recurse
+        v_0, v_1, v_2, iteration = tri
+        iteration += 1
+
+        sides = [sub_vec2(v_1, v_0), sub_vec2(v_2, v_0), sub_vec2(v_2, v_1)]
+        mag_sq = list(map(mag_sq_vec2, sides))
+        largest_side = mag_sq.index(max(mag_sq))
+
+        if largest_side == 0: # 01
+            h = midpoint_v2(v_0, v_1)
+            tri_stack.append((v_0, h, v_2, iteration))
+            tri_stack.append((h, v_1, v_2, iteration))
+        elif largest_side == 1: # 02
+            h = midpoint_v2(v_0, v_2)
+            tri_stack.append((v_0, v_1, h, iteration))
+            tri_stack.append((h, v_1, v_2, iteration))
+        else: # 12
+            h = midpoint_v2(v_1, v_2)
+            tri_stack.append((v_0, v_1, h, iteration))
+            tri_stack.append((v_0, h, v_2, iteration))
 
 def random_in_unit_sphere_vec3():
     while True:
