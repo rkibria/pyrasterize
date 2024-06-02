@@ -727,8 +727,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     iteration = tri[3]
                     iteration += 1
 
-                    sides = [vecmat.sub_vec2(v_1, v_0), vecmat.sub_vec2(v_2, v_0), vecmat.sub_vec2(v_2, v_1)]
-                    mag_sq = list(map(vecmat.mag_sq_vec2, sides))
+                    sides = ((v_1[0] - v_0[0], v_1[1] - v_0[1]), # sub_vec2(v_1, v_0),
+                            (v_2[0] - v_0[0], v_2[1] - v_0[1]), # sub_vec2(v_2, v_0),
+                            (v_2[0] - v_1[0], v_2[1] - v_1[1])  # sub_vec2(v_2, v_1)
+                            )
+                    mag_sq = tuple(map(vecmat.mag_sq_vec2, sides))
                     largest_side = mag_sq.index(max(mag_sq))
 
                     if largest_side == 0: # 01

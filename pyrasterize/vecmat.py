@@ -403,8 +403,11 @@ def subdivide_2d_triangle(v_a, v_b, v_c, callback):
         v_0, v_1, v_2, iteration = tri
         iteration += 1
 
-        sides = [sub_vec2(v_1, v_0), sub_vec2(v_2, v_0), sub_vec2(v_2, v_1)]
-        mag_sq = list(map(mag_sq_vec2, sides))
+        sides = ((v_1[0] - v_0[0], v_1[1] - v_0[1]), # sub_vec2(v_1, v_0),
+                 (v_2[0] - v_0[0], v_2[1] - v_0[1]), # sub_vec2(v_2, v_0),
+                 (v_2[0] - v_1[0], v_2[1] - v_1[1])  # sub_vec2(v_2, v_1)
+                 )
+        mag_sq = tuple(map(mag_sq_vec2, sides))
         largest_side = mag_sq.index(max(mag_sq))
 
         if largest_side == 0: # 01
