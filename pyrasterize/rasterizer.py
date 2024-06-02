@@ -709,11 +709,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
                 tri_stack = deque()
                 tri_stack.append((v_a, v_b, v_c, 0))
+
                 while tri_stack:
                     tri = tri_stack.popleft()
 
                     v_0, v_1, v_2, iteration = tri
-                    tri_area = full_tri_area / (4 ** iteration)
+                    tri_area = full_tri_area / (2 ** iteration)
                     if tri_area <= 5 or iteration == subdivide_max_iterations:
                         centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
                         u,v,w = bary.get_uvw(centroid[0], centroid[1])
@@ -726,28 +727,22 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     iteration = tri[3]
                     iteration += 1
 
-                    tri_0 = tri[0]
-                    tri_0_0 = tri_0[0]
-                    tri_0_1 = tri_0[1]
+                    sides = [vecmat.sub_vec2(v_1, v_0), vecmat.sub_vec2(v_2, v_0), vecmat.sub_vec2(v_2, v_1)]
+                    mag_sq = list(map(vecmat.mag_sq_vec2, sides))
+                    largest_side = mag_sq.index(max(mag_sq))
 
-                    v_01 = (tri[1][0] - tri_0_0, tri[1][1] - tri_0_1)
-                    v_02 = (tri[2][0] - tri_0_0, tri[2][1] - tri_0_1)
-
-                    v_01_h = (v_01[0] / 2, v_01[1] / 2)
-                    v_02_h = (v_02[0] / 2, v_02[1] / 2)
-
-                    tri_0_0_plus_v_01_h0 = tri_0_0 + v_01_h[0]
-                    tri_0_1_plus_v_01_h1 = tri_0_1 + v_01_h[1]
-
-                    h_01 = (tri_0_0_plus_v_01_h0, tri_0_1_plus_v_01_h1)
-                    h_02 = (tri_0_0 + v_02_h[0], tri_0_1 + v_02_h[1])
-                    h_12 = (tri_0_0_plus_v_01_h0 + v_02_h[0], tri_0_1_plus_v_01_h1 + v_02_h[1])
-
-                    tri_stack.append((tri_0, h_01, h_02, iteration))
-                    tri_stack.append((h_02, h_01, h_12, iteration))
-                    tri_stack.append((h_01, tri[1], h_12, iteration))
-                    tri_stack.append((h_02, h_12, tri[2], iteration))
-
+                    if largest_side == 0: # 01
+                        h = vecmat.midpoint_v2(v_0, v_1)
+                        tri_stack.append((v_0, h, v_2, iteration))
+                        tri_stack.append((h, v_1, v_2, iteration))
+                    elif largest_side == 1: # 02
+                        h = vecmat.midpoint_v2(v_0, v_2)
+                        tri_stack.append((v_0, v_1, h, iteration))
+                        tri_stack.append((h, v_1, v_2, iteration))
+                    else: # 12
+                        h = vecmat.midpoint_v2(v_1, v_2)
+                        tri_stack.append((v_0, v_1, h, iteration))
+                        tri_stack.append((v_0, h, v_2, iteration))
             else:
                 color = color_data[2]
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])

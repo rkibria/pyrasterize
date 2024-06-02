@@ -13,6 +13,10 @@ def sub_vec3(v_1, v_2):
     """Return v1 - v2"""
     return [v_1[0] - v_2[0], v_1[1] - v_2[1], v_1[2] - v_2[2]]
 
+def sub_vec2(v_1, v_2):
+    """Return v1 - v2"""
+    return [v_1[0] - v_2[0], v_1[1] - v_2[1]]
+
 def cross_vec3(a, b):
     """Return vec3 result of cross product of 2 vec3's"""
     return [a[1]*b[2] - a[2]*b[1],
@@ -30,6 +34,14 @@ def mag_sq_vec3(v_3):
 def mag_vec3(v_3):
     """Return magnitude of vec3"""
     return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]) ** 0.5
+
+def mag_sq_vec2(v):
+    """Return squared magnitude of vec2"""
+    return v[0] * v[0] + v[1] * v[1]
+
+def mag_vec2(v):
+    """Return magnitude of vec2"""
+    return (v[0] * v[0] + v[1] * v[1]) ** 0.5
 
 def norm_vec3(v_3):
     """Return normalized vec3"""
@@ -414,3 +426,7 @@ def refract_vec3(uv : list, n : list, etai_over_etat : float):
     k = -((abs(1 - r_out_perp_length_squared)) ** 0.5)
     r_out_parallel = [n[i] * k for i in range(3)]
     return [r_out_perp[i] + r_out_parallel[i] for i in range(3)]
+
+def midpoint_v2(v_a : list, v_b : list) -> list:
+    """Get midpoint between two vec2"""
+    return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1])]
