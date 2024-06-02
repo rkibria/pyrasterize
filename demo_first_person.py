@@ -166,7 +166,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     painting_pos = (0, 1, -5.2)
     world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
         xform_m4=vecmat.get_transl_m4(*painting_pos))
-    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 5
+    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 6
 
     world_graph["root"]["children"]["painting_wall"] = rasterizer.get_model_instance(meshes.get_cube_mesh(stone_color))
     painting_wall_inst = world_graph["root"]["children"]["painting_wall"]
