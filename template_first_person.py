@@ -51,17 +51,23 @@ def main_function(): # PYGBAG: decorate with 'async'
     # ground_graph = scene_graphs[1]
     world_graph = scene_graphs[2]
 
-    mesh = meshes.get_rect_mesh((1, 1), (32, 32), ((255, 0, 0), (0, 255, 0)))
-    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(
-        mesh,
-        xform_m4=vecmat.get_transl_m4(0, 1, -5.2))
-
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    mesh["colors"] = []
-    for line in mip_textures[1]:
-        for color in line:
-            mesh["colors"].append(color)
-            mesh["colors"].append(color)
+    pos = (0, 1, -5.2)
+
+    # mesh = meshes.get_rect_mesh((1, 1), (32, 32), ((255, 0, 0), (0, 255, 0)))
+    # world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(
+    #     mesh,
+    #     xform_m4=vecmat.get_transl_m4(*pos))
+    # mesh["colors"] = []
+    # for line in mip_textures[1]:
+    #     for color in line:
+    #         mesh["colors"].append(color)
+    #         mesh["colors"].append(color)
+
+    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
+        xform_m4=vecmat.get_transl_m4(*pos))
+    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
+
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)

@@ -710,6 +710,15 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 tri_stack = deque()
                 tri_stack.append((v_a, v_b, v_c, 0))
 
+                z = abs(z_order)
+                if z <= 1:
+                    subdiv_reduce = 0
+                elif z <= 4:
+                    subdiv_reduce = 1
+                else:
+                    subdiv_reduce = 4
+                subdivide_max_iterations = max(1, subdivide_max_iterations - subdiv_reduce)
+
                 while tri_stack:
                     tri = tri_stack.popleft()
 
