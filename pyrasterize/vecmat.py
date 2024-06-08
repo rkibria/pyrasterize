@@ -23,9 +23,13 @@ def cross_vec3(a, b):
         a[2]*b[0] - a[0]*b[2],
         a[0]*b[1] - a[1]*b[0]]
 
-def dot_product_vec3(a, b):
+def dot_vec3(a, b):
     """Return dot product of vec3"""
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+def dot_vec2(a, b):
+    """Return dot product of vec2"""
+    return a[0] * b[0] + a[1] * b[1]
 
 def mag_sq_vec3(v_3):
     """Return squared magnitude of vec3"""
@@ -280,6 +284,20 @@ def get_average_color(c_0, c_1, c_2):
     """Average of 3 RGB colors"""
     return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]
 
+def get_barycentric_vec2(v_a, v_b, v_c, v_p):
+  a_b = sub_vec2(v_b, v_a)
+  a_c = sub_vec2(v_c, v_a)
+  a_p = sub_vec2(v_p, v_a)
+
+  nac = [v_a[1] - v_c[1], v_c[0] - v_a[0]]
+  nab = [v_a[1] - v_b[1], v_b[0] - v_a[0]]
+
+  bary_beta  = dot_vec2(a_p, nac) / dot_vec2(a_b, nac)
+  bary_gamma = dot_vec2(a_p, nab) / dot_vec2(a_c, nab)
+  bary_alpha = 1.0 - bary_beta - bary_gamma
+  
+  return [bary_alpha, bary_beta, bary_gamma]
+
 class Barycentric2dTriangle:
     def __init__(self, v_a, v_b, v_c) -> None:
         self.v_a = v_a
@@ -435,7 +453,7 @@ def random_unit_vector_vec3():
 
 def random_in_hemisphere(normal : list):
     in_unit_sphere = random_in_unit_sphere_vec3()
-    if dot_product_vec3(in_unit_sphere, normal) > 0:
+    if dot_vec3(in_unit_sphere, normal) > 0:
         return in_unit_sphere
     else:
         return [-in_unit_sphere[i] for i in range(3)]
@@ -452,12 +470,12 @@ def near_zero_vec3(v : list):
     return abs(v[0]) < s and abs(v[1]) < s and abs(v[2]) < s
 
 def reflect_vec3(v : list, n : list):
-    dot_vn = dot_product_vec3(v, n)
+    dot_vn = dot_vec3(v, n)
     return [v[i] - 2 * dot_vn * n[i] for i in range(3)]
 
 def refract_vec3(uv : list, n : list, etai_over_etat : float):
     minus_uv = [-uv[i] for i in range(3)]
-    cos_theta = min(dot_product_vec3(minus_uv, n), 1.0)
+    cos_theta = min(dot_vec3(minus_uv, n), 1.0)
     r_out_perp = [etai_over_etat * (uv[i] + cos_theta * n[i]) for i in range(3)]
     r_out_perp_length_squared = mag_sq_vec3(r_out_perp)
     k = -((abs(1 - r_out_perp_length_squared)) ** 0.5)
