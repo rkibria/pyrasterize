@@ -467,8 +467,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     # This function may add temporary triangles due to clipping
     # We reset the model's lists to their original size after processing
     num_orig_model_tris = len(model_tris)
-    visible_tri_idcs,screen_verts = _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, view_normals, vert_normals, no_culling)
-    screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
+    visible_tri_idcs,orig_screen_verts = _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, view_normals, vert_normals, no_culling)
+    screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in orig_screen_verts]
 
     draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
 
@@ -540,7 +540,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                           intensity,
                           model["texture"] if textured else model_colors[tri_idx],
                           [model["uv"][vert_idx] for vert_idx in tri] if textured else None,
-                          subdivide_max_iterations)
+                          subdivide_max_iterations,
+                          (view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]]))
         else: # draw_mode == DRAW_MODE_GOURAUD:
             if textured:
                 uv = model["uv"]
@@ -696,14 +697,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             intensity = color_data[1]
             subdivide_max_iterations = color_data[4]
             if textured:
+                cam_verts = color_data[5]
                 mip_textures = color_data[2]
                 uv = color_data[3]
                 v_a = (points[0][0], points[0][1])
                 v_b = (points[1][0], points[1][1])
                 v_c = (points[2][0], points[2][1])
-                bary = vecmat.Barycentric2dTriangle(v_a, v_b, v_c)
-                if bary.area_sq == 0:
-                    continue
                 full_tri_area = vecmat.get_2d_triangle_area(v_a, v_b, v_c)
                 tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
 
@@ -726,7 +725,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     tri_area = full_tri_area / (2 ** iteration)
                     if tri_area <= 5 or iteration == subdivide_max_iterations:
                         centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
-                        u,v,w = bary.get_uvw(centroid[0], centroid[1])
+                        u,v,w = vecmat.get_barycentric_vec2(v_a, v_b, v_c, centroid)
                         color = tex_ip.get_color(u, v, w)
                         color = (intensity * color[0], intensity * color[1], intensity * color[2])
                         pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
