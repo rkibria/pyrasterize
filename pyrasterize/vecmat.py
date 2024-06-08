@@ -285,18 +285,30 @@ def get_average_color(c_0, c_1, c_2):
     return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]
 
 def get_barycentric_vec2(v_a, v_b, v_c, v_p):
-  a_b = sub_vec2(v_b, v_a)
-  a_c = sub_vec2(v_c, v_a)
-  a_p = sub_vec2(v_p, v_a)
+    a_b = sub_vec2(v_b, v_a)
+    a_c = sub_vec2(v_c, v_a)
+    a_p = sub_vec2(v_p, v_a)
+    nac = [v_a[1] - v_c[1], v_c[0] - v_a[0]]
+    nab = [v_a[1] - v_b[1], v_b[0] - v_a[0]]
+    v = dot_vec2(a_p, nac) / dot_vec2(a_b, nac)
+    w = dot_vec2(a_p, nab) / dot_vec2(a_c, nab)
+    u = 1.0 - v - w
+    return u, v, w
 
-  nac = [v_a[1] - v_c[1], v_c[0] - v_a[0]]
-  nab = [v_a[1] - v_b[1], v_b[0] - v_a[0]]
-
-  bary_beta  = dot_vec2(a_p, nac) / dot_vec2(a_b, nac)
-  bary_gamma = dot_vec2(a_p, nab) / dot_vec2(a_c, nab)
-  bary_alpha = 1.0 - bary_beta - bary_gamma
-  
-  return [bary_alpha, bary_beta, bary_gamma]
+def get_barycentric_vec3(v_a, v_b, v_c, v_p):
+    v0 = sub_vec3(v_b, v_a)
+    v1 = sub_vec3(v_c, v_a)
+    v2 = sub_vec3(v_p, v_a)
+    d00 = dot_vec3(v0, v0)
+    d01 = dot_vec3(v0, v1)
+    d11 = dot_vec3(v1, v1)
+    d20 = dot_vec3(v2, v0)
+    d21 = dot_vec3(v2, v1)
+    denom = d00 * d11 - d01 * d01
+    v = (d11 * d20 - d01 * d21) / denom
+    w = (d00 * d21 - d01 * d20) / denom
+    u = 1.0 - v - w
+    return u, v, w
 
 class Barycentric2dTriangle:
     def __init__(self, v_a, v_b, v_c) -> None:
