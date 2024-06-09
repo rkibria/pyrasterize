@@ -497,3 +497,7 @@ def refract_vec3(uv : list, n : list, etai_over_etat : float):
 def midpoint_v2(v_a : list, v_b : list) -> list:
     """Get midpoint between two vec2"""
     return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1])]
+
+def midpoint_v3(v_a : list, v_b : list) -> list:
+    """Get midpoint between two vec3"""
+    return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1]), 0.5 * (v_a[2] + v_b[2])]

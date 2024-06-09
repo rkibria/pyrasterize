@@ -334,3 +334,50 @@ def get_model_centering_offset(model):
         avg[i] /= len(model["verts"])
         avg[i] *= -1
     return avg
+
+def subdivide_triangles(mesh, iterations):
+    """Return same mesh with triangles subdivided n times"""
+    new_mesh = {"model_type": rasterizer.MODEL_TYPE_MESH,
+                "verts" : [],
+                "uv" : [],
+                "tris" : []}
+    tri_idx = 0
+    tri = mesh["tris"][tri_idx]
+    i_0 = tri[0]
+    i_1 = tri[1]
+    i_2 = tri[2]
+    v_0 = mesh["verts"][i_0].copy()
+    v_1 = mesh["verts"][i_1].copy()
+    v_2 = mesh["verts"][i_2].copy()
+    out_idx = len(new_mesh["verts"])
+    new_mesh["verts"].append(v_0)
+    new_mesh["verts"].append(v_1)
+    new_mesh["verts"].append(v_2)
+    out_i_0 = out_idx
+    out_i_1 = out_idx + 1
+    out_i_2 = out_idx + 2
+    out_i_h = out_idx + 3
+
+    sides = (vecmat.sub_vec2(v_1, v_0),
+             vecmat.sub_vec2(v_2, v_0),
+             vecmat.sub_vec2(v_2, v_1))
+    mag_sq = tuple(map(vecmat.mag_sq_vec2, sides))
+    largest_side = mag_sq.index(max(mag_sq))
+
+    if largest_side == 0: # 01
+        h = vecmat.midpoint_v3(v_0, v_1)
+        new_mesh["verts"].append(h)
+        new_mesh["tris"].append((out_i_0, out_i_h, out_i_2))
+        new_mesh["tris"].append((out_i_h, out_i_1, out_i_2))
+    elif largest_side == 1: # 02
+        h = vecmat.midpoint_v3(v_0, v_2)
+        new_mesh["verts"].append(h)
+        new_mesh["tris"].append((out_i_0, out_i_1, out_i_h))
+        new_mesh["tris"].append((out_i_h, out_i_1, out_i_2))
+    else: # 12
+        h = vecmat.midpoint_v3(v_1, v_2)
+        new_mesh["verts"].append(h)
+        new_mesh["tris"].append((out_i_0, out_i_1, out_i_h))
+        new_mesh["tris"].append((out_i_0, out_i_h, out_i_2))
+
+    return new_mesh
