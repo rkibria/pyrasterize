@@ -78,12 +78,23 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     mesh = meshes.get_test_texture_mesh(mip_textures)
     del mesh["texture"]
-    for _ in range(9):
+    for _ in range(12):
         mesh = meshes.subdivide_triangles(mesh)
     world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
         xform_m4=vecmat.get_transl_m4(*pos))
 
-
+    # Assign colors from uv
+    mesh["colors"] = []
+    for tri in mesh["tris"]:
+        i_0, i_1, i_2 = tri
+        uv_0 = mesh["uv"][i_0]
+        uv_1 = mesh["uv"][i_1]
+        uv_2 = mesh["uv"][i_2]
+        txip = vecmat.TextureInterpolation((uv_0, uv_1, uv_2), mip_textures, 0, 7)
+        u,v = vecmat.get_vec2_triangle_centroid(uv_0, uv_1, uv_2)
+        w = 1.0 - u - v
+        color = txip.get_color(u, v, w)
+        mesh["colors"].append(color)
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
