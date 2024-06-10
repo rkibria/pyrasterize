@@ -9,6 +9,7 @@ from . import rasterizer
 from . import vecmat
 
 import math
+import random
 
 MESH_DEFAULT_COLOR = (200, 200, 200)
 
@@ -347,9 +348,9 @@ def subdivide_triangles(mesh):
         i_1 = tri[1]
         i_2 = tri[2]
 
-        v_0 = mesh["verts"][i_0].copy()
-        v_1 = mesh["verts"][i_1].copy()
-        v_2 = mesh["verts"][i_2].copy()
+        v_0 = mesh["verts"][i_0][:]
+        v_1 = mesh["verts"][i_1][:]
+        v_2 = mesh["verts"][i_2][:]
 
         out_idx = len(new_mesh["verts"])
 
@@ -357,9 +358,9 @@ def subdivide_triangles(mesh):
         new_mesh["verts"].append(v_1)
         new_mesh["verts"].append(v_2)
 
-        uv_0 = mesh["uv"][i_0].copy()
-        uv_1 = mesh["uv"][i_1].copy()
-        uv_2 = mesh["uv"][i_2].copy()
+        uv_0 = mesh["uv"][i_0][:]
+        uv_1 = mesh["uv"][i_1][:]
+        uv_2 = mesh["uv"][i_2][:]
         new_mesh["uv"].append(uv_0)
         new_mesh["uv"].append(uv_1)
         new_mesh["uv"].append(uv_2)
@@ -397,5 +398,10 @@ def subdivide_triangles(mesh):
         uv_h = [u * uv_0[0] + v * uv_1[0] + w * uv_2[0],
                 u * uv_0[1] + v * uv_1[1] + w * uv_2[1]]
         new_mesh["uv"].append(uv_h)
+
+    new_mesh["colors"] = []
+    for i in range(len(new_mesh["tris"])):
+        # new_mesh["colors"].append((255, 0, 0) if i % 2 == 0 else (0, 255, 0))
+        new_mesh["colors"].append([random.randint(0, 255) for _ in range(3)])
 
     return new_mesh

@@ -64,9 +64,25 @@ def main_function(): # PYGBAG: decorate with 'async'
     #         mesh["colors"].append(color)
     #         mesh["colors"].append(color)
 
-    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
+    # mesh = meshes.get_test_texture_mesh(mip_textures)
+    # world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
+    #     xform_m4=vecmat.get_transl_m4(*pos))
+    # world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
+
+    # mesh = meshes.get_cube_mesh()
+    # for _ in range(10):
+    #     mesh = meshes.subdivide_triangles(mesh)
+    # world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(
+    #     mesh,
+    #     xform_m4=vecmat.get_transl_m4(*pos))
+
+    mesh = meshes.get_test_texture_mesh(mip_textures)
+    del mesh["texture"]
+    for _ in range(9):
+        mesh = meshes.subdivide_triangles(mesh)
+    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
         xform_m4=vecmat.get_transl_m4(*pos))
-    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
+
 
 
     font = pygame.font.Font(None, 30)
