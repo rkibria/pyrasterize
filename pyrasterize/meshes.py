@@ -341,62 +341,61 @@ def subdivide_triangles(mesh):
                 "verts" : [],
                 "uv" : [],
                 "tris" : []}
-    tri_idx = 0
-    tri = mesh["tris"][tri_idx]
+    
+    for tri in mesh["tris"]:
+        i_0 = tri[0]
+        i_1 = tri[1]
+        i_2 = tri[2]
 
-    i_0 = tri[0]
-    i_1 = tri[1]
-    i_2 = tri[2]
+        v_0 = mesh["verts"][i_0].copy()
+        v_1 = mesh["verts"][i_1].copy()
+        v_2 = mesh["verts"][i_2].copy()
 
-    v_0 = mesh["verts"][i_0].copy()
-    v_1 = mesh["verts"][i_1].copy()
-    v_2 = mesh["verts"][i_2].copy()
+        out_idx = len(new_mesh["verts"])
 
-    out_idx = len(new_mesh["verts"])
+        new_mesh["verts"].append(v_0)
+        new_mesh["verts"].append(v_1)
+        new_mesh["verts"].append(v_2)
 
-    new_mesh["verts"].append(v_0)
-    new_mesh["verts"].append(v_1)
-    new_mesh["verts"].append(v_2)
+        uv_0 = mesh["uv"][i_0].copy()
+        uv_1 = mesh["uv"][i_1].copy()
+        uv_2 = mesh["uv"][i_2].copy()
+        new_mesh["uv"].append(uv_0)
+        new_mesh["uv"].append(uv_1)
+        new_mesh["uv"].append(uv_2)
 
-    uv_0 = mesh["uv"][i_0].copy()
-    uv_1 = mesh["uv"][i_1].copy()
-    uv_2 = mesh["uv"][i_2].copy()
-    new_mesh["uv"].append(uv_0)
-    new_mesh["uv"].append(uv_1)
-    new_mesh["uv"].append(uv_2)
+        out_i_0 = out_idx
+        out_i_1 = out_idx + 1
+        out_i_2 = out_idx + 2
+        out_i_h = out_idx + 3
 
-    out_i_0 = out_idx
-    out_i_1 = out_idx + 1
-    out_i_2 = out_idx + 2
-    out_i_h = out_idx + 3
+        sides = (vecmat.sub_vec2(v_1, v_0),
+                vecmat.sub_vec2(v_2, v_0),
+                vecmat.sub_vec2(v_2, v_1))
+        mag_sq = tuple(map(vecmat.mag_sq_vec2, sides))
+        largest_side = mag_sq.index(max(mag_sq))
 
-    sides = (vecmat.sub_vec2(v_1, v_0),
-             vecmat.sub_vec2(v_2, v_0),
-             vecmat.sub_vec2(v_2, v_1))
-    mag_sq = tuple(map(vecmat.mag_sq_vec2, sides))
-    largest_side = mag_sq.index(max(mag_sq))
+        if largest_side == 0: # 01
+            h = vecmat.midpoint_v3(v_0, v_1)
+            new_mesh["verts"].append(h)
+            new_mesh["tris"].append((out_i_0, out_i_h, out_i_2))
+            new_mesh["tris"].append((out_i_h, out_i_1, out_i_2))
+            u,v,w = 0.5, 0.5, 0
+        elif largest_side == 1: # 02
+            h = vecmat.midpoint_v3(v_0, v_2)
+            new_mesh["verts"].append(h)
+            new_mesh["tris"].append((out_i_0, out_i_1, out_i_h))
+            new_mesh["tris"].append((out_i_h, out_i_1, out_i_2))
+            u,v,w = 0.5, 0, 0.5
+        else: # 12
+            h = vecmat.midpoint_v3(v_1, v_2)
+            new_mesh["verts"].append(h)
+            new_mesh["tris"].append((out_i_0, out_i_1, out_i_h))
+            new_mesh["tris"].append((out_i_0, out_i_h, out_i_2))
+            u,v,w = 0, 0.5, 0.5
 
-    if largest_side == 0: # 01
-        h = vecmat.midpoint_v3(v_0, v_1)
-        new_mesh["verts"].append(h)
-        new_mesh["tris"].append((out_i_0, out_i_h, out_i_2))
-        new_mesh["tris"].append((out_i_h, out_i_1, out_i_2))
-        u,v,w = 0.5, 0.5, 0
-    elif largest_side == 1: # 02
-        h = vecmat.midpoint_v3(v_0, v_2)
-        new_mesh["verts"].append(h)
-        new_mesh["tris"].append((out_i_0, out_i_1, out_i_h))
-        new_mesh["tris"].append((out_i_h, out_i_1, out_i_2))
-        u,v,w = 0.5, 0, 0.5
-    else: # 12
-        h = vecmat.midpoint_v3(v_1, v_2)
-        new_mesh["verts"].append(h)
-        new_mesh["tris"].append((out_i_0, out_i_1, out_i_h))
-        new_mesh["tris"].append((out_i_0, out_i_h, out_i_2))
-        u,v,w = 0, 0.5, 0.5
-
-    uv_h = [u * uv_0[0] + v * uv_1[0] + w * uv_2[0],
-            u * uv_0[1] + v * uv_1[1] + w * uv_2[1]]
-    new_mesh["uv"].append(uv_h)
+        uv_h = [u * uv_0[0] + v * uv_1[0] + w * uv_2[0],
+                u * uv_0[1] + v * uv_1[1] + w * uv_2[1]]
+        new_mesh["uv"].append(uv_h)
 
     return new_mesh
