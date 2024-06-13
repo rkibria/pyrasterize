@@ -345,8 +345,8 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
     return (visible_tri_idcs, clip_verts)
 
 
-def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
-                                  lighting, proj_light_dir, instance, model_m, camera_m):
+def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
+                                        lighting, proj_light_dir, instance, model_m, camera_m):
     """Get (lighted) triangles from this instance and insert them into scene_triangles"""
     model = instance["model"]
     if not model:
@@ -395,7 +395,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     if model["play_mode"] == BILLBOARD_PLAY_ALWAYS:
                         model["cur_frame"] = 0
 
-            scene_triangles.append((
+            scene_primitives.append((
                 cur_z,
                 scr_pos,
                 scale_img,
@@ -420,7 +420,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 scale_img = pygame.transform.scale(img, proj_size)
                 scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
                         int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
-                scene_triangles.append((
+                scene_primitives.append((
                     cur_z,
                     scr_pos,
                     scale_img,
@@ -505,6 +505,17 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     else:
                         vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
 
+    for quad_idx in range(len(model["quads"])):
+        quad = model["quads"][quad_idx]
+        z_order = (view_verts[quad[0]][2] + view_verts[quad[1]][2] + view_verts[quad[2]][2] + view_verts[quad[3]][2])/3
+        color_data = model_colors[quad_idx]
+        scene_primitives.append((
+            z_order,
+            [screen_verts[quad[i]] for i in range(4)],
+            color_data,
+            DRAW_MODE_FLAT,
+            1))
+
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
 
@@ -552,11 +563,12 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             else:
                 color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri], subdivide_max_iterations]
 
-        scene_triangles.append((
+        scene_primitives.append((
             z_order,
             [screen_verts[tri[i]] for i in range(3)],
             color_data,
-            draw_mode))
+            draw_mode,
+            0))
 
     # Remove temporary triangles
     if num_orig_model_tris != len(model_tris):
@@ -587,9 +599,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scr_max_y = screen_area[1] + screen_area[3] - 1
 
     # Collect all visible triangles. Elements are tuples:
-    # (average z depth, screen points of triangle, lighted color, draw mode)
+    # (average z depth, screen points of triangle, lighted color, draw mode, 0 if triangle or 1 if quad)
     # Sorted by depth before drawing, draw mode overrides order so wireframes come last
-    scene_triangles = []
+    scene_primitives = []
 
     proj_light_dir = get_proj_light_dir(lighting, camera_m)
 
@@ -599,7 +611,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
                 proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
-                _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
+                _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
                                               instance, proj_m, camera_m)
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
@@ -610,10 +622,18 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
 
     # Sort triangles in ascending z order but wireframe triangles should be drawn last
-    scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
+    scene_primitives.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
-    for z_order,points,color_data,draw_mode in scene_triangles:
+    for z_order,points,color_data,draw_mode,prim_type in scene_primitives:
+        if prim_type == 1:
+            if draw_mode == DRAW_MODE_FLAT:
+                color = color_data
+                intensity = 1.0
+                color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                pygame.draw.polygon(surface, color, points)
+            continue
+
         if draw_mode == DRAW_MODE_GOURAUD:
             textured = color_data[0]
 

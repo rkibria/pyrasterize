@@ -102,6 +102,20 @@ def get_test_triangle_mesh():
         "colors" : [MESH_DEFAULT_COLOR]
     }
 
+def get_test_quad_mesh():
+    return {
+        "model_type": rasterizer.MODEL_TYPE_MESH,
+        "tris": [],
+        "verts" : [
+            [-0.5, -0.5, 0],
+            [0.5, -0.5, 0],
+            [0.5, 0.5, 0],
+            [-0.5, 0.5, 0],
+        ],
+        "quads" : [(0, 1, 2, 3)],
+        "colors" : [MESH_DEFAULT_COLOR]
+    }
+
 def get_cube_mesh(color=MESH_DEFAULT_COLOR):
     """Return a unit cube mesh model dictionary:
     'verts': vertices (float vec3s for point positions in local coordinates)
