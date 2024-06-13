@@ -116,6 +116,36 @@ def get_test_quad_mesh():
         "colors" : [MESH_DEFAULT_COLOR]
     }
 
+def get_quad_grid_mesh(divs : list, size : list) -> dict:
+    """
+    divs = [rows, cols]
+    size = [width, height]
+    """
+    verts = []
+    rows, cols = divs
+    width, height = size
+    for row in range(rows + 1):
+        for col in range(cols + 1):
+            x = col * width
+            y = row * height
+            verts.append([x, y, 0])
+
+    quads = []
+    colors = []
+    for row in range(rows):
+        for col in range(cols):
+            i = row * (cols + 1) + col
+            quads.append([i, i + 1, i + 1 + cols+1, i + cols+1])
+            colors.append((255, 0, 0) if i % 2 == 0 else (0, 255, 0))
+
+    return {
+        "model_type": rasterizer.MODEL_TYPE_MESH,
+        "tris": [],
+        "verts" : verts,
+        "quads" : quads,
+        "colors" : colors
+    }
+
 def get_cube_mesh(color=MESH_DEFAULT_COLOR):
     """Return a unit cube mesh model dictionary:
     'verts': vertices (float vec3s for point positions in local coordinates)

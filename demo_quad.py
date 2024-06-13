@@ -44,9 +44,10 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Use separate scene graphs for sky, ground and everything else to avoid problems with overlapping
     scene_graph = { "root": rasterizer.get_model_instance(None) }
 
-    pos = (0, 1, -5.2)
+    pos = (0, 0, -5.2)
 
-    mesh = meshes.get_test_quad_mesh()
+    # mesh = meshes.get_test_quad_mesh()
+    mesh = meshes.get_quad_grid_mesh((16, 16), (0.1, 0.1))
     scene_graph["root"]["children"]["quad"] = rasterizer.get_model_instance(mesh,
         xform_m4=vecmat.get_transl_m4(*pos))
 
