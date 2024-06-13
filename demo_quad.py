@@ -44,12 +44,18 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Use separate scene graphs for sky, ground and everything else to avoid problems with overlapping
     scene_graph = { "root": rasterizer.get_model_instance(None) }
 
-    pos = (0, 0, -5.2)
+    pos = (0, -3.2, -5.2)
 
     # mesh = meshes.get_test_quad_mesh()
-    mesh = meshes.get_quad_grid_mesh((16, 16), (0.1, 0.1))
+    mesh = meshes.get_quad_grid_mesh((64, 64), (0.1, 0.1))
     scene_graph["root"]["children"]["quad"] = rasterizer.get_model_instance(mesh,
         xform_m4=vecmat.get_transl_m4(*pos))
+
+    mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
+    mesh["colors"] = []
+    for line in mip_textures[0]:
+        for color in line:
+            mesh["colors"].append(color)
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
