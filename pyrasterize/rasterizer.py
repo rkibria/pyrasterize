@@ -505,16 +505,17 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     else:
                         vert_colors[vert_idx] = (intensity * tri_color[0], intensity * tri_color[1], intensity * tri_color[2])
 
-    for quad_idx in range(len(model["quads"])):
-        quad = model["quads"][quad_idx]
-        z_order = (view_verts[quad[0]][2] + view_verts[quad[1]][2] + view_verts[quad[2]][2] + view_verts[quad[3]][2])/3
-        color_data = model_colors[quad_idx]
-        scene_primitives.append((
-            z_order,
-            [screen_verts[quad[i]] for i in range(4)],
-            color_data,
-            DRAW_MODE_FLAT,
-            1))
+    if "quads" in model:
+        for quad_idx in range(len(model["quads"])):
+            quad = model["quads"][quad_idx]
+            z_order = (view_verts[quad[0]][2] + view_verts[quad[1]][2] + view_verts[quad[2]][2] + view_verts[quad[3]][2])/3
+            color_data = model_colors[quad_idx]
+            scene_primitives.append((
+                z_order,
+                [screen_verts[quad[i]] for i in range(4)],
+                color_data,
+                DRAW_MODE_FLAT,
+                1))
 
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]

@@ -42,14 +42,23 @@ def main_function(): # PYGBAG: decorate with 'async'
     clock = pygame.time.Clock()
 
     # Use separate scene graphs for sky, ground and everything else to avoid problems with overlapping
-    scene_graph = { "root": rasterizer.get_model_instance(None) }
+    scene_graphs = [
+        { "root": rasterizer.get_model_instance(None) },
+        { "root": rasterizer.get_model_instance(None) },
+        { "root": rasterizer.get_model_instance(None) }
+    ]
+    # sky_graph = scene_graphs[0]
+    ground_graph = scene_graphs[1]
+    world_graph = scene_graphs[2]
 
-    pos = (0, -3.2, -5.2)
+    ground_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
+        meshes.get_rect_mesh((11 * 4, 11 * 4), (11, 11), ((180, 180, 180), (60, 60, 60))),
+        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
 
     # mesh = meshes.get_test_quad_mesh()
     mesh = meshes.get_quad_grid_mesh((64, 64), (0.1, 0.1))
-    scene_graph["root"]["children"]["quad"] = rasterizer.get_model_instance(mesh,
-        xform_m4=vecmat.get_transl_m4(*pos))
+    world_graph["root"]["children"]["quad"] = rasterizer.get_model_instance(mesh,
+        preproc_m4=vecmat.get_transl_m4(0, 0, 0))
 
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
     mesh["colors"] = []
@@ -173,8 +182,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         cam_m = vecmat.get_simple_camera_m(CAMERA)
         # t = time.perf_counter()
-        rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-            cam_m, persp_m, LIGHTING)
+        for scene_graph in scene_graphs:
+            rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
+                cam_m, persp_m, LIGHTING)
         # elapsed_time = time.perf_counter() - t
         # if frame % 30 == 0:
         #     print(f"render time: {round(elapsed_time, 3)} s")
