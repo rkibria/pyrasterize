@@ -2,7 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-3D rasterizer engine
+# 3D rasterizer engine
+
+## Entry point: render()
+
+Painter's Algorithm implementation:
+- Traverse scene graph, extract prims from each instance
+  results in => scene_primitives = [(z order, screen points, shading data, DRAW_MODE_*, PRIMITIVE_TYPE_*), ...]
+  - _get_screen_primitives_for_instance() appends to scene_primitives
+    - MODEL_TYPE_BILLBOARD/MODEL_TYPE_PARTICLES handled on their own
+    - Meshes:
+      - MODEL_TYPE_ANIMATED_MESH picks underlying mesh model depending on playback frame, then as usual
+      - view_verts = [model vertices X current matrix]
+      - view_normals = [model normals X current matrix]
+- Sort scene_primitives by z
+- Draw all in scene_primitives
+
+
 """
 
 import math
@@ -28,6 +44,9 @@ MODEL_TYPE_MESH = 0
 MODEL_TYPE_BILLBOARD = 1
 MODEL_TYPE_PARTICLES = 2
 MODEL_TYPE_ANIMATED_MESH = 3
+
+PRIMITIVE_TYPE_TRIANGLE = 0
+PRIMITIVE_TYPE_QUAD = 1
 
 
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None) -> dict:
@@ -114,17 +133,6 @@ def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list =
         "animation_frame": 0.0,
         "animation_speed": 1.0
         }
-
-
-def visit_instances(scene_graph, func, enabled_only=False):
-    """
-    Call func(name, instance) on all instances of the scene graph
-    """
-    for name,instance in scene_graph.items():
-        if not enabled_only or instance["enabled"]:
-            func(name, instance)
-            if instance["children"]:
-                visit_instances(instance["children"], func, enabled_only)
 
 
 def get_proj_light_dir(lighting, camera_m) -> list:
@@ -347,7 +355,7 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
 
 def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
                                         lighting, proj_light_dir, instance, model_m, camera_m):
-    """Get (lighted) triangles from this instance and insert them into scene_triangles"""
+    """Get primitives and shading data from this instance"""
     model = instance["model"]
     if not model:
         return
@@ -399,7 +407,8 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                 cur_z,
                 scr_pos,
                 scale_img,
-                DRAW_MODE_BILLBOARD))
+                DRAW_MODE_BILLBOARD,
+                PRIMITIVE_TYPE_TRIANGLE))
         return
     elif model["model_type"] == MODEL_TYPE_PARTICLES:
         img = model["img"]
@@ -424,7 +433,8 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     cur_z,
                     scr_pos,
                     scale_img,
-                    DRAW_MODE_PARTICLE))
+                    DRAW_MODE_PARTICLE,
+                    PRIMITIVE_TYPE_TRIANGLE))
         return
 
     if model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
@@ -436,6 +446,13 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
             instance["animation_frame"] = 0.0
             cur_frame = 0
         model = meshes[cur_frame]
+
+    if "instance_normal" in instance:
+        instance_normal = instance["instance_normal"]
+        proj_inst_normal = vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
+        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
+            return
 
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
     view_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["normals"]))
@@ -452,13 +469,6 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         pointlight_cam_pos = vecmat.vec4_mat4_mul(lighting["pointlight"], camera_m)
     subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
     ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
-
-    if "instance_normal" in instance:
-        instance_normal = instance["instance_normal"]
-        proj_inst_normal = vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
-        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
-        if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
-            return
 
     vert_normals = None
     if draw_gouraud_shaded:
@@ -515,7 +525,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                 [screen_verts[quad[i]] for i in range(4)],
                 color_data,
                 DRAW_MODE_FLAT,
-                1))
+                PRIMITIVE_TYPE_QUAD))
 
     for tri_idx in visible_tri_idcs:
         tri = model_tris[tri_idx]
@@ -569,7 +579,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
             [screen_verts[tri[i]] for i in range(3)],
             color_data,
             draw_mode,
-            0))
+            PRIMITIVE_TYPE_TRIANGLE))
 
     # Remove temporary triangles
     if num_orig_model_tris != len(model_tris):
@@ -627,17 +637,17 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scene_primitives.sort(key=lambda x: x[0], reverse=False) # Much faster without the extra comparison
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
-    for z_order,points,color_data,draw_mode,prim_type in scene_primitives:
-        if prim_type == 1:
+    for z_order,points,shading_data,draw_mode,prim_type in scene_primitives:
+        if prim_type == PRIMITIVE_TYPE_QUAD:
             if draw_mode == DRAW_MODE_FLAT:
-                color = color_data
+                color = shading_data
                 intensity = 1.0
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])
                 pygame.draw.polygon(surface, color, points)
             continue
 
         if draw_mode == DRAW_MODE_GOURAUD:
-            textured = color_data[0]
+            textured = shading_data[0]
 
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
@@ -647,8 +657,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 continue
 
             if not textured:
-                subdivide_max_iterations = color_data[2]
-                colors = color_data[1]
+                subdivide_max_iterations = shading_data[2]
+                colors = shading_data[1]
                 avg_color = vecmat.get_average_color(colors[0], colors[1], colors[2])
                 col_diff = sum(abs(a-i) + abs(a-j) + abs(a-k)
                                for a,i,j,k in zip(avg_color, colors[0], colors[1], colors[2]))
@@ -656,8 +666,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
                     continue
             else:
-                intensities = color_data[3]
-                subdivide_max_iterations = color_data[4]
+                intensities = shading_data[3]
+                subdivide_max_iterations = shading_data[4]
 
             if not textured:
                 if bary.area_sq <= 10:
@@ -665,8 +675,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     continue
 
             if textured:
-                uv = color_data[1]
-                mip_textures = color_data[2]
+                uv = shading_data[1]
+                mip_textures = shading_data[2]
                 tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
 
             if subdivide_max_iterations > 0:
@@ -715,13 +725,13 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                         px_array[x, y] = (r << 16) | (g << 8) | b
                 del px_array
         elif draw_mode == DRAW_MODE_FLAT:
-            textured = color_data[0]
-            intensity = color_data[1]
-            subdivide_max_iterations = color_data[4]
+            textured = shading_data[0]
+            intensity = shading_data[1]
+            subdivide_max_iterations = shading_data[4]
             if textured:
-                cam_verts = color_data[5]
-                mip_textures = color_data[2]
-                uv = color_data[3]
+                cam_verts = shading_data[5]
+                mip_textures = shading_data[2]
+                uv = shading_data[3]
                 v_a = (points[0][0], points[0][1])
                 v_b = (points[1][0], points[1][1])
                 v_c = (points[2][0], points[2][1])
@@ -777,15 +787,15 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                         tri_stack.append((v_0, v_1, h, iteration))
                         tri_stack.append((v_0, h, v_2, iteration))
             else:
-                color = color_data[2]
+                color = shading_data[2]
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])
                 pygame.draw.polygon(surface, color, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
-            pygame.draw.lines(surface, color_data, True, points)
+            pygame.draw.lines(surface, shading_data, True, points)
         elif draw_mode == DRAW_MODE_BILLBOARD:
-            surface.blit(color_data, points)
+            surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_PARTICLE:
-            surface.blit(color_data, points)
+            surface.blit(shading_data, points)
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
