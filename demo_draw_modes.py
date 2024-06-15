@@ -145,7 +145,7 @@ def main_function():
     offscreen_2 = pygame.Surface(RASTER_SCR_SIZE)
 
     while not done:
-        clock.tick(30)
+        clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
@@ -212,7 +212,7 @@ def main_function():
 
         pygame.display.flip()
         frame += 1 if not paused else 0
-        if frame % 30 == 0:
+        if frame % 60 == 0:
             textblock_fps = font.render(f"{round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
 
 if __name__ == '__main__':

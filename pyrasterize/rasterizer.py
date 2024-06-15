@@ -2,7 +2,22 @@
 # -*- coding: utf-8 -*-
 
 """
-3D rasterizer engine
+# 3D rasterizer engine
+
+Entry point: render()
+
+Painter's Algorithm implementation:
+- Traverse scene graph, extract prims from each instance
+  results in => scene_primitives = [(z order, screen points, shading data, DRAW_MODE_*), ...]
+  - _get_screen_primitives_for_instance() appends to scene_primitives
+    - MODEL_TYPE_BILLBOARD/MODEL_TYPE_PARTICLES handled on their own
+    - Meshes:
+      - MODEL_TYPE_ANIMATED_MESH picks underlying mesh model depending on playback frame, then as usual
+      - view_verts = [model vertices X current matrix]
+      - view_normals = [model normals X current matrix]
+- Sort scene_primitives by z
+- Draw all in scene_primitives
+
 """
 
 import math
@@ -32,7 +47,7 @@ MODEL_TYPE_ANIMATED_MESH = 3
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None) -> dict:
     """
     Create a model instance
-    
+
     Instances reference an actual mesh (model) and store a transformation matrix
     and a preprocessing matrix (applied BEFORE the transformation matrix).
     All children (dictionary) inherit the transform of the parent (but not the preprocess).
@@ -47,7 +62,7 @@ def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list =
     *         gouraud (boolean): draw model with Gouraud shaded triangles
     * instance_normal (boolean): Skip instance if it faces away from camera (visible if dot_product(v_0, normal) < 0)
     * ignore_lighting (boolean): ignore lighting, draw with flat triangle color
-    
+
     """
     if preproc_m4 is None:
         preproc_m4 = vecmat.get_unit_m4()
@@ -154,18 +169,18 @@ def clip_space_tri_overlaps_view_frustum(v_0, v_1, v_2, near_clip, far_clip):
     Args are vec3s in clip space
     """
     # All coordinate intervals must overlap
-    min_x = min(v_0[0], min(v_1[0], v_2[0]))
-    max_x = max(v_0[0], max(v_1[0], v_2[0]))
+    min_x = min(v_0[0], v_1[0], v_2[0])
+    max_x = max(v_0[0], v_1[0], v_2[0])
     # Intervals overlap if they have at least one common point,
     # i.e. if max(left bounds) <= min(right bounds)
     if not (max(min_x, -1) <= min(max_x, 1)):
         return False
-    min_y = min(v_0[1], min(v_1[1], v_2[1]))
-    max_y = max(v_0[1], max(v_1[1], v_2[1]))
+    min_y = min(v_0[1], v_1[1], v_2[1])
+    max_y = max(v_0[1], v_1[1], v_2[1])
     if not (max(min_y, -1) <= min(max_y, 1)):
         return False
-    min_z = min(v_0[2], min(v_1[2], v_2[2]))
-    max_z = max(v_0[2], max(v_1[2], v_2[2]))
+    min_z = min(v_0[2], v_1[2], v_2[2])
+    max_z = max(v_0[2], v_1[2], v_2[2])
     # furthest z is MORE NEGATIVE (smallest), so far clip < near clip
     if not (max(min_z, far_clip) <= min(max_z, near_clip)):
         return False
@@ -344,9 +359,9 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
     return (visible_tri_idcs, clip_verts)
 
 
-def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
-                                  lighting, proj_light_dir, instance, model_m, camera_m):
-    """Get (lighted) triangles from this instance and insert them into scene_triangles"""
+def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
+                                        lighting, proj_light_dir, instance, model_m, camera_m):
+    """Get primitives and shading data from this instance"""
     model = instance["model"]
     if not model:
         return
@@ -394,7 +409,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                     if model["play_mode"] == BILLBOARD_PLAY_ALWAYS:
                         model["cur_frame"] = 0
 
-            scene_triangles.append((
+            scene_primitives.append((
                 cur_z,
                 scr_pos,
                 scale_img,
@@ -405,10 +420,10 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
         size = model["size"]
         enabled = model["enabled"]
         cam_positions = [vecmat.vec4_mat4_mul(v, model_m) for v in model["positions"]]
-        for i in range(len(cam_positions)):
+        for i, cam_pos in enumerate(cam_positions):
             if not enabled[i]:
                 continue
-            cam_pos = cam_positions[i]
+
             cur_z = cam_pos[2]
             if cur_z > near_clip:
                 continue
@@ -419,7 +434,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
                 scale_img = pygame.transform.scale(img, proj_size)
                 scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
                         int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
-                scene_triangles.append((
+                scene_primitives.append((
                     cur_z,
                     scr_pos,
                     scale_img,
@@ -435,6 +450,13 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             instance["animation_frame"] = 0.0
             cur_frame = 0
         model = meshes[cur_frame]
+
+    if "instance_normal" in instance:
+        instance_normal = instance["instance_normal"]
+        proj_inst_normal = vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
+        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
+            return
 
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
     view_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["normals"]))
@@ -452,13 +474,6 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
     ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
-    if "instance_normal" in instance:
-        instance_normal = instance["instance_normal"]
-        proj_inst_normal = vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
-        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
-        if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
-            return
-
     vert_normals = None
     if draw_gouraud_shaded:
         vert_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["vert_normals"]))
@@ -466,8 +481,8 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
     # This function may add temporary triangles due to clipping
     # We reset the model's lists to their original size after processing
     num_orig_model_tris = len(model_tris)
-    visible_tri_idcs,screen_verts = _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, view_normals, vert_normals, no_culling)
-    screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in screen_verts]
+    visible_tri_idcs,orig_screen_verts = _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, view_normals, vert_normals, no_culling)
+    screen_verts = [(int(scr_origin_x + v_2[0] * scr_origin_x), int(scr_origin_y - v_2[1] * scr_origin_y)) if v_2 is not None else None for v_2 in orig_screen_verts]
 
     draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
 
@@ -550,7 +565,7 @@ def _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
             else:
                 color_data = [textured, [vert_colors[vert_idx] for vert_idx in tri], subdivide_max_iterations]
 
-        scene_triangles.append((
+        scene_primitives.append((
             z_order,
             [screen_verts[tri[i]] for i in range(3)],
             color_data,
@@ -580,7 +595,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     # Collect all visible triangles. Elements are tuples:
     # (average z depth, screen points of triangle, lighted color, draw mode)
     # Sorted by depth before drawing, draw mode overrides order so wireframes come last
-    scene_triangles = []
+    scene_primitives = []
 
     proj_light_dir = get_proj_light_dir(lighting, camera_m)
 
@@ -590,7 +605,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
                 proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
-                _get_screen_tris_for_instance(scene_triangles, near_clip, far_clip, persp_m,
+                _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
                                               instance, proj_m, camera_m)
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
@@ -601,76 +616,73 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     traverse_scene_graph(scene_graph, vecmat.get_unit_m4())
 
     # Sort triangles in ascending z order but wireframe triangles should be drawn last
-    scene_triangles.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
+    # scene_primitives.sort(key=lambda x: (1 if x[3] == DRAW_MODE_WIREFRAME else 0, x[0]), reverse=False)
+    scene_primitives.sort(key=lambda x: x[0], reverse=False) # Much faster without the extra comparison
     # print(f"tris: {len(scene_triangles)} -> {[v[1] for v in scene_triangles]}")
 
-    for z_order,points,color_data,draw_mode in scene_triangles:
+    for z_order,points,shading_data,draw_mode in scene_primitives:
         if draw_mode == DRAW_MODE_GOURAUD:
-            textured = color_data[0]
+            textured = shading_data[0]
 
             v_a = (points[0][0], points[0][1])
             v_b = (points[1][0], points[1][1])
             v_c = (points[2][0], points[2][1])
-            bary = vecmat.Barycentric2dTriangle(v_a, v_b, v_c)
-            if bary.area_sq == 0:
+            tri_area = vecmat.get_2d_triangle_area(v_a, v_b, v_c)
+            if tri_area <= 0:
                 continue
 
-            if not textured:
-                subdivide_max_iterations = color_data[2]
-                colors = color_data[1]
-                avg_color = vecmat.get_average_color(colors[0], colors[1], colors[2])
-                col_diff = sum([abs(a-i) + abs(a-j) + abs(a-k)
-                            for a,i,j,k in zip(avg_color, colors[0], colors[1], colors[2])])
-                if col_diff <= 20:
-                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
-                    continue
-            else:
-                intensities = color_data[3]
-                subdivide_max_iterations = color_data[4]
-
-            if not textured:
-                if bary.area_sq <= 10:
-                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
-                    continue
-
-            def get_interpolated_color(x, y):
-                u,v,w = bary.get_uvw(x, y)
+            def get_interpolated_color(colors : tuple, x : float, y : float):
+                u,v,w = vecmat.get_barycentric_vec2(v_a, v_b, v_c, (x, y))
                 r = max(0, min(255, int(colors[0][0] * u + colors[1][0] * v + colors[2][0] * w)))
                 g = max(0, min(255, int(colors[0][1] * u + colors[1][1] * v + colors[2][1] * w)))
                 b = max(0, min(255, int(colors[0][2] * u + colors[1][2] * v + colors[2][2] * w)))
                 return (r, g, b)
 
+            if not textured:
+                subdivide_max_iterations = shading_data[2]
+                colors = shading_data[1]
+                avg_color = vecmat.get_average_color(colors[0], colors[1], colors[2])
+                col_diff = sum(abs(a-i) + abs(a-j) + abs(a-k)
+                               for a,i,j,k in zip(avg_color, colors[0], colors[1], colors[2]))
+                if col_diff <= 20:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    continue
+            else:
+                intensities = shading_data[3]
+                subdivide_max_iterations = shading_data[4]
+
+            if not textured:
+                if tri_area <= 10:
+                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    continue
+
             if textured:
-                uv = color_data[1]
-                mip_textures = color_data[2]
+                uv = shading_data[1]
+                mip_textures = shading_data[2]
                 tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
 
             if subdivide_max_iterations > 0:
-                area = math.sqrt(bary.area_sq)
                 def cb_subdivide_gouraud(v_0, v_1, v_2, iteration):
+                    area = tri_area / (4 ** iteration) # triangles split in 4 per iteration
                     if textured:
-                        divisor = 2 ** iteration
-                        uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
-                        pix_w, pix_h = uv_w * tex_ip.tex_w, uv_h * tex_ip.tex_h
-                        if pix_w <= 1 or pix_h <= 1:
+                        if area <= 5 or iteration == subdivide_max_iterations:
                             centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
                             x,y = centroid[0], centroid[1]
-                            u,v,w = bary.get_uvw(x, y)
+                            u,v,w = vecmat.get_barycentric_vec2(v_a, v_b, v_c, (x, y))
                             color = tex_ip.get_color(u, v, w)
                             intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
                             color = (intensity * color[0], intensity * color[1], intensity * color[2])
                             pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
                             return True
                     else:
-                        cur_area = area / (4 ** iteration)
-                        if cur_area < 10 or iteration == subdivide_max_iterations:
-                            c_0 = get_interpolated_color(*v_0)
-                            c_1 = get_interpolated_color(*v_1)
-                            c_2 = get_interpolated_color(*v_2)
+                        if area <= 5 or iteration == subdivide_max_iterations:
+                            c_0 = get_interpolated_color(colors, *v_0)
+                            c_1 = get_interpolated_color(colors, *v_1)
+                            c_2 = get_interpolated_color(colors, *v_2)
                             avg_color = vecmat.get_average_color(c_0, c_1, c_2)
                             pygame.draw.polygon(surface, avg_color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
                             return True
-                vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide_gouraud)
+                vecmat.subdivide_2d_triangle_x4(v_a, v_b, v_c, cb_subdivide_gouraud)
             else:
                 # Per pixel Gouraud shading
                 px_array = pygame.PixelArray(surface) # TODO pygbag doesn't like this
@@ -678,7 +690,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                         if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
                             continue
-                        u,v,w = bary.get_uvw(x, y)
+                        u,v,w = vecmat.get_barycentric_vec2(v_a, v_b, v_c, (x, y))
                         color = tex_ip.get_color(u, v, w)
                         intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
                         color = (intensity * color[0], intensity * color[1], intensity * color[2])
@@ -687,47 +699,44 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                         if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
                             continue
-                        r,g,b = get_interpolated_color(x, y)
+                        r,g,b = get_interpolated_color(colors, x, y)
                         px_array[x, y] = (r << 16) | (g << 8) | b
                 del px_array
         elif draw_mode == DRAW_MODE_FLAT:
-            textured = color_data[0]
-            intensity = color_data[1]
-            subdivide_max_iterations = color_data[4]
+            textured = shading_data[0]
+            intensity = shading_data[1]
+            subdivide_max_iterations = shading_data[4]
             if textured:
-                mip_textures = color_data[2]
-                uv = color_data[3]
+                mip_textures = shading_data[2]
+                uv = shading_data[3]
                 v_a = (points[0][0], points[0][1])
                 v_b = (points[1][0], points[1][1])
                 v_c = (points[2][0], points[2][1])
-                bary = vecmat.Barycentric2dTriangle(v_a, v_b, v_c)
-                if bary.area_sq == 0:
-                    continue
-                tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
-                def cb_subdivide(v_0, v_1, v_2, iteration):
-                    divisor = 2 ** iteration
-                    uv_w, uv_h = tex_ip.uv_extent[0] / divisor, tex_ip.uv_extent[1] / divisor
-                    pix_w, pix_h = uv_w * tex_ip.tex_w, uv_h * tex_ip.tex_h
-                    if pix_w <= 1 or pix_h <= 1 or iteration == subdivide_max_iterations:
-                        centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
-                        x,y = centroid[0], centroid[1]
-                        u,v,w = bary.get_uvw(x, y)
-                        color = tex_ip.get_color(u, v, w)
-                        color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                        pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
-                        return True
-                    return False
-                vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
+                tri_area = vecmat.get_2d_triangle_area(v_a, v_b, v_c)
+                if tri_area > 0:
+                    tex_ip = vecmat.TextureInterpolation(uv, mip_textures, z_order, mip_dist)
+                    def cb_subdivide(v_0, v_1, v_2, iteration):
+                        area = tri_area / (2 ** iteration) # triangles split in 2 per iteration
+                        if area <= 10 or iteration == subdivide_max_iterations:
+                            centroid = vecmat.get_vec2_triangle_centroid(v_0, v_1, v_2)
+                            x,y = centroid[0], centroid[1]
+                            u,v,w = vecmat.get_barycentric_vec2(v_a, v_b, v_c, (x, y))
+                            color = tex_ip.get_color(u, v, w)
+                            color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                            pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            return True
+                        return False
+                    vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
             else:
-                color = color_data[2]
+                color = shading_data[2]
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])
                 pygame.draw.polygon(surface, color, points)
         elif draw_mode == DRAW_MODE_WIREFRAME:
-            pygame.draw.lines(surface, color_data, True, points)
+            pygame.draw.lines(surface, shading_data, True, points)
         elif draw_mode == DRAW_MODE_BILLBOARD:
-            surface.blit(color_data, points)
+            surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_PARTICLE:
-            surface.blit(color_data, points)
+            surface.blit(shading_data, points)
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""

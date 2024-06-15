@@ -261,7 +261,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     for x in range(3):
         skeleton_imgs.append(skeleton_ss.get_image(3*32 + x * 32, 0 * 64, 32, 64))
     skeleton_billboard = rasterizer.get_animated_billboard(cell_size * (1 + 0.5), 2, -cell_size * (3 + 0.5), 20, 20, skeleton_imgs)
-    skeleton_billboard["frame_advance"] = 0.3
+    skeleton_billboard["frame_advance"] = 0.1
     skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
     scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
     skeleton_inst["fade_distance"] = FADE_DISTANCE
@@ -525,7 +525,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     first_mouse_move = True
 
     while not done:
-        clock.tick(30)
+        clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
@@ -557,7 +557,7 @@ def main_function(): # PYGBAG: decorate with 'async'
                 vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING,
                 near_clip, far_clip)
         elapsed_time = time.perf_counter() - t
-        if frame % 30 == 0:
+        if frame % 60 == 0:
             print(f"render time: {round(elapsed_time, 3)} s")
 
         screen.blit(cross_surface, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_size), special_flags=pygame.BLEND_RGBA_ADD)
