@@ -73,6 +73,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     done = False
     paused = False
     move_dir = [0, 0, 0] # xyz delta relative to camera direction
+    rot_dir = [0, 0] # horizontal/vertical rotation direction
 
     textblock_fps = None
     def update_hud():
@@ -111,6 +112,18 @@ def main_function(): # PYGBAG: decorate with 'async'
         elif key == pygame.K_d:
             move_dir[0] = 1
             return True
+        elif key == pygame.K_LEFT:
+            rot_dir[0] = 1
+            return True
+        elif key == pygame.K_RIGHT:
+            rot_dir[0] = -1
+            return True
+        elif key == pygame.K_UP:
+            rot_dir[1] = 1
+            return True
+        elif key == pygame.K_DOWN:
+            rot_dir[1] = -1
+            return True
         return False
 
     def on_key_up(key):
@@ -119,10 +132,20 @@ def main_function(): # PYGBAG: decorate with 'async'
             move_dir[2] = 0
         elif key == pygame.K_a or key == pygame.K_d:
             move_dir[0] = 0
+        elif key == pygame.K_LEFT or key == pygame.K_RIGHT:
+            rot_dir[0] = 0
+        elif key == pygame.K_UP or key == pygame.K_DOWN:
+            rot_dir[1] = 0
 
+    DELTA_ROT = vecmat.deg_to_rad(3)
     def do_movement():
         """"""
         global CAMERA
+        nonlocal rot_dir
+        rot = CAMERA["rot"]
+        rot[0] += rot_dir[1] * DELTA_ROT
+        rot[1] += rot_dir[0] * DELTA_ROT
+
         nonlocal move_dir
         if move_dir == [0, 0, 0]:
             return
