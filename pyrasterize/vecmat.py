@@ -13,15 +13,23 @@ def sub_vec3(v_1, v_2):
     """Return v1 - v2"""
     return [v_1[0] - v_2[0], v_1[1] - v_2[1], v_1[2] - v_2[2]]
 
+def sub_vec2(v_1, v_2):
+    """Return v1 - v2"""
+    return [v_1[0] - v_2[0], v_1[1] - v_2[1]]
+
 def cross_vec3(a, b):
     """Return vec3 result of cross product of 2 vec3's"""
     return [a[1]*b[2] - a[2]*b[1],
         a[2]*b[0] - a[0]*b[2],
         a[0]*b[1] - a[1]*b[0]]
 
-def dot_product_vec3(a, b):
+def dot_vec3(a, b):
     """Return dot product of vec3"""
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+def dot_vec2(a, b):
+    """Return dot product of vec2"""
+    return a[0] * b[0] + a[1] * b[1]
 
 def mag_sq_vec3(v_3):
     """Return squared magnitude of vec3"""
@@ -30,6 +38,14 @@ def mag_sq_vec3(v_3):
 def mag_vec3(v_3):
     """Return magnitude of vec3"""
     return (v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]) ** 0.5
+
+def mag_sq_vec2(v):
+    """Return squared magnitude of vec2"""
+    return v[0] * v[0] + v[1] * v[1]
+
+def mag_vec2(v):
+    """Return magnitude of vec2"""
+    return (v[0] * v[0] + v[1] * v[1]) ** 0.5
 
 def norm_vec3(v_3):
     """Return normalized vec3"""
@@ -268,47 +284,37 @@ def get_average_color(c_0, c_1, c_2):
     """Average of 3 RGB colors"""
     return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]
 
-class Barycentric2dTriangle:
-    def __init__(self, v_a, v_b, v_c) -> None:
-        self.v_a = v_a
-        self.v_b = v_b
-        self.v_c = v_c
+def get_barycentric_vec2(v_a, v_b, v_c, v_p):
+    """
+    Return u,v,w for point p inside 2d triangle abc
+    """
+    a_b = sub_vec2(v_b, v_a)
+    a_c = sub_vec2(v_c, v_a)
+    a_p = sub_vec2(v_p, v_a)
+    nac = [v_a[1] - v_c[1], v_c[0] - v_a[0]]
+    nab = [v_a[1] - v_b[1], v_b[0] - v_a[0]]
+    v = dot_vec2(a_p, nac) / dot_vec2(a_b, nac)
+    w = dot_vec2(a_p, nab) / dot_vec2(a_c, nab)
+    u = 1.0 - v - w
+    return u, v, w
 
-        # v_ab = vecmat.sub_vec3(v_b, v_a)
-        v_ab_0 = v_b[0] - v_a[0]
-        v_ab_1 = v_b[1] - v_a[1]
-        # v_ac = vecmat.sub_vec3(v_c, v_a)
-        v_ac_0 = v_c[0] - v_a[0]
-        v_ac_1 = v_c[1] - v_a[1]
-        # v_n = vecmat.cross_vec3(v_ab, v_ac)
-        self.v_n = v_ab_0 * v_ac_1 - v_ab_1 * v_ac_0
-        # area_full_sq = vecmat.dot_product_vec3(v_n, v_n)
-        self.area_sq = self.v_n ** 2
-
-        # p = (x, y, 0)
-        # v_bc = vecmat.sub_vec3(v_c, v_b)
-        self.v_bc_0 = v_c[0] - v_b[0]
-        self.v_bc_1 = v_c[1] - v_b[1]
-        # v_ca = vecmat.sub_vec3(v_a, v_c)
-        self.v_ca_0 = v_a[0] - v_c[0]
-        self.v_ca_1 = v_a[1] - v_c[1]
-
-    def get_uvw(self, x, y):
-        # v_bp = vecmat.sub_vec3(p, v_b)
-        v_bp_0 = x - self.v_b[0]
-        v_bp_1 = y - self.v_b[1]
-        # v_n1 = vecmat.cross_vec3(v_bc, v_bp)
-        v_n1 = self.v_bc_0 * v_bp_1 - self.v_bc_1 * v_bp_0
-        # u = vecmat.dot_product_vec3(v_n, v_n1) / area_full_sq
-        u = (self.v_n * v_n1) / self.area_sq
-        # v_cp = vecmat.sub_vec3(p, v_c)
-        v_cp_0 = x - self.v_c[0]
-        v_cp_1 = y - self.v_c[1]
-        # v_n2 = vecmat.cross_vec3(v_ca, v_cp)
-        v_n2 = self.v_ca_0 * v_cp_1 - self.v_ca_1 * v_cp_0
-        # v = vecmat.dot_product_vec3(v_n, v_n2) / area_full_sq
-        v = (self.v_n * v_n2) / self.area_sq
-        return u, v, 1 - u - v
+def get_barycentric_vec3(v_a, v_b, v_c, v_p):
+    """
+    Return u,v,w for point p inside 3d triangle abc
+    """
+    v0 = sub_vec3(v_b, v_a)
+    v1 = sub_vec3(v_c, v_a)
+    v2 = sub_vec3(v_p, v_a)
+    d00 = dot_vec3(v0, v0)
+    d01 = dot_vec3(v0, v1)
+    d11 = dot_vec3(v1, v1)
+    d20 = dot_vec3(v2, v0)
+    d21 = dot_vec3(v2, v1)
+    denom = d00 * d11 - d01 * d01
+    v = (d11 * d20 - d01 * d21) / denom
+    w = (d00 * d21 - d01 * d20) / denom
+    u = 1.0 - v - w
+    return u, v, w
 
 class TextureInterpolation:
     def __init__(self, uv, mip_textures, z_order, mip_dist) -> None:
@@ -336,7 +342,7 @@ class TextureInterpolation:
         color = self.texture[t_i][s_i]
         return color
 
-def subdivide_2d_triangle(v_a, v_b, v_c, callback):
+def subdivide_2d_triangle_x4(v_a, v_b, v_c, callback):
     """
     Callback arguments: vec2: point, vec2: point, vec2: point, int: iteration
     If returns true, don't split current triangle further
@@ -351,20 +357,65 @@ def subdivide_2d_triangle(v_a, v_b, v_c, callback):
         # Split and recurse
         iteration = tri[3]
         iteration += 1
-        v_01 = [tri[1][0] - tri[0][0], tri[1][1] - tri[0][1]]
-        v_02 = [tri[2][0] - tri[0][0], tri[2][1] - tri[0][1]]
 
-        v_01_h = [v_01[0] / 2, v_01[1] / 2]
-        v_02_h = [v_02[0] / 2, v_02[1] / 2]
+        tri_0 = tri[0]
+        tri_0_0 = tri_0[0]
+        tri_0_1 = tri_0[1]
 
-        h_01 = [tri[0][0] + v_01_h[0], tri[0][1] + v_01_h[1]]
-        h_02 = [tri[0][0] + v_02_h[0], tri[0][1] + v_02_h[1]]
-        h_12 = [tri[0][0] + v_01_h[0] + v_02_h[0], tri[0][1] + v_01_h[1] + v_02_h[1]]
+        v_01 = (tri[1][0] - tri_0_0, tri[1][1] - tri_0_1)
+        v_02 = (tri[2][0] - tri_0_0, tri[2][1] - tri_0_1)
 
-        tri_stack.append((tri[0], h_01, h_02, iteration))
+        v_01_h = (v_01[0] / 2, v_01[1] / 2)
+        v_02_h = (v_02[0] / 2, v_02[1] / 2)
+
+        tri_0_0_plus_v_01_h0 = tri_0_0 + v_01_h[0]
+        tri_0_1_plus_v_01_h1 = tri_0_1 + v_01_h[1]
+
+        h_01 = (tri_0_0_plus_v_01_h0, tri_0_1_plus_v_01_h1)
+        h_02 = (tri_0_0 + v_02_h[0], tri_0_1 + v_02_h[1])
+        h_12 = (tri_0_0_plus_v_01_h0 + v_02_h[0], tri_0_1_plus_v_01_h1 + v_02_h[1])
+
+        tri_stack.append((tri_0, h_01, h_02, iteration))
         tri_stack.append((h_02, h_01, h_12, iteration))
         tri_stack.append((h_01, tri[1], h_12, iteration))
         tri_stack.append((h_02, h_12, tri[2], iteration))
+
+
+def subdivide_2d_triangle(v_a, v_b, v_c, callback):
+    """
+    Callback arguments: vec2: point, vec2: point, vec2: point, int: iteration
+    If returns true, don't split current triangle further
+    """
+    tri_stack = deque()
+    tri_stack.append((v_a, v_b, v_c, 0))
+    while tri_stack:
+        tri = tri_stack.popleft()
+        if callback(*tri):
+            continue
+
+        # Split and recurse
+        v_0, v_1, v_2, iteration = tri
+        iteration += 1
+
+        sides = ((v_1[0] - v_0[0], v_1[1] - v_0[1]), # sub_vec2(v_1, v_0),
+                 (v_2[0] - v_0[0], v_2[1] - v_0[1]), # sub_vec2(v_2, v_0),
+                 (v_2[0] - v_1[0], v_2[1] - v_1[1])  # sub_vec2(v_2, v_1)
+                 )
+        mag_sq = tuple(map(mag_sq_vec2, sides))
+        largest_side = mag_sq.index(max(mag_sq))
+
+        if largest_side == 0: # 01
+            h = midpoint_v2(v_0, v_1)
+            tri_stack.append((v_0, h, v_2, iteration))
+            tri_stack.append((h, v_1, v_2, iteration))
+        elif largest_side == 1: # 02
+            h = midpoint_v2(v_0, v_2)
+            tri_stack.append((v_0, v_1, h, iteration))
+            tri_stack.append((h, v_1, v_2, iteration))
+        else: # 12
+            h = midpoint_v2(v_1, v_2)
+            tri_stack.append((v_0, v_1, h, iteration))
+            tri_stack.append((v_0, h, v_2, iteration))
 
 def random_in_unit_sphere_vec3():
     while True:
@@ -378,7 +429,7 @@ def random_unit_vector_vec3():
 
 def random_in_hemisphere(normal : list):
     in_unit_sphere = random_in_unit_sphere_vec3()
-    if dot_product_vec3(in_unit_sphere, normal) > 0:
+    if dot_vec3(in_unit_sphere, normal) > 0:
         return in_unit_sphere
     else:
         return [-in_unit_sphere[i] for i in range(3)]
@@ -395,14 +446,22 @@ def near_zero_vec3(v : list):
     return abs(v[0]) < s and abs(v[1]) < s and abs(v[2]) < s
 
 def reflect_vec3(v : list, n : list):
-    dot_vn = dot_product_vec3(v, n)
+    dot_vn = dot_vec3(v, n)
     return [v[i] - 2 * dot_vn * n[i] for i in range(3)]
 
 def refract_vec3(uv : list, n : list, etai_over_etat : float):
     minus_uv = [-uv[i] for i in range(3)]
-    cos_theta = min(dot_product_vec3(minus_uv, n), 1.0)
+    cos_theta = min(dot_vec3(minus_uv, n), 1.0)
     r_out_perp = [etai_over_etat * (uv[i] + cos_theta * n[i]) for i in range(3)]
     r_out_perp_length_squared = mag_sq_vec3(r_out_perp)
     k = -((abs(1 - r_out_perp_length_squared)) ** 0.5)
     r_out_parallel = [n[i] * k for i in range(3)]
     return [r_out_perp[i] + r_out_parallel[i] for i in range(3)]
+
+def midpoint_v2(v_a : list, v_b : list) -> list:
+    """Get midpoint between two vec2"""
+    return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1])]
+
+def midpoint_v3(v_a : list, v_b : list) -> list:
+    """Get midpoint between two vec3"""
+    return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1]), 0.5 * (v_a[2] + v_b[2])]

@@ -166,7 +166,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     painting_pos = (0, 1, -5.2)
     world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
         xform_m4=vecmat.get_transl_m4(*painting_pos))
-    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 5
+    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
 
     world_graph["root"]["children"]["painting_wall"] = rasterizer.get_model_instance(meshes.get_cube_mesh(stone_color))
     painting_wall_inst = world_graph["root"]["children"]["painting_wall"]
@@ -181,8 +181,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         "walk": ("assets/dummy-walk.zip", (63, 123)),
         "run": ("assets/dummy-run.zip", (1, 35))})
     world_graph["root"]["children"]["npc"] = rasterizer.get_model_instance(npc_animation,
-                                                                           xform_m4=vecmat.get_transl_m4(4, 0, 0))
+                                                                           xform_m4=vecmat.get_transl_m4(6, 0, 0))
     world_graph["root"]["children"]["npc"]["animation"] = "walk"
+    world_graph["root"]["children"]["npc"]["gouraud"] = True
+    world_graph["root"]["children"]["npc"]["subdivide_max_iterations"] = 1
 
     world_graph["root"]["children"]["npc_2"] = rasterizer.get_model_instance(npc_animation,
                                                                              vecmat.get_rot_y_m4(vecmat.deg_to_rad(-45)),
@@ -307,8 +309,12 @@ def main_function(): # PYGBAG: decorate with 'async'
             LIGHTING["pointlight_falloff"] = random.uniform(1.5, 1.6)
 
         npc_dur = 300
+        npc = world_graph["root"]["children"]["npc"]
+        m = vecmat.get_transl_m4(6, 0, 0)
+        m = vecmat.mat4_mat4_mul(m, rot_m)
+        npc["xform_m4"] = m
         if frame % npc_dur == 0:
-            world_graph["root"]["children"]["npc"]["animation"] = npc_phases[(frame // npc_dur) % 3]
+            npc["animation"] = npc_phases[(frame // npc_dur) % 3]
 
     cross_size = 20
     cross_width = 2
@@ -359,7 +365,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         screen.blit(cross_surface, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_size), special_flags=pygame.BLEND_RGBA_ADD)
 
-        if frame % 30 == 0:
+        if frame % 60 == 0:
             update_hud()
         screen.blit(textblock_fps, (30, 30))
 
