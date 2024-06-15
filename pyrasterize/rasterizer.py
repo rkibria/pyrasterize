@@ -34,6 +34,7 @@ DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
 DRAW_MODE_BILLBOARD = 3
 DRAW_MODE_PARTICLE = 4
+DRAW_MODE_DEBUG_DOT = 5
 
 BILLBOARD_PLAY_ALWAYS = 0
 BILLBOARD_PLAY_ONCE = 1
@@ -42,6 +43,7 @@ MODEL_TYPE_MESH = 0
 MODEL_TYPE_BILLBOARD = 1
 MODEL_TYPE_PARTICLES = 2
 MODEL_TYPE_ANIMATED_MESH = 3
+MODEL_TYPE_TEXTURE_RECT = 4
 
 
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None) -> dict:
@@ -371,11 +373,11 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
 
     if model["model_type"] == MODEL_TYPE_BILLBOARD:
-        cam_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
-        cur_z = cam_pos[2]
+        center_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
+        cur_z = center_pos[2]
         if cur_z > near_clip or cur_z < far_clip:
             return
-        clip_pos = project_to_clip_space(cam_pos, persp_m)
+        clip_pos = project_to_clip_space(center_pos, persp_m)
         if clip_pos is not None:
             scale = model["size_scale"]
             size = (model["size"][0] * scale, model["size"][1] * scale)
@@ -420,25 +422,40 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         size = model["size"]
         enabled = model["enabled"]
         cam_positions = [vecmat.vec4_mat4_mul(v, model_m) for v in model["positions"]]
-        for i, cam_pos in enumerate(cam_positions):
+        for i, center_pos in enumerate(cam_positions):
             if not enabled[i]:
                 continue
 
-            cur_z = cam_pos[2]
+            cur_z = center_pos[2]
             if cur_z > near_clip:
                 continue
-            clip_pos = project_to_clip_space(cam_pos, persp_m)
+            clip_pos = project_to_clip_space(center_pos, persp_m)
             if clip_pos is not None:
                 inv_z = 1.0 / abs(cur_z)
                 proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
                 scale_img = pygame.transform.scale(img, proj_size)
                 scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
-                        int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
+                           int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
                 scene_primitives.append((
                     cur_z,
                     scr_pos,
                     scale_img,
                     DRAW_MODE_PARTICLE))
+        return
+    elif model["model_type"] == MODEL_TYPE_TEXTURE_RECT:
+        center_pos = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        cur_z = center_pos[2]
+        if cur_z > near_clip or cur_z < far_clip:
+            return
+        clip_pos = project_to_clip_space(center_pos, persp_m)
+        if clip_pos is not None:
+            scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x),
+                       int(scr_origin_y - clip_pos[1] * scr_origin_y))
+            scene_primitives.append((
+                cur_z,
+                scr_pos,
+                (255, 0, 0),
+                DRAW_MODE_DEBUG_DOT))
         return
 
     if model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
@@ -737,6 +754,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_PARTICLE:
             surface.blit(shading_data, points)
+        elif draw_mode == DRAW_MODE_DEBUG_DOT:
+            pygame.draw.rect(surface, shading_data, pygame.Rect(points[0]-1, points[1]-1, 2, 2))
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
@@ -764,4 +783,15 @@ def get_particles(img, num_particles, sx, sy):
         "img": img,
         "size": [sx, sy],
         "user_data": []
+    }
+
+def get_texture_rect(mip_textures,
+                    size_v2,
+                    normal_v3):
+    """Create a rectangular texture"""
+    return {
+        "model_type": MODEL_TYPE_TEXTURE_RECT,
+        "size": [*size_v2],
+        "normal": [*normal_v3, 1.0],
+        "mip_textures": mip_textures,
     }

@@ -23,7 +23,7 @@ RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0, 1, -4.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0, 1, 0], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
@@ -49,12 +49,16 @@ def main_function(): # PYGBAG: decorate with 'async'
     world_graph = scene_graphs[2]
 
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    pos = (0, 1, -5.2)
+    pos = (0, 1, -5)
 
-    mesh = meshes.get_test_texture_mesh(mip_textures)
+    # mesh = meshes.get_test_texture_mesh(mip_textures)
+    # world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
+    #     xform_m4=vecmat.get_transl_m4(*pos))
+    # world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
+
+    mesh = rasterizer.get_texture_rect(mip_textures, (1, 1), (0, 0, 1))
     world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
         xform_m4=vecmat.get_transl_m4(*pos))
-    world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
