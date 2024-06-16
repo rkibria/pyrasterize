@@ -467,6 +467,11 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     DRAW_MODE_PARTICLE))
         return
     elif model["model_type"] == MODEL_TYPE_TEXTURE_RECT:
+        normal = vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model["normal"], model_m))
+        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        if (v_instance[0] * normal[0] + v_instance[1] * normal[1] + v_instance[2] * normal[2]) >= 0:
+            return
+
         quad_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in model["quad"]]
         cur_z = min([v[2] for v in quad_verts])
         if cur_z > 0 or cur_z < far_clip:
@@ -854,6 +859,10 @@ def get_texture_rect(mip_textures : list,
     v_03 = vecmat.sub_vec3(v_3, v_0)
     v_12 = vecmat.sub_vec3(v_2, v_1)
 
+    v_a = vecmat.sub_vec3(v_1, v_0)
+    v_b = vecmat.sub_vec3(v_2, v_0)
+    normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
+
     for img in mip_textures:
         tex_w = len(img[0])
         tex_h = len(img)
@@ -878,7 +887,7 @@ def get_texture_rect(mip_textures : list,
     return {
         "model_type": MODEL_TYPE_TEXTURE_RECT,
         "quad": [[*v, 1.0] for v in quad_points_v3],
-        "normal": None,
+        "normal": [*normal, 0],
         "mip_verts": mip_verts,
         "mip_textures": mip_textures,
         "mip_dist": mip_dist,
