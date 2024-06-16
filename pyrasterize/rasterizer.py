@@ -467,9 +467,9 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     DRAW_MODE_PARTICLE))
         return
     elif model["model_type"] == MODEL_TYPE_TEXTURE_RECT:
-        center_pos = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
-        cur_z = center_pos[2]
-        if cur_z > near_clip or cur_z < far_clip:
+        quad_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in model["quad"]]
+        cur_z = min([v[2] for v in quad_verts])
+        if cur_z > 0 or cur_z < far_clip:
             return
 
         mip_textures = model["mip_textures"]
