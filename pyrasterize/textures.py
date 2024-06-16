@@ -1,8 +1,10 @@
 import pygame
 
-def get_mip_textures(file_name):
+def get_mip_textures(file_name) -> list:
     """
     Return texture data to assign to model['texture']
+
+    List elements scanlines of color tuples [[line y=0 (r,g,b), ...], [ line y=1 (r,g,b), ...], ...]
     """
     img = pygame.image.load(file_name).convert_alpha()
     tex_data = [] # mipmap levels, 0 = original, 1 = original/2

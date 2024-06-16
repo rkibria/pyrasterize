@@ -23,6 +23,7 @@ Painter's Algorithm implementation:
 import math
 
 import pygame
+import pygame.gfxdraw
 
 DEBUG_FONT = None
 
@@ -34,6 +35,8 @@ DRAW_MODE_FLAT = 1
 DRAW_MODE_GOURAUD = 2
 DRAW_MODE_BILLBOARD = 3
 DRAW_MODE_PARTICLE = 4
+DRAW_MODE_DEBUG_DOT = 5
+DRAW_MODE_TEXTURE_RECT = 6
 
 BILLBOARD_PLAY_ALWAYS = 0
 BILLBOARD_PLAY_ONCE = 1
@@ -42,6 +45,7 @@ MODEL_TYPE_MESH = 0
 MODEL_TYPE_BILLBOARD = 1
 MODEL_TYPE_PARTICLES = 2
 MODEL_TYPE_ANIMATED_MESH = 3
+MODEL_TYPE_TEXTURE_RECT = 4
 
 
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None) -> dict:
@@ -158,9 +162,10 @@ def project_to_clip_space(view_v, persp_m):
     Returns vec3 (last component is original z) or None
     """
     z = view_v[2]
-    if z == 0:
-        return None
     perp_div = abs(z)
+    # Skip values too close to zero
+    if abs(perp_div) < 0.0001:
+        return None
     screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
     return [screen_v[0] / perp_div, screen_v[1] / perp_div, z]
 
@@ -181,6 +186,28 @@ def clip_space_tri_overlaps_view_frustum(v_0, v_1, v_2, near_clip, far_clip):
         return False
     min_z = min(v_0[2], v_1[2], v_2[2])
     max_z = max(v_0[2], v_1[2], v_2[2])
+    # furthest z is MORE NEGATIVE (smallest), so far clip < near clip
+    if not (max(min_z, far_clip) <= min(max_z, near_clip)):
+        return False
+    return True
+
+def clip_space_quad_overlaps_view_frustum(v_0, v_1, v_2, v_3, near_clip, far_clip):
+    """
+    Args are vec3s in clip space
+    """
+    # All coordinate intervals must overlap
+    min_x = min(v_0[0], v_1[0], v_2[0], v_3[0])
+    max_x = max(v_0[0], v_1[0], v_2[0], v_3[0])
+    # Intervals overlap if they have at least one common point,
+    # i.e. if max(left bounds) <= min(right bounds)
+    if not (max(min_x, -1) <= min(max_x, 1)):
+        return False
+    min_y = min(v_0[1], v_1[1], v_2[1], v_3[1])
+    max_y = max(v_0[1], v_1[1], v_2[1], v_3[1])
+    if not (max(min_y, -1) <= min(max_y, 1)):
+        return False
+    min_z = min(v_0[2], v_1[2], v_2[2], v_3[2])
+    max_z = max(v_0[2], v_1[2], v_2[2], v_3[2])
     # furthest z is MORE NEGATIVE (smallest), so far clip < near clip
     if not (max(min_z, far_clip) <= min(max_z, near_clip)):
         return False
@@ -371,11 +398,11 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
 
     if model["model_type"] == MODEL_TYPE_BILLBOARD:
-        cam_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
-        cur_z = cam_pos[2]
+        center_pos = vecmat.vec4_mat4_mul(model["translate"], model_m)
+        cur_z = center_pos[2]
         if cur_z > near_clip or cur_z < far_clip:
             return
-        clip_pos = project_to_clip_space(cam_pos, persp_m)
+        clip_pos = project_to_clip_space(center_pos, persp_m)
         if clip_pos is not None:
             scale = model["size_scale"]
             size = (model["size"][0] * scale, model["size"][1] * scale)
@@ -420,25 +447,58 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         size = model["size"]
         enabled = model["enabled"]
         cam_positions = [vecmat.vec4_mat4_mul(v, model_m) for v in model["positions"]]
-        for i, cam_pos in enumerate(cam_positions):
+        for i, center_pos in enumerate(cam_positions):
             if not enabled[i]:
                 continue
 
-            cur_z = cam_pos[2]
+            cur_z = center_pos[2]
             if cur_z > near_clip:
                 continue
-            clip_pos = project_to_clip_space(cam_pos, persp_m)
+            clip_pos = project_to_clip_space(center_pos, persp_m)
             if clip_pos is not None:
                 inv_z = 1.0 / abs(cur_z)
                 proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
                 scale_img = pygame.transform.scale(img, proj_size)
                 scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x - scale_img.get_width() / 2),
-                        int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
+                           int(scr_origin_y - clip_pos[1] * scr_origin_y - scale_img.get_height() / 2))
                 scene_primitives.append((
                     cur_z,
                     scr_pos,
                     scale_img,
                     DRAW_MODE_PARTICLE))
+        return
+    elif model["model_type"] == MODEL_TYPE_TEXTURE_RECT:
+        normal = vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model["normal"], model_m))
+        v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        if (v_instance[0] * normal[0] + v_instance[1] * normal[1] + v_instance[2] * normal[2]) >= 0:
+            return
+
+        quad_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in model["quad"]]
+        cur_z = min([v[2] for v in quad_verts])
+        if cur_z > 0 or cur_z < far_clip:
+            return
+
+        mip_textures = model["mip_textures"]
+        mip_verts = model["mip_verts"]
+
+        mip_level = min(len(mip_textures) - 1, math.floor(-cur_z / model["mip_dist"]))
+        img = mip_textures[mip_level]
+        tex_w = len(img[0])
+        tex_h = len(img)
+        verts = mip_verts[mip_level]
+
+        cam_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in verts]
+        clip_verts = [project_to_clip_space(v, persp_m) for v in cam_verts]
+        
+        scr_posns = [(int(scr_origin_x + v[0] * scr_origin_x),
+                      int(scr_origin_y - v[1] * scr_origin_y)) if v is not None else None
+                      for v in clip_verts]
+
+        scene_primitives.append((
+            cur_z,
+            (clip_verts, scr_posns),
+            [img, tex_w, tex_h],
+            DRAW_MODE_TEXTURE_RECT))
         return
 
     if model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
@@ -645,7 +705,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 col_diff = sum(abs(a-i) + abs(a-j) + abs(a-k)
                                for a,i,j,k in zip(avg_color, colors[0], colors[1], colors[2]))
                 if col_diff <= 20:
-                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    posns = ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1]))
+                    pygame.gfxdraw.aapolygon(surface, posns, avg_color)
+                    pygame.gfxdraw.filled_polygon(surface, posns, avg_color)
                     continue
             else:
                 intensities = shading_data[3]
@@ -653,7 +715,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
             if not textured:
                 if tri_area <= 10:
-                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    posns = ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1]))
+                    pygame.gfxdraw.aapolygon(surface, posns, avg_color)
+                    pygame.gfxdraw.filled_polygon(surface, posns, avg_color)
                     continue
 
             if textured:
@@ -672,7 +736,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             color = tex_ip.get_color(u, v, w)
                             intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
                             color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                            pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
+                            pygame.gfxdraw.aapolygon(surface, posns, color)
+                            pygame.gfxdraw.filled_polygon(surface, posns, color)
                             return True
                     else:
                         if area <= 5 or iteration == subdivide_max_iterations:
@@ -680,7 +746,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             c_1 = get_interpolated_color(colors, *v_1)
                             c_2 = get_interpolated_color(colors, *v_2)
                             avg_color = vecmat.get_average_color(c_0, c_1, c_2)
-                            pygame.draw.polygon(surface, avg_color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
+                            pygame.gfxdraw.aapolygon(surface, posns, avg_color)
+                            pygame.gfxdraw.filled_polygon(surface, posns, avg_color)
                             return True
                 vecmat.subdivide_2d_triangle_x4(v_a, v_b, v_c, cb_subdivide_gouraud)
             else:
@@ -723,20 +791,47 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             u,v,w = vecmat.get_barycentric_vec2(v_a, v_b, v_c, (x, y))
                             color = tex_ip.get_color(u, v, w)
                             color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                            pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
+                            pygame.gfxdraw.aapolygon(surface, posns, color)
+                            pygame.gfxdraw.filled_polygon(surface, posns, color)
                             return True
                         return False
                     vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
             else:
                 color = shading_data[2]
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                pygame.draw.polygon(surface, color, points)
+                pygame.gfxdraw.aapolygon(surface, points, color)
+                pygame.gfxdraw.filled_polygon(surface, points, color)
         elif draw_mode == DRAW_MODE_WIREFRAME:
-            pygame.draw.lines(surface, shading_data, True, points)
+            pygame.gfxdraw.aapolygon(surface, points, shading_data)
         elif draw_mode == DRAW_MODE_BILLBOARD:
             surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_PARTICLE:
             surface.blit(shading_data, points)
+        elif draw_mode == DRAW_MODE_DEBUG_DOT:
+            pygame.draw.rect(surface, shading_data, pygame.Rect(points[0]-1, points[1]-1, 2, 2))
+        elif draw_mode == DRAW_MODE_TEXTURE_RECT:
+            img,cols,rows = shading_data
+            clip_verts, scr_posns = points
+            for row in range(rows):
+                for col in range(cols):
+                    color = img[row][col]
+                    i_0 = row * (cols + 1) + col
+                    i_1 = i_0 + 1
+                    i_2 = i_0 + 1 + cols + 1
+                    i_3 = i_0 + cols + 1
+                    posns = (scr_posns[i_0],
+                             scr_posns[i_1],
+                             scr_posns[i_2],
+                             scr_posns[i_3])
+                    if not any(map(lambda x: x is None, posns)):
+                        if clip_space_quad_overlaps_view_frustum(clip_verts[i_0],
+                                                                 clip_verts[i_1],
+                                                                 clip_verts[i_2],
+                                                                 clip_verts[i_3],
+                                                                 near_clip, far_clip):
+                            pygame.gfxdraw.aapolygon(surface, posns, color)
+                            pygame.gfxdraw.filled_polygon(surface, posns, color)
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
@@ -764,4 +859,49 @@ def get_particles(img, num_particles, sx, sy):
         "img": img,
         "size": [sx, sy],
         "user_data": []
+    }
+
+def get_texture_rect(mip_textures : list,
+                     quad_points_v3 : list,
+                     mip_dist : float):
+    """Create a rectangular texture"""
+    mip_verts = []
+
+    v_0,v_1,v_2,v_3 = quad_points_v3
+
+    v_03 = vecmat.sub_vec3(v_3, v_0)
+    v_12 = vecmat.sub_vec3(v_2, v_1)
+
+    v_a = vecmat.sub_vec3(v_1, v_0)
+    v_b = vecmat.sub_vec3(v_2, v_0)
+    normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
+
+    for img in mip_textures:
+        tex_w = len(img[0])
+        tex_h = len(img)
+
+        rows = tex_h
+        cols = tex_w
+
+        v_03_step = vecmat.mul_vec3(1.0 / rows, v_03)
+        v_12_step = vecmat.mul_vec3(1.0 / rows, v_12)
+
+        cur_verts = []
+        for u in range(rows + 1):
+            v_03_p = vecmat.add_vec3(v_0, vecmat.mul_vec3(u, v_03_step))
+            v_12_p = vecmat.add_vec3(v_1, vecmat.mul_vec3(u, v_12_step))
+            v_across_step = vecmat.mul_vec3(1.0 / cols, vecmat.sub_vec3(v_12_p, v_03_p))
+            for v in range(cols + 1):
+                p = vecmat.add_vec3(v_03_p, vecmat.mul_vec3(v, v_across_step))
+                cur_verts.append([*p, 1.0])
+
+        mip_verts.append(cur_verts)
+
+    return {
+        "model_type": MODEL_TYPE_TEXTURE_RECT,
+        "quad": [[*v, 1.0] for v in quad_points_v3],
+        "normal": [*normal, 0],
+        "mip_verts": mip_verts,
+        "mip_textures": mip_textures,
+        "mip_dist": mip_dist,
     }
