@@ -705,7 +705,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 col_diff = sum(abs(a-i) + abs(a-j) + abs(a-k)
                                for a,i,j,k in zip(avg_color, colors[0], colors[1], colors[2]))
                 if col_diff <= 20:
-                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    posns = ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1]))
+                    pygame.gfxdraw.aapolygon(surface, posns, avg_color)
+                    pygame.gfxdraw.filled_polygon(surface, posns, avg_color)
                     continue
             else:
                 intensities = shading_data[3]
@@ -713,7 +715,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
 
             if not textured:
                 if tri_area <= 10:
-                    pygame.draw.polygon(surface, avg_color, ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1])))
+                    posns = ((v_a[0], v_a[1]), (v_b[0], v_b[1]), (v_c[0], v_c[1]))
+                    pygame.gfxdraw.aapolygon(surface, posns, avg_color)
+                    pygame.gfxdraw.filled_polygon(surface, posns, avg_color)
                     continue
 
             if textured:
@@ -732,7 +736,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             color = tex_ip.get_color(u, v, w)
                             intensity = u * intensities[0] + v * intensities[1] + w * intensities[2]
                             color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                            pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
+                            pygame.gfxdraw.aapolygon(surface, posns, color)
+                            pygame.gfxdraw.filled_polygon(surface, posns, color)
                             return True
                     else:
                         if area <= 5 or iteration == subdivide_max_iterations:
@@ -740,7 +746,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             c_1 = get_interpolated_color(colors, *v_1)
                             c_2 = get_interpolated_color(colors, *v_2)
                             avg_color = vecmat.get_average_color(c_0, c_1, c_2)
-                            pygame.draw.polygon(surface, avg_color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
+                            pygame.gfxdraw.aapolygon(surface, posns, avg_color)
+                            pygame.gfxdraw.filled_polygon(surface, posns, avg_color)
                             return True
                 vecmat.subdivide_2d_triangle_x4(v_a, v_b, v_c, cb_subdivide_gouraud)
             else:
@@ -783,16 +791,19 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             u,v,w = vecmat.get_barycentric_vec2(v_a, v_b, v_c, (x, y))
                             color = tex_ip.get_color(u, v, w)
                             color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                            pygame.draw.polygon(surface, color, ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1])))
+                            posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
+                            pygame.gfxdraw.aapolygon(surface, posns, color)
+                            pygame.gfxdraw.filled_polygon(surface, posns, color)
                             return True
                         return False
                     vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
             else:
                 color = shading_data[2]
                 color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                pygame.draw.polygon(surface, color, points)
+                pygame.gfxdraw.aapolygon(surface, points, color)
+                pygame.gfxdraw.filled_polygon(surface, points, color)
         elif draw_mode == DRAW_MODE_WIREFRAME:
-            pygame.draw.lines(surface, shading_data, True, points)
+            pygame.gfxdraw.aapolygon(surface, points, shading_data)
         elif draw_mode == DRAW_MODE_BILLBOARD:
             surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_PARTICLE:
@@ -820,7 +831,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                                                                  clip_verts[i_3],
                                                                  near_clip, far_clip):
                             pygame.gfxdraw.aapolygon(surface, posns, color)
-                            pygame.draw.polygon(surface, color, posns)
+                            pygame.gfxdraw.filled_polygon(surface, posns, color)
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
