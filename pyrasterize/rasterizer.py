@@ -448,55 +448,26 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         cur_z = center_pos[2]
         if cur_z > near_clip or cur_z < far_clip:
             return
-        cam_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in model["verts"]]
-        clip_verts = [project_to_clip_space(v, persp_m) for v in cam_verts]
-        scr_posns = [(int(scr_origin_x + v[0] * scr_origin_x),
-                      int(scr_origin_y - v[1] * scr_origin_y)) for v in clip_verts]
-        mip_level = 0
+
         mip_textures = model["mip_textures"]
+        mip_verts = model["mip_verts"]
+
+        mip_level = min(len(mip_textures) - 1, vecmat.get_mip_level(-cur_z, model["mip_dist"]))
         img = mip_textures[mip_level]
         tex_w = len(img[0])
         tex_h = len(img)
+        verts = mip_verts[mip_level]
+
+        cam_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in verts]
+        clip_verts = [project_to_clip_space(v, persp_m) for v in cam_verts]
+        scr_posns = [(int(scr_origin_x + v[0] * scr_origin_x),
+                      int(scr_origin_y - v[1] * scr_origin_y)) for v in clip_verts]
 
         scene_primitives.append((
             cur_z,
             scr_posns,
             [img, tex_w, tex_h],
             DRAW_MODE_TEXTURE_RECT))
-
-        # for v in cam_verts:
-        #     clip_pos = project_to_clip_space(v, persp_m)
-        #     if clip_pos is not None:
-        #         scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x),
-        #                    int(scr_origin_y - clip_pos[1] * scr_origin_y))
-        #         scene_primitives.append((
-        #             cur_z,
-        #             scr_pos,
-        #             (255, 0, 0),
-        #             DRAW_MODE_DEBUG_DOT))
-
-
-
-        # center_pos = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
-        # cur_z = center_pos[2]
-        # if cur_z > near_clip or cur_z < far_clip:
-        #     return
-
-        # mip_level = 0
-        # img = model["mip_textures"][mip_level]
-        # tex_w = len(img[0])
-        # tex_h = len(img)
-        # rect_w,rect_h = model["size"]
-
-        # center_clip_pos = project_to_clip_space(center_pos, persp_m)
-        # if center_clip_pos is not None:
-        #     scr_pos = (int(scr_origin_x + center_clip_pos[0] * scr_origin_x),
-        #                int(scr_origin_y - center_clip_pos[1] * scr_origin_y))
-        #     scene_primitives.append((
-        #         cur_z,
-        #         scr_pos,
-        #         (255, 0, 0),
-        #         DRAW_MODE_DEBUG_DOT))
         return
 
     if model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
@@ -842,37 +813,39 @@ def get_texture_rect(mip_textures : list,
                      quad_points_v3 : list,
                      mip_dist : float):
     """Create a rectangular texture"""
-    verts = []
-    mip_level = 0
-    img = mip_textures[mip_level]
-    tex_w = len(img[0])
-    tex_h = len(img)
+    mip_verts = []
 
     v_0,v_1,v_2,v_3 = quad_points_v3
 
     v_03 = vecmat.sub_vec3(v_3, v_0)
     v_12 = vecmat.sub_vec3(v_2, v_1)
 
-    rows = tex_h
-    cols = tex_w
+    for img in mip_textures:
+        tex_w = len(img[0])
+        tex_h = len(img)
 
-    v_03_step = vecmat.mul_vec3(1.0 / rows, v_03)
-    v_12_step = vecmat.mul_vec3(1.0 / rows, v_12)
+        rows = tex_h
+        cols = tex_w
 
-    # TODO center
-    for u in range(rows + 1):
-        v_03_p = vecmat.add_vec3(v_0, vecmat.mul_vec3(u, v_03_step))
-        v_12_p = vecmat.add_vec3(v_1, vecmat.mul_vec3(u, v_12_step))
-        v_across_step = vecmat.mul_vec3(1.0 / cols, vecmat.sub_vec3(v_12_p, v_03_p))
-        for v in range(cols + 1):
-            p = vecmat.add_vec3(v_03_p, vecmat.mul_vec3(v, v_across_step))
-            verts.append([*p, 1.0])
+        v_03_step = vecmat.mul_vec3(1.0 / rows, v_03)
+        v_12_step = vecmat.mul_vec3(1.0 / rows, v_12)
+
+        cur_verts = []
+        for u in range(rows + 1):
+            v_03_p = vecmat.add_vec3(v_0, vecmat.mul_vec3(u, v_03_step))
+            v_12_p = vecmat.add_vec3(v_1, vecmat.mul_vec3(u, v_12_step))
+            v_across_step = vecmat.mul_vec3(1.0 / cols, vecmat.sub_vec3(v_12_p, v_03_p))
+            for v in range(cols + 1):
+                p = vecmat.add_vec3(v_03_p, vecmat.mul_vec3(v, v_across_step))
+                cur_verts.append([*p, 1.0])
+
+        mip_verts.append(cur_verts)
 
     return {
         "model_type": MODEL_TYPE_TEXTURE_RECT,
         "quad": [[*v, 1.0] for v in quad_points_v3],
         "normal": None,
-        "verts": verts,
+        "mip_verts": mip_verts,
         "mip_textures": mip_textures,
         "mip_dist": mip_dist,
     }

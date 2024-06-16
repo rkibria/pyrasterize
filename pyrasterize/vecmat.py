@@ -473,3 +473,18 @@ def midpoint_v2(v_a : list, v_b : list) -> list:
 def midpoint_v3(v_a : list, v_b : list) -> list:
     """Get midpoint between two vec3"""
     return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1]), 0.5 * (v_a[2] + v_b[2])]
+
+def get_mip_level(distance, base_distance):
+    """
+    Calculate the mipmap level based on the distance from the camera.
+
+    Parameters:
+    distance (float): The distance from the camera to the object.
+    base_distance (float): The base distance at which the full resolution texture (mip level 0) is used.
+
+    Returns:
+    int: The mip level.
+    """
+    if distance <= base_distance:
+        return 0
+    return math.floor(math.log2(distance / base_distance))
