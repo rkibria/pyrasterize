@@ -23,6 +23,7 @@ Painter's Algorithm implementation:
 import math
 
 import pygame
+import pygame.gfxdraw
 
 DEBUG_FONT = None
 
@@ -480,7 +481,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         mip_textures = model["mip_textures"]
         mip_verts = model["mip_verts"]
 
-        mip_level = min(len(mip_textures) - 1, vecmat.get_mip_level(-cur_z, model["mip_dist"]))
+        mip_level = min(len(mip_textures) - 1, math.floor(-cur_z / model["mip_dist"]))
         img = mip_textures[mip_level]
         tex_w = len(img[0])
         tex_h = len(img)
@@ -818,6 +819,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                                                                  clip_verts[i_2],
                                                                  clip_verts[i_3],
                                                                  near_clip, far_clip):
+                            pygame.gfxdraw.aapolygon(surface, posns, color)
                             pygame.draw.polygon(surface, color, posns)
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):

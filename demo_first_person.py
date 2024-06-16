@@ -74,9 +74,24 @@ def main_function(): # PYGBAG: decorate with 'async'
         rasterizer.get_billboard(1, 1.2, -1, 0.7, 0.5, pygame.image.load("assets/smoke2.png").convert_alpha()))
 
     # Ground graph
+    tile_size = 4.0
+    divs = 3
     ground_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
-        meshes.get_rect_mesh((11 * 4, 11 * 4), (11, 11), ((180, 180, 180), (60, 60, 60))),
+        meshes.get_rect_mesh((divs * tile_size, divs * tile_size), (divs, divs), ((180, 180, 180), (60, 60, 60))),
         vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+
+    grass_texture = textures.get_mip_textures("assets/grass_tile_16x16.png")
+    half_grass = tile_size / 2
+    grass_mesh = rasterizer.get_texture_rect(grass_texture, [(-half_grass, 0, half_grass), (half_grass, 0, half_grass),
+                                                             (half_grass, 0, -half_grass), (-half_grass, 0, -half_grass)],
+                                                             4)
+
+    for row in range(-4, 5, 1):
+        for col in range(-4, 5, 1):
+            if not ((row >= -1 and row <= 1) and (col >= -1 and col <= 1)):
+                grass_pos = (row * tile_size, 0, col * tile_size)
+                ground_graph["root"]["children"][f"grass_{row}_{col}"] = rasterizer.get_model_instance(grass_mesh,
+                    xform_m4=vecmat.get_transl_m4(*grass_pos))
 
     # World graph
     # Interior: pedestal and spheres
@@ -162,10 +177,13 @@ def main_function(): # PYGBAG: decorate with 'async'
             rasterizer.get_animated_billboard(x, 2.3, y-0.1, 6, 6, fire_imgs))
 
     # Interior: painting
-    mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
+    painting_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
+    painting_textures = painting_textures[:5]
     painting_pos = (0, 1, -5.2)
 
-    painting_mesh = rasterizer.get_texture_rect(mip_textures, [(-0.5, -0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (-0.5, 0.5, 0)], 1)
+    painting_mesh = rasterizer.get_texture_rect(painting_textures,
+                                                [(-0.5, -0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (-0.5, 0.5, 0)],
+                                                3)
     world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(painting_mesh,
         xform_m4=vecmat.get_transl_m4(*painting_pos))
     world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
@@ -185,24 +203,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     world_graph["root"]["children"]["npc"] = rasterizer.get_model_instance(npc_animation,
                                                                            xform_m4=vecmat.get_transl_m4(6, 0, 0))
     world_graph["root"]["children"]["npc"]["animation"] = "walk"
-    world_graph["root"]["children"]["npc"]["gouraud"] = True
-    world_graph["root"]["children"]["npc"]["subdivide_max_iterations"] = 1
-
-    world_graph["root"]["children"]["npc_2"] = rasterizer.get_model_instance(npc_animation,
-                                                                             vecmat.get_rot_y_m4(vecmat.deg_to_rad(-45)),
-                                                                             xform_m4=vecmat.get_transl_m4(-7, 0, -2))
-    world_graph["root"]["children"]["npc_2"]["animation"] = "idle"
-
-    world_graph["root"]["children"]["npc_3"] = rasterizer.get_model_instance(npc_animation,
-                                                                             vecmat.get_rot_y_m4(vecmat.deg_to_rad(-45)),
-                                                                             xform_m4=vecmat.get_transl_m4(-7, 0, -4))
-    world_graph["root"]["children"]["npc_3"]["animation"] = "walk"
-
-    world_graph["root"]["children"]["npc_4"] = rasterizer.get_model_instance(npc_animation,
-                                                                             vecmat.get_rot_y_m4(vecmat.deg_to_rad(-45)),
-                                                                             xform_m4=vecmat.get_transl_m4(-7, 0, -6))
-    world_graph["root"]["children"]["npc_4"]["animation"] = "run"
-
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
@@ -312,7 +312,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         npc_dur = 300
         npc = world_graph["root"]["children"]["npc"]
-        m = vecmat.get_transl_m4(6, 0, 0)
+        m = vecmat.get_transl_m4(4, 0, 0)
         m = vecmat.mat4_mat4_mul(m, rot_m)
         npc["xform_m4"] = m
         if frame % npc_dur == 0:
