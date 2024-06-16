@@ -62,7 +62,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     painting_texture = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
     painting_pos = (0, 0.5, 0)
-    painting_mesh = rasterizer.get_texture_rect(painting_texture, [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)], 1)
+    painting_mesh = rasterizer.get_texture_rect(painting_texture, [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)], 3)
     world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(painting_mesh,
         xform_m4=vecmat.get_transl_m4(*painting_pos))
 
