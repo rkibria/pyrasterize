@@ -49,14 +49,15 @@ def main_function(): # PYGBAG: decorate with 'async'
     world_graph = scene_graphs[2]
 
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    pos = (0, 1, -5)
+    pos = (0, 0.5, -5)
 
     # mesh = meshes.get_test_texture_mesh(mip_textures)
     # world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
     #     xform_m4=vecmat.get_transl_m4(*pos))
     # world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
 
-    mesh = rasterizer.get_texture_rect(mip_textures, (1, 1), (0, 0, 1))
+    quad_points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+    mesh = rasterizer.get_texture_rect(mip_textures, quad_points, 1)
     world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
         xform_m4=vecmat.get_transl_m4(*pos))
 

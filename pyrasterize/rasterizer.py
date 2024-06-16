@@ -35,6 +35,7 @@ DRAW_MODE_GOURAUD = 2
 DRAW_MODE_BILLBOARD = 3
 DRAW_MODE_PARTICLE = 4
 DRAW_MODE_DEBUG_DOT = 5
+DRAW_MODE_TEXTURE_RECT = 6
 
 BILLBOARD_PLAY_ALWAYS = 0
 BILLBOARD_PLAY_ONCE = 1
@@ -447,15 +448,55 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         cur_z = center_pos[2]
         if cur_z > near_clip or cur_z < far_clip:
             return
-        clip_pos = project_to_clip_space(center_pos, persp_m)
-        if clip_pos is not None:
-            scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x),
-                       int(scr_origin_y - clip_pos[1] * scr_origin_y))
-            scene_primitives.append((
-                cur_z,
-                scr_pos,
-                (255, 0, 0),
-                DRAW_MODE_DEBUG_DOT))
+        cam_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in model["verts"]]
+        clip_verts = [project_to_clip_space(v, persp_m) for v in cam_verts]
+        scr_posns = [(int(scr_origin_x + v[0] * scr_origin_x),
+                      int(scr_origin_y - v[1] * scr_origin_y)) for v in clip_verts]
+        mip_level = 0
+        mip_textures = model["mip_textures"]
+        img = mip_textures[mip_level]
+        tex_w = len(img[0])
+        tex_h = len(img)
+
+        scene_primitives.append((
+            cur_z,
+            scr_posns,
+            [img, tex_w, tex_h],
+            DRAW_MODE_TEXTURE_RECT))
+
+        # for v in cam_verts:
+        #     clip_pos = project_to_clip_space(v, persp_m)
+        #     if clip_pos is not None:
+        #         scr_pos = (int(scr_origin_x + clip_pos[0] * scr_origin_x),
+        #                    int(scr_origin_y - clip_pos[1] * scr_origin_y))
+        #         scene_primitives.append((
+        #             cur_z,
+        #             scr_pos,
+        #             (255, 0, 0),
+        #             DRAW_MODE_DEBUG_DOT))
+
+
+
+        # center_pos = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
+        # cur_z = center_pos[2]
+        # if cur_z > near_clip or cur_z < far_clip:
+        #     return
+
+        # mip_level = 0
+        # img = model["mip_textures"][mip_level]
+        # tex_w = len(img[0])
+        # tex_h = len(img)
+        # rect_w,rect_h = model["size"]
+
+        # center_clip_pos = project_to_clip_space(center_pos, persp_m)
+        # if center_clip_pos is not None:
+        #     scr_pos = (int(scr_origin_x + center_clip_pos[0] * scr_origin_x),
+        #                int(scr_origin_y - center_clip_pos[1] * scr_origin_y))
+        #     scene_primitives.append((
+        #         cur_z,
+        #         scr_pos,
+        #         (255, 0, 0),
+        #         DRAW_MODE_DEBUG_DOT))
         return
 
     if model["model_type"] == MODEL_TYPE_ANIMATED_MESH:
@@ -756,6 +797,18 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_DEBUG_DOT:
             pygame.draw.rect(surface, shading_data, pygame.Rect(points[0]-1, points[1]-1, 2, 2))
+        elif draw_mode == DRAW_MODE_TEXTURE_RECT:
+            img,cols,rows = shading_data
+            scr_posns = points
+            for row in range(rows):
+                for col in range(cols):
+                    color = img[row][col]
+                    i = row * (cols + 1) + col
+                    p0 = scr_posns[i]
+                    p1 = scr_posns[i + 1]
+                    p2 = scr_posns[i + 1 + cols + 1]
+                    p3 = scr_posns[i + cols + 1]
+                    pygame.draw.polygon(surface, color, (p0, p1, p2, p3))
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
@@ -785,13 +838,41 @@ def get_particles(img, num_particles, sx, sy):
         "user_data": []
     }
 
-def get_texture_rect(mip_textures,
-                    size_v2,
-                    normal_v3):
+def get_texture_rect(mip_textures : list,
+                     quad_points_v3 : list,
+                     mip_dist : float):
     """Create a rectangular texture"""
+    verts = []
+    mip_level = 0
+    img = mip_textures[mip_level]
+    tex_w = len(img[0])
+    tex_h = len(img)
+
+    v_0,v_1,v_2,v_3 = quad_points_v3
+
+    v_03 = vecmat.sub_vec3(v_3, v_0)
+    v_12 = vecmat.sub_vec3(v_2, v_1)
+
+    rows = tex_h
+    cols = tex_w
+
+    v_03_step = vecmat.mul_vec3(1.0 / rows, v_03)
+    v_12_step = vecmat.mul_vec3(1.0 / rows, v_12)
+
+    # TODO center
+    for u in range(rows + 1):
+        v_03_p = vecmat.add_vec3(v_0, vecmat.mul_vec3(u, v_03_step))
+        v_12_p = vecmat.add_vec3(v_1, vecmat.mul_vec3(u, v_12_step))
+        v_across_step = vecmat.mul_vec3(1.0 / cols, vecmat.sub_vec3(v_12_p, v_03_p))
+        for v in range(cols + 1):
+            p = vecmat.add_vec3(v_03_p, vecmat.mul_vec3(v, v_across_step))
+            verts.append([*p, 1.0])
+
     return {
         "model_type": MODEL_TYPE_TEXTURE_RECT,
-        "size": [*size_v2],
-        "normal": [*normal_v3, 1.0],
+        "quad": [[*v, 1.0] for v in quad_points_v3],
+        "normal": None,
+        "verts": verts,
         "mip_textures": mip_textures,
+        "mip_dist": mip_dist,
     }

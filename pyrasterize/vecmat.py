@@ -17,6 +17,14 @@ def sub_vec2(v_1, v_2):
     """Return v1 - v2"""
     return [v_1[0] - v_2[0], v_1[1] - v_2[1]]
 
+def add_vec3(v_1, v_2):
+    """Return v1 + v2"""
+    return [v_1[0] + v_2[0], v_1[1] + v_2[1], v_1[2] + v_2[2]]
+
+def mul_vec3(f, v):
+    """Return f * v_3"""
+    return [f * v[0], f * v[1], f * v[2]]
+
 def cross_vec3(a, b):
     """Return vec3 result of cross product of 2 vec3's"""
     return [a[1]*b[2] - a[2]*b[1],
