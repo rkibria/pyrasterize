@@ -164,7 +164,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     # Interior: painting
     mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
     painting_pos = (0, 1, -5.2)
-    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(meshes.get_test_texture_mesh(mip_textures),
+
+    painting_mesh = rasterizer.get_texture_rect(mip_textures, [(-0.5, -0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (-0.5, 0.5, 0)], 1)
+    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(painting_mesh,
         xform_m4=vecmat.get_transl_m4(*painting_pos))
     world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
 
