@@ -44,6 +44,9 @@ dummy-idle.zip
 dummy-run.zip
 dummy-walk.zip
 
+https://opengameart.org/content/lpc-16x16-tiles-extended by rubberduck - CC0 license
+grass_tile_16x16.png
+
 --
 
 CC0 license: https://creativecommons.org/publicdomain/zero/1.0/

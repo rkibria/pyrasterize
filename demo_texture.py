@@ -23,7 +23,7 @@ RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0, 1, 0], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+CAMERA = { "pos": [0, 1, 15], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
@@ -45,21 +45,26 @@ def main_function(): # PYGBAG: decorate with 'async'
         { "root": rasterizer.get_model_instance(None) }
     ]
     # sky_graph = scene_graphs[0]
-    # ground_graph = scene_graphs[1]
+    ground_graph = scene_graphs[1]
     world_graph = scene_graphs[2]
 
-    mip_textures = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
-    pos = (0, 0.5, -5)
+    grass_texture = textures.get_mip_textures("assets/grass_tile_16x16.png")
+    grass_size = 4.0
+    half_grass_sz = grass_size / 2
+    grass_mesh = rasterizer.get_texture_rect(grass_texture, [(-half_grass_sz, 0, half_grass_sz), (half_grass_sz, 0, half_grass_sz),
+                                                             (half_grass_sz, 0, -half_grass_sz), (-half_grass_sz, 0, -half_grass_sz)],
+                                                             4)
+    for row in range(2):
+        for col in range(2):
+            grass_pos = (row * grass_size, 0, col * grass_size)
+            ground_graph["root"]["children"][f"grass_{row}_{col}"] = rasterizer.get_model_instance(grass_mesh,
+                xform_m4=vecmat.get_transl_m4(*grass_pos))
 
-    # mesh = meshes.get_test_texture_mesh(mip_textures)
-    # world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
-    #     xform_m4=vecmat.get_transl_m4(*pos))
-    # world_graph["root"]["children"]["painting"]["subdivide_max_iterations"] = 12
-
-    quad_points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
-    mesh = rasterizer.get_texture_rect(mip_textures, quad_points, 1)
-    world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(mesh,
-        xform_m4=vecmat.get_transl_m4(*pos))
+    # painting_texture = textures.get_mip_textures("assets/Mona_Lisa_64x64.png")
+    # painting_pos = (0, 0.5, -5)
+    # painting_mesh = rasterizer.get_texture_rect(painting_texture, [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)], 1)
+    # world_graph["root"]["children"]["painting"] = rasterizer.get_model_instance(painting_mesh,
+    #     xform_m4=vecmat.get_transl_m4(*painting_pos))
 
     font = pygame.font.Font(None, 30)
     TEXT_COLOR = (200, 200, 230)
