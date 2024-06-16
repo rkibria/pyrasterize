@@ -161,9 +161,10 @@ def project_to_clip_space(view_v, persp_m):
     Returns vec3 (last component is original z) or None
     """
     z = view_v[2]
-    if z == 0:
-        return None
     perp_div = abs(z)
+    # Skip values too close to zero
+    if abs(perp_div) < 0.0001:
+        return None
     screen_v = vecmat.vec4_mat4_mul(view_v, persp_m)
     return [screen_v[0] / perp_div, screen_v[1] / perp_div, z]
 
@@ -184,6 +185,28 @@ def clip_space_tri_overlaps_view_frustum(v_0, v_1, v_2, near_clip, far_clip):
         return False
     min_z = min(v_0[2], v_1[2], v_2[2])
     max_z = max(v_0[2], v_1[2], v_2[2])
+    # furthest z is MORE NEGATIVE (smallest), so far clip < near clip
+    if not (max(min_z, far_clip) <= min(max_z, near_clip)):
+        return False
+    return True
+
+def clip_space_quad_overlaps_view_frustum(v_0, v_1, v_2, v_3, near_clip, far_clip):
+    """
+    Args are vec3s in clip space
+    """
+    # All coordinate intervals must overlap
+    min_x = min(v_0[0], v_1[0], v_2[0], v_3[0])
+    max_x = max(v_0[0], v_1[0], v_2[0], v_3[0])
+    # Intervals overlap if they have at least one common point,
+    # i.e. if max(left bounds) <= min(right bounds)
+    if not (max(min_x, -1) <= min(max_x, 1)):
+        return False
+    min_y = min(v_0[1], v_1[1], v_2[1], v_3[1])
+    max_y = max(v_0[1], v_1[1], v_2[1], v_3[1])
+    if not (max(min_y, -1) <= min(max_y, 1)):
+        return False
+    min_z = min(v_0[2], v_1[2], v_2[2], v_3[2])
+    max_z = max(v_0[2], v_1[2], v_2[2], v_3[2])
     # furthest z is MORE NEGATIVE (smallest), so far clip < near clip
     if not (max(min_z, far_clip) <= min(max_z, near_clip)):
         return False
@@ -460,12 +483,14 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
 
         cam_verts = [vecmat.vec4_mat4_mul(v, model_m) for v in verts]
         clip_verts = [project_to_clip_space(v, persp_m) for v in cam_verts]
+        
         scr_posns = [(int(scr_origin_x + v[0] * scr_origin_x),
-                      int(scr_origin_y - v[1] * scr_origin_y)) for v in clip_verts]
+                      int(scr_origin_y - v[1] * scr_origin_y)) if v is not None else None
+                      for v in clip_verts]
 
         scene_primitives.append((
             cur_z,
-            scr_posns,
+            (clip_verts, scr_posns),
             [img, tex_w, tex_h],
             DRAW_MODE_TEXTURE_RECT))
         return
@@ -770,16 +795,25 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             pygame.draw.rect(surface, shading_data, pygame.Rect(points[0]-1, points[1]-1, 2, 2))
         elif draw_mode == DRAW_MODE_TEXTURE_RECT:
             img,cols,rows = shading_data
-            scr_posns = points
+            clip_verts, scr_posns = points
             for row in range(rows):
                 for col in range(cols):
                     color = img[row][col]
-                    i = row * (cols + 1) + col
-                    p0 = scr_posns[i]
-                    p1 = scr_posns[i + 1]
-                    p2 = scr_posns[i + 1 + cols + 1]
-                    p3 = scr_posns[i + cols + 1]
-                    pygame.draw.polygon(surface, color, (p0, p1, p2, p3))
+                    i_0 = row * (cols + 1) + col
+                    i_1 = i_0 + 1
+                    i_2 = i_0 + 1 + cols + 1
+                    i_3 = i_0 + cols + 1
+                    posns = (scr_posns[i_0],
+                             scr_posns[i_1],
+                             scr_posns[i_2],
+                             scr_posns[i_3])
+                    if not any(map(lambda x: x is None, posns)):
+                        if clip_space_quad_overlaps_view_frustum(clip_verts[i_0],
+                                                                 clip_verts[i_1],
+                                                                 clip_verts[i_2],
+                                                                 clip_verts[i_3],
+                                                                 near_clip, far_clip):
+                            pygame.draw.polygon(surface, color, posns)
 
 def get_animated_billboard(dx, dy, dz, sx, sy, img_list):
     """Create a billboard object with several animation frames"""
