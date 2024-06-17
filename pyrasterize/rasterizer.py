@@ -636,13 +636,20 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         del model_tris[num_orig_model_tris:]
         del model_colors[num_orig_model_tris:]
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0, mip_dist=50):
+def render(surface, fog_surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0, mip_dist=50):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
     # global DEBUG_FONT
     # if DEBUG_FONT is None:
     #     DEBUG_FONT = pygame.font.Font(None, 16)
+
+    def get_fog_factor(z_order):
+        # return (z_order - near_clip) / (far_clip - near_clip)
+        fog_max = -20.0
+        if z_order <= fog_max:
+            return 1.0
+        return (z_order - near_clip) / (fog_max - near_clip)
 
     scr_origin_x = screen_area[0] + screen_area[2] / 2
     scr_origin_y = screen_area[1] + screen_area[3] / 2
@@ -799,9 +806,11 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     vecmat.subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
             else:
                 color = shading_data[2]
-                color = (intensity * color[0], intensity * color[1], intensity * color[2])
-                pygame.gfxdraw.aapolygon(surface, points, color)
+                color = (intensity * color[0], intensity * color[1], intensity * color[2], 255)
+                # pygame.gfxdraw.aapolygon(surface, points, color)
                 pygame.gfxdraw.filled_polygon(surface, points, color)
+                f = get_fog_factor(z_order)
+                pygame.gfxdraw.filled_polygon(fog_surface, points, (int(f * 255), 0, 0, 255))
         elif draw_mode == DRAW_MODE_WIREFRAME:
             pygame.gfxdraw.aapolygon(surface, points, shading_data)
         elif draw_mode == DRAW_MODE_BILLBOARD:
