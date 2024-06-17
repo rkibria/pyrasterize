@@ -646,7 +646,7 @@ def render(surface, fog_surface, screen_area, scene_graph, camera_m, persp_m, li
 
     def get_fog_factor(z_order):
         # return (z_order - near_clip) / (far_clip - near_clip)
-        fog_max = -20.0
+        fog_max = -17.5
         if z_order <= fog_max:
             return 1.0
         return (z_order - near_clip) / (fog_max - near_clip)

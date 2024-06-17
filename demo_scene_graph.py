@@ -83,15 +83,11 @@ def create_scene_graph():
 
     orbiter_model = meshes.get_sphere_mesh(3, 10, 5, (255, 255, 0))
     scene_graph["orbiterRoot"] = rasterizer.get_model_instance(None)
-    scene_graph["orbiterRoot"]["children"]["orbiter_1"] = rasterizer.get_model_instance(orbiter_model,
-        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(11,0,0),
-            vecmat.mat4_mat4_mul(vecmat.get_scal_m4(0.5, 0.5, 0.5),
-                vecmat.get_transl_m4(*meshes.get_model_centering_offset(orbiter_model)))))
-    scene_graph["orbiterRoot"]["children"]["orbiter_2"] = rasterizer.get_model_instance(orbiter_model,
-        vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-11,0,0),
-            vecmat.mat4_mat4_mul(vecmat.get_scal_m4(0.5, 0.5, 0.5),
-                vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(180)),
-                    vecmat.get_transl_m4(*meshes.get_model_centering_offset(orbiter_model))))))
+    for pos in [(11,0,0), (-11,0,0), (0,0,11), (0,0,-11)]:
+        scene_graph["orbiterRoot"]["children"][f"orbiter_{pos}"] = rasterizer.get_model_instance(orbiter_model,
+            vecmat.mat4_mat4_mul(vecmat.get_transl_m4(*pos),
+                vecmat.mat4_mat4_mul(vecmat.get_scal_m4(0.5, 0.5, 0.5),
+                    vecmat.get_transl_m4(*meshes.get_model_centering_offset(orbiter_model)))))
 
     return scene_graph
 
@@ -129,7 +125,7 @@ def main_function():
     frame = 0
     done = False
     while not done:
-        clock.tick(30)
+        clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
@@ -180,19 +176,15 @@ def main_function():
         t = time.perf_counter()
         rasterizer.render(render_surface, fog_surface, SCR_AREA, scene_graph, camera_m, persp_m, LIGHTING)
         elapsed_time = time.perf_counter() - t
-        if frame % 30 == 0:
-            print(f"render time: {round(elapsed_time, 3)} s")
-
-        # fog_surface.blit(render_surface, (0, 0))
+        # if frame % 30 == 0:
+        #     print(f"render time: {round(elapsed_time, 3)} s")
 
         fog_color = (255, 255, 255)
-        for y in range(SCR_HEIGHT):
-            for x in range(SCR_WIDTH):
-                i = (y * SCR_WIDTH + x) * 4
-                f = bytes_fog_image[i] / 255.0
-                bytes_render_image[i] = int(f * fog_color[0] + (1-f) * bytes_render_image[i])
-                bytes_render_image[i+1] = int(f * fog_color[1] + (1-f) * bytes_render_image[i+1])
-                bytes_render_image[i+2] = int(f * fog_color[2] + (1-f) * bytes_render_image[i+2])
+        for i in range(0, SCR_HEIGHT * SCR_WIDTH * 4, 4):
+            f = bytes_fog_image[i] / 255.0
+            bytes_render_image[i] = int(f * fog_color[0] + (1-f) * bytes_render_image[i])
+            bytes_render_image[i+1] = int(f * fog_color[1] + (1-f) * bytes_render_image[i+1])
+            bytes_render_image[i+2] = int(f * fog_color[2] + (1-f) * bytes_render_image[i+2])
 
         screen.blit(render_surface, (0, 0))
 
@@ -203,8 +195,8 @@ def main_function():
 
         pygame.display.flip()
         frame += 1
-        if frame % 30 == 0:
-            print(f"{round(clock.get_fps(), 2)} fps")
+        # if frame % 30 == 0:
+        #     print(f"{round(clock.get_fps(), 2)} fps")
 
 if __name__ == '__main__':
     main_function()
