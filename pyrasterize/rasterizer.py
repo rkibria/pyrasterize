@@ -399,9 +399,11 @@ def _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, n
     for offset in offsets:
         bbox_p = [bbox_center[i] + offset[i] for i in range(4)]
         bbox_v = vecmat.vec4_mat4_mul(bbox_p, model_m)
-        cx,cy,cz = project_to_clip_space(bbox_v, persp_m)
-        if (cz <= near_clip and cz >= far_clip) and (cx >= -1 and cx <= 1) and (cy >= -1 and cy <= 1):
-            return True
+        bbox_clip = project_to_clip_space(bbox_v, persp_m)
+        if bbox_clip is not None:
+            cx,cy,cz = bbox_clip
+            if (cz <= near_clip and cz >= far_clip) and (cx >= -1 and cx <= 1) and (cy >= -1 and cy <= 1):
+                return True
     return False
 
 def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
