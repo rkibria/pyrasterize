@@ -29,6 +29,7 @@ DEBUG_FONT = None
 
 from . import vecmat
 from . import drawing
+from . import meshes as pyr_meshes
 
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
@@ -81,6 +82,7 @@ def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list =
         """
         # It's about 10% faster not to have to create temporary vec4s for matmults
         mesh["verts"] = list([model_v[0], model_v[1], model_v[2], 1.0] for model_v in mesh["verts"])
+        mesh["sphere_bbox"] = pyr_meshes.get_mesh_sphere_bbox(mesh)
 
         if "normals" not in mesh:
             normals = []
@@ -660,11 +662,13 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     proj_light_dir = get_proj_light_dir(lighting, camera_m)
 
     def traverse_scene_graph(subgraph, parent_m):
-        for _,instance in subgraph.items():
+        for name,instance in subgraph.items():
             if instance["enabled"]:
                 proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
                 proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
+                if name == "npc":
+                    print("X")
                 _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m,
                                               scr_origin_x, scr_origin_y, lighting, proj_light_dir,
                                               instance, proj_m, camera_m)

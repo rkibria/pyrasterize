@@ -325,16 +325,32 @@ def get_cylinder_mesh(length, radius, r_divs, color=MESH_DEFAULT_COLOR,
             mesh["colors"].append(color)
     return mesh
 
-def get_model_centering_offset(model):
-    """Get vec3 to center position (with translate matrix) of the model"""
+def get_mesh_vertex_average(model):
+    """Get average of all mesh vertices"""
     avg = [0, 0, 0]
     for v_3 in model["verts"]:
         for i in range(3):
             avg[i] += v_3[i]
     for i in range(3):
         avg[i] /= len(model["verts"])
+    return avg
+
+def get_mesh_centering_offset(model):
+    """Get vec3 to center position (with translate matrix) of the model"""
+    avg = get_mesh_vertex_average(model)
+    for i in range(3):
         avg[i] *= -1
     return avg
+
+def get_mesh_sphere_bbox(model):
+    """
+    Return spherical bbox = [center_vec4, radius_float]
+    """
+    center_v3 = get_mesh_vertex_average(model)
+    radius = 0
+    for v in model["verts"]:
+        radius = max(vecmat.mag_vec3(vecmat.sub_vec3(v, center_v3)), radius)
+    return [[*center_v3, 1.0], radius]
 
 def subdivide_triangles(mesh):
     """Return same mesh with each triangle halved into two triangles"""
