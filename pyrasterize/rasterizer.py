@@ -49,7 +49,7 @@ MODEL_TYPE_ANIMATED_MESH = 3
 MODEL_TYPE_TEXTURE_RECT = 4
 
 
-def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None) -> dict:
+def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None, create_bbox=True) -> dict:
     """
     Create a model instance
 
@@ -82,7 +82,8 @@ def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list =
         """
         # It's about 10% faster not to have to create temporary vec4s for matmults
         mesh["verts"] = list([model_v[0], model_v[1], model_v[2], 1.0] for model_v in mesh["verts"])
-        mesh["sphere_bbox"] = pyr_meshes.get_mesh_sphere_bbox(mesh)
+        if create_bbox:
+            mesh["sphere_bbox"] = pyr_meshes.get_mesh_sphere_bbox(mesh)
 
         if "normals" not in mesh:
             normals = []
@@ -539,9 +540,10 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
             return
 
     # Bounding spheres test
-    bbox_center,bbox_radius = model["sphere_bbox"]
-    if not _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
-        return
+    if "sphere_bbox" in model:
+        bbox_center,bbox_radius = model["sphere_bbox"]
+        if not _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
+            return
 
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
     view_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["normals"]))
@@ -685,16 +687,14 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     proj_light_dir = get_proj_light_dir(lighting, camera_m)
 
     def traverse_scene_graph(subgraph, parent_m):
-        for name,instance in subgraph.items():
+        for _,instance in subgraph.items():
             if instance["enabled"]:
                 proj_m = vecmat.mat4_mat4_mul(instance["xform_m4"], instance["preproc_m4"])
                 proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
-                if name == "npc":
-                    print("X")
                 _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m,
-                                              scr_origin_x, scr_origin_y, lighting, proj_light_dir,
-                                              instance, proj_m, camera_m)
+                                                    scr_origin_x, scr_origin_y, lighting, proj_light_dir,
+                                                    instance, proj_m, camera_m)
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)

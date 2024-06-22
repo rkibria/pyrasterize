@@ -64,12 +64,12 @@ def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
                 root_instance["children"][cell_name] = rasterizer.get_model_instance(None)
                 root_instance["children"][cell_name]["children"]["floor"] = rasterizer.get_model_instance(floor_model,
                     preproc_m4=preproc_m4,
-                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
+                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)), create_bbox=False)
                 root_instance["children"][cell_name]["children"]["floor"]["fade_distance"] = FADE_DISTANCE
 
                 root_instance["children"][cell_name]["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
                     preproc_m4=ceil_preproc_m4,
-                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)))
+                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)), create_bbox=False)
                 root_instance["children"][cell_name]["children"]["ceiling"]["fade_distance"] = FADE_DISTANCE
 
 
