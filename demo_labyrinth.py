@@ -81,7 +81,7 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
 
     wall_inst = rasterizer.get_model_instance(wall_model,
-        preproc_m4=preproc_m4)
+        preproc_m4=preproc_m4, create_bbox=False)
     # Wall meshes are culled if not facing the camera.
     wall_inst["instance_normal"] = [0, 0, 1]
     wall_inst["fade_distance"] = FADE_DISTANCE
@@ -550,15 +550,15 @@ def main_function(): # PYGBAG: decorate with 'async'
         screen.fill(RGB_BLACK)
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
-        t = time.perf_counter()
+        # t = time.perf_counter()
         update_viewable_area(labyrinth, cell_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
                 vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING,
                 near_clip, far_clip)
-        elapsed_time = time.perf_counter() - t
-        if frame % 60 == 0:
-            print(f"render time: {round(elapsed_time, 3)} s")
+        # elapsed_time = time.perf_counter() - t
+        # if frame % 60 == 0:
+        #     print(f"render time: {round(elapsed_time, 3)} s")
 
         screen.blit(cross_surface, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_size), special_flags=pygame.BLEND_RGBA_ADD)
 
