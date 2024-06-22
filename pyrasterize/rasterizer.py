@@ -387,6 +387,22 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
 
     return (visible_tri_idcs, clip_verts)
 
+def _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
+    """Returns True if at least one point of the sphere bbox is inside frustum"""
+    offsets = [[0, 0, 0, 0],
+               [bbox_radius, 0, 0, 0],
+               [-bbox_radius, 0, 0, 0],
+               [0, bbox_radius, 0, 0],
+               [0, -bbox_radius, 0, 0],
+               [0, 0, bbox_radius, 0],
+               [0, 0, -bbox_radius, 0]]
+    for offset in offsets:
+        bbox_p = [bbox_center[i] + offset[i] for i in range(4)]
+        bbox_v = vecmat.vec4_mat4_mul(bbox_p, model_m)
+        cx,cy,cz = project_to_clip_space(bbox_v, persp_m)
+        if (cz <= near_clip and cz >= far_clip) and (cx >= -1 and cx <= 1) and (cy >= -1 and cy <= 1):
+            return True
+    return False
 
 def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
                                         lighting, proj_light_dir, instance, model_m, camera_m):
@@ -519,6 +535,11 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
         if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
             return
+
+    # Bounding spheres test
+    bbox_center,bbox_radius = model["sphere_bbox"]
+    if not _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
+        return
 
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
     view_normals = list(map(lambda model_n: vecmat.norm_vec3_from_vec4(vecmat.vec4_mat4_mul(model_n, model_m)), model["normals"]))
