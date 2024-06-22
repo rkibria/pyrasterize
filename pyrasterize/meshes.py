@@ -349,8 +349,8 @@ def get_mesh_sphere_bbox(model):
     center_v3 = get_mesh_vertex_average(model)
     radius = 0
     for v in model["verts"]:
-        radius = max(vecmat.mag_vec3(vecmat.sub_vec3(v, center_v3)), radius)
-    return [[*center_v3, 1.0], radius]
+        radius = max(vecmat.mag_sq_vec3(vecmat.sub_vec3(v, center_v3)), radius)
+    return [[*center_v3, 1.0], math.sqrt(radius)]
 
 def subdivide_triangles(mesh):
     """Return same mesh with each triangle halved into two triangles"""
