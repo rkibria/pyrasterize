@@ -61,7 +61,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     sky_height = 1 * 5
     blue_sky_instance["children"]["north"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((sky_width, sky_height), wall_divs, (sky_color_1, sky_color_2), make_gradient=2),
-        xform_m4=vecmat.get_transl_m4(0, sky_height / 2, -5.5))
+        xform_m4=vecmat.get_transl_m4(0, sky_height / 2, -5.5), create_bbox=False)
     blue_sky_instance["children"]["north"]["ignore_lighting"] = True
 
     sky_graph["root"]["children"]["billboards"] = rasterizer.get_model_instance(None)
@@ -78,7 +78,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     divs = 3
     ground_graph["root"]["children"]["ground"] = rasterizer.get_model_instance(
         meshes.get_rect_mesh((divs * tile_size, divs * tile_size), (divs, divs), ((180, 180, 180), (60, 60, 60))),
-        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)))
+        vecmat.get_rot_x_m4(vecmat.deg_to_rad(-90)), create_bbox=False)
 
     grass_texture = textures.get_mip_textures("assets/grass_tile_16x16.png")
     half_grass = tile_size / 2

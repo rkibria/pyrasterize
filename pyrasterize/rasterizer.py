@@ -29,6 +29,7 @@ DEBUG_FONT = None
 
 from . import vecmat
 from . import drawing
+from . import meshes as pyr_meshes
 
 DRAW_MODE_WIREFRAME = 0
 DRAW_MODE_FLAT = 1
@@ -48,7 +49,7 @@ MODEL_TYPE_ANIMATED_MESH = 3
 MODEL_TYPE_TEXTURE_RECT = 4
 
 
-def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None) -> dict:
+def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None, create_bbox=True) -> dict:
     """
     Create a model instance
 
@@ -81,6 +82,8 @@ def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list =
         """
         # It's about 10% faster not to have to create temporary vec4s for matmults
         mesh["verts"] = list([model_v[0], model_v[1], model_v[2], 1.0] for model_v in mesh["verts"])
+        if create_bbox:
+            mesh["sphere_bbox"] = pyr_meshes.get_mesh_sphere_bbox(mesh)
 
         if "normals" not in mesh:
             normals = []
@@ -385,6 +388,24 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
 
     return (visible_tri_idcs, clip_verts)
 
+def _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
+    """Returns True if at least one point of the sphere bbox is inside frustum"""
+    offsets = [[0, 0, 0, 0],
+               [bbox_radius, 0, 0, 0],
+               [-bbox_radius, 0, 0, 0],
+               [0, bbox_radius, 0, 0],
+               [0, -bbox_radius, 0, 0],
+               [0, 0, bbox_radius, 0],
+               [0, 0, -bbox_radius, 0]]
+    for offset in offsets:
+        bbox_p = [bbox_center[i] + offset[i] for i in range(4)]
+        bbox_v = vecmat.vec4_mat4_mul(bbox_p, model_m)
+        bbox_clip = project_to_clip_space(bbox_v, persp_m)
+        if bbox_clip is not None:
+            cx,cy,cz = bbox_clip
+            if (cz <= near_clip and cz >= far_clip) and (cx >= -1 and cx <= 1) and (cy >= -1 and cy <= 1):
+                return True
+    return False
 
 def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
                                         lighting, proj_light_dir, instance, model_m, camera_m):
@@ -516,6 +537,12 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         proj_inst_normal = vecmat.vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
         v_instance = vecmat.vec4_mat4_mul((0, 0, 0, 1), model_m)
         if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
+            return
+
+    # Bounding spheres test
+    if "sphere_bbox" in model:
+        bbox_center,bbox_radius = model["sphere_bbox"]
+        if not _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
             return
 
     view_verts = list(map(lambda model_v: vecmat.vec4_mat4_mul(model_v, model_m), model["verts"]))
@@ -666,8 +693,8 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 proj_m = vecmat.mat4_mat4_mul(parent_m, proj_m)
                 proj_m = vecmat.mat4_mat4_mul(camera_m, proj_m)
                 _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m,
-                                              scr_origin_x, scr_origin_y, lighting, proj_light_dir,
-                                              instance, proj_m, camera_m)
+                                                    scr_origin_x, scr_origin_y, lighting, proj_light_dir,
+                                                    instance, proj_m, camera_m)
                 pass_m = vecmat.mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
                     traverse_scene_graph(instance["children"], pass_m)

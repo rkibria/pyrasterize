@@ -86,12 +86,12 @@ def create_scene_graph():
     scene_graph["orbiterRoot"]["children"]["orbiter_1"] = rasterizer.get_model_instance(orbiter_model,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(11,0,0),
             vecmat.mat4_mat4_mul(vecmat.get_scal_m4(0.5, 0.5, 0.5),
-                vecmat.get_transl_m4(*meshes.get_model_centering_offset(orbiter_model)))))
+                vecmat.get_transl_m4(*meshes.get_mesh_centering_offset(orbiter_model)))))
     scene_graph["orbiterRoot"]["children"]["orbiter_2"] = rasterizer.get_model_instance(orbiter_model,
         vecmat.mat4_mat4_mul(vecmat.get_transl_m4(-11,0,0),
             vecmat.mat4_mat4_mul(vecmat.get_scal_m4(0.5, 0.5, 0.5),
                 vecmat.mat4_mat4_mul(vecmat.get_rot_y_m4(vecmat.deg_to_rad(180)),
-                    vecmat.get_transl_m4(*meshes.get_model_centering_offset(orbiter_model))))))
+                    vecmat.get_transl_m4(*meshes.get_mesh_centering_offset(orbiter_model))))))
 
     return scene_graph
 
