@@ -4,7 +4,6 @@ Demonstrates movement through a labyrinth in first person view
 
 # import asyncio # PYGBAG
 
-import time
 import math
 
 import pygame
@@ -15,6 +14,7 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import model_file_io
+from pyrasterize.fpscontrols import FpsControls
 
 from spritesheet import SpriteSheet
 
@@ -31,6 +31,8 @@ CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_W
 # Light comes from a right, top, and back direction (over the "right shoulder")
 LIGHTING = {"lightDir": (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
             "pointlight_enabled": True, "pointlight": [12, 2, -12, 1], "pointlight_falloff": 5}
+
+FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA)
 
 # Original mesh width for scaling
 MODELS_ORIG_WIDTH = 2
@@ -275,17 +277,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     frame = 0
     done = False
     paused = False
-    # xyz delta relative to camera direction / xyz camera rotation
-    move_dir = [0, 0, 0, 0, 0, 0]
 
-    textblock_fps = None
-    def update_hud():
-        global CAMERA
-        nonlocal textblock_fps
-        pos = [round(p, 2) for p in CAMERA['pos']]
-        rot = [round(vecmat.rad_to_deg(p), 2) for p in CAMERA['rot']]
-        textblock_fps = font.render(f"pos: {pos} - rot(deg): {rot} - {round(clock.get_fps(), 1)} fps", True, TEXT_COLOR)
-    update_hud()
+    FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
 
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
@@ -302,43 +295,6 @@ def main_function(): # PYGBAG: decorate with 'async'
             dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
             f = 1
             projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
-
-    def on_mouse_movement(x, y):
-        """Handle mouse movement"""
-        global CAMERA
-        rot = CAMERA["rot"]
-        rot[0] -= vecmat.deg_to_rad(y * 0.2)
-        rot[1] -= vecmat.deg_to_rad(x * 0.2)
-        # limit up/down rotation around x-axis to straight up/down at most
-        rot[0] = min(math.pi/2, max(-math.pi/2, rot[0]))
-
-    # key: (index, value)
-    key_moves = {
-        # WASD
-        pygame.K_w: (2, -1),
-        pygame.K_s: (2, 1),
-        pygame.K_a: (0, -1),
-        pygame.K_d: (0, 1),
-        # Camera rotation
-        pygame.K_v: (4, 1),
-        pygame.K_n: (4, -1),
-        pygame.K_g: (3, 1),
-        pygame.K_b: (3, -1),
-    }
-
-    def on_key_down(key):
-        """"""
-        if key in key_moves:
-            index, value = key_moves[key]
-            move_dir[index] = value
-            return True
-        return False
-
-    def on_key_up(key):
-        """"""
-        if key in key_moves:
-            index, _ = key_moves[key]
-            move_dir[index] = 0
 
     def get_cell_pos(x, z):
         """
@@ -415,44 +371,12 @@ def main_function(): # PYGBAG: decorate with 'async'
         return True
 
     def do_player_movement():
-        """"""
-        global CAMERA
-        nonlocal move_dir
-        if not any(move_dir):
-            return
-        # forward movement:
-        # add vector pointing in the direction of the camera to pos.
-        #
-        # The camera direction for movement is in the x/z plane (y=0).
-        # The relevant rotation axis is Y
-        cam_rot_y = CAMERA["rot"][1]
-        cam_v_forward = [math.sin(cam_rot_y), 0, math.cos(cam_rot_y)]
-        speed = move_dir[2]
-        total_movement = [0.0, 0.0, 0.0]
-        total_movement[0] += cam_v_forward[0] * speed
-        total_movement[2] += cam_v_forward[2] * speed
-        # strafing:
-        # add vector perpendicular to camera direction to pos.
-        cam_v_right = [-cam_v_forward[2], 0, cam_v_forward[0]] # 90 deg rotate: (-y, x)
-        speed = move_dir[0]
-        total_movement[0] -= cam_v_right[0] * speed
-        total_movement[2] -= cam_v_right[2] * speed
-        # normalize the movement vector so moving diagonally isn't faster than straight moves
-        total_movement = vecmat.norm_vec3(total_movement)
-        cam_pos = CAMERA["pos"]
-        move_scale = 0.2
-        new_pos = [cam_pos[0] + total_movement[0] * move_scale, cam_pos[2] + total_movement[2] * move_scale]
-
+        FPSCONTROLS.do_movement()
         # Prevent clipping through walls
-        if is_position_walkable(new_pos[0], cam_pos[1], new_pos[1], player_radius):
-            CAMERA["pos"][0] = new_pos[0]
-            CAMERA["pos"][2] = new_pos[1]
-
-        # Camera rotation
-        rot_scale = 0.05
-        CAMERA["rot"][0] += move_dir[3] * rot_scale
-        CAMERA["rot"][1] += move_dir[4] * rot_scale
-        CAMERA["rot"][0] = min(math.pi/2, max(-math.pi/2, CAMERA["rot"][0]))
+        cam_pos = CAMERA["pos"]
+        if not is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
+            CAMERA["pos"][0] = FPSCONTROLS.last_cam_pos[0]
+            CAMERA["pos"][2] = FPSCONTROLS.last_cam_pos[2]
 
     def projectile_collides_with_enemy(projectile_pos, enemy_pos):
         # For simplicity enemy collision volume is a stack of spheres
@@ -511,18 +435,9 @@ def main_function(): # PYGBAG: decorate with 'async'
                             explo_tr[1] = projectile_pos[1]
                             explo_tr[2] = projectile_pos[2]
 
-    cross_size = 20
-    cross_width = 2
-    rgb_cross = (255, 255, 255, 100)
-    cross_surface = pygame.Surface((2 * cross_size, 2 * cross_size))
-    pygame.draw.rect(cross_surface, rgb_cross, (cross_size - cross_width, 0, cross_width * 2, cross_size * 2))
-    pygame.draw.rect(cross_surface, rgb_cross, (0, cross_size - cross_width, cross_size * 2, cross_width * 2))
-    pygame.draw.rect(cross_surface, (0, 0, 0), (cross_size - 2 * cross_width, cross_size - 2 * cross_width, cross_width * 4, cross_width * 4))
-
     view_max = 3 * cell_size
     near_clip = -0.5
     far_clip = -view_max
-    first_mouse_move = True
 
     while not done:
         clock.tick(60)
@@ -532,17 +447,9 @@ def main_function(): # PYGBAG: decorate with 'async'
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_mouse_button_down(event)
             elif event.type == pygame.KEYDOWN:
-                if not on_key_down(event.key):
-                    if event.key == pygame.K_ESCAPE:
-                        done = True
-            elif event.type == pygame.KEYUP:
-                on_key_up(event.key)
-            elif event.type == pygame.MOUSEMOTION:
-                mouse_position = pygame.mouse.get_rel()
-                if first_mouse_move:
-                    first_mouse_move = False
-                else:
-                    on_mouse_movement(mouse_position[0], mouse_position[1])
+                if event.key == pygame.K_ESCAPE:
+                    done = True
+            FPSCONTROLS.on_event(event)
 
         do_player_movement()
         do_projectile_movement()
@@ -560,11 +467,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         # if frame % 60 == 0:
         #     print(f"render time: {round(elapsed_time, 3)} s")
 
-        screen.blit(cross_surface, (RASTER_SCR_WIDTH // 2 - cross_size, RASTER_SCR_HEIGHT // 2 - cross_size), special_flags=pygame.BLEND_RGBA_ADD)
+        FPSCONTROLS.draw(screen)
 
-        if frame % 3 == 0:
-            update_hud()
-        screen.blit(textblock_fps, (30, 30))
+        if frame % 30 == 0:
+            FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
 
         pygame.display.flip()
         frame += 1 if not paused else 0

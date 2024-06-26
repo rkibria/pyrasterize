@@ -16,12 +16,28 @@ class FpsControls:
         self.RASTER_SCR_WIDTH,self.RASTER_SCR_HEIGHT = RASTER_SCR_SIZE
 
         self.DELTA_ROT = vecmat.deg_to_rad(3)
+        self.DELTA_POS = 0.2
+
+        self.last_cam_pos = []
 
         self.camera = camera
-        # xyz delta relative to camera direction
-        self.move_dir = [0, 0, 0]
-        # horizontal/vertical rotation direction
-        self.rot_dir = [0, 0]
+        # xyz delta relative to camera direction / xyz camera rotation
+        self.move_dir = [0, 0, 0,
+                         0, 0, 0]
+
+        # key: (index, value)
+        self.key_moves = {
+            # WASD
+            pygame.K_w: (2, -1),
+            pygame.K_s: (2, 1),
+            pygame.K_a: (0, -1),
+            pygame.K_d: (0, 1),
+            # Camera rotation
+            pygame.K_LEFT: (3, 1),
+            pygame.K_RIGHT: (3, -1),
+            pygame.K_UP: (4, 1),
+            pygame.K_DOWN: (4, -1),
+        }
 
         self.first_mouse_move = True
 
@@ -52,33 +68,15 @@ class FpsControls:
 
     def on_key_down(self, key):
         """"""
-        if key == pygame.K_w:
-            self.move_dir[2] = -1
-        elif key == pygame.K_s:
-            self.move_dir[2] = 1
-        elif key == pygame.K_a:
-            self.move_dir[0] = -1
-        elif key == pygame.K_d:
-            self.move_dir[0] = 1
-        elif key == pygame.K_LEFT:
-            self.rot_dir[0] = 1
-        elif key == pygame.K_RIGHT:
-            self.rot_dir[0] = -1
-        elif key == pygame.K_UP:
-            self.rot_dir[1] = 1
-        elif key == pygame.K_DOWN:
-            self.rot_dir[1] = -1
+        if key in self.key_moves:
+            index, value = self.key_moves[key]
+            self.move_dir[index] = value
 
     def on_key_up(self, key):
         """"""
-        if key == pygame.K_w or key == pygame.K_s:
-            self.move_dir[2] = 0
-        elif key == pygame.K_a or key == pygame.K_d:
-            self.move_dir[0] = 0
-        elif key == pygame.K_LEFT or key == pygame.K_RIGHT:
-            self.rot_dir[0] = 0
-        elif key == pygame.K_UP or key == pygame.K_DOWN:
-            self.rot_dir[1] = 0
+        if key in self.key_moves:
+            index, _ = self.key_moves[key]
+            self.move_dir[index] = 0
 
     def on_event(self, event):
       if event.type == pygame.KEYDOWN:
@@ -94,30 +92,41 @@ class FpsControls:
 
     def do_movement(self):
         """"""
-        rot = self.camera["rot"]
-        rot[0] += self.rot_dir[1] * self.DELTA_ROT
-        rot[1] += self.rot_dir[0] * self.DELTA_ROT
-
-        if self.move_dir == [0, 0, 0]:
+        if not any(self.move_dir):
             return
-        # forward movement:
+
+        cam_rot = self.camera["rot"]
+        cam_pos = self.camera["pos"]
+
+        # Forward movement:
         # add vector pointing in the direction of the camera to pos.
         #
         # The camera direction for movement is in the x/z plane (y=0).
         # The relevant rotation axis is Y
-        cam_rot_y = self.camera["rot"][1]
-        move_scale = 0.1
-        cam_v_forward = [move_scale * math.sin(cam_rot_y), 0, move_scale * math.cos(cam_rot_y)]
-        cam_pos = self.camera["pos"]
+        cam_rot_y = cam_rot[1]
+        cam_v_forward = [math.sin(cam_rot_y), 0, math.cos(cam_rot_y)]
         speed = self.move_dir[2]
-        cam_pos[0] += cam_v_forward[0] * speed
-        cam_pos[2] += cam_v_forward[2] * speed
+        total_movement = [0.0, 0.0, 0.0]
+        total_movement[0] += cam_v_forward[0] * speed
+        total_movement[2] += cam_v_forward[2] * speed
         # strafing:
         # add vector perpendicular to camera direction to pos.
         cam_v_right = [-cam_v_forward[2], 0, cam_v_forward[0]] # 90 deg rotate: (-y, x)
         speed = self.move_dir[0]
-        cam_pos[0] -= cam_v_right[0] * speed
-        cam_pos[2] -= cam_v_right[2] * speed
+        total_movement[0] -= cam_v_right[0] * speed
+        total_movement[2] -= cam_v_right[2] * speed
+        # normalize the movement vector so moving diagonally isn't faster than straight moves
+        total_movement = vecmat.norm_vec3(total_movement)
+        new_pos = [cam_pos[0] + total_movement[0] * self.DELTA_POS,
+                   cam_pos[2] + total_movement[2] * self.DELTA_POS]
+        self.last_cam_pos = [v for v in cam_pos]
+        cam_pos[0] = new_pos[0]
+        cam_pos[2] = new_pos[1]
+
+        # Camera rotation
+        cam_rot[0] += self.move_dir[4] * self.DELTA_ROT
+        cam_rot[1] += self.move_dir[3] * self.DELTA_ROT
+        cam_rot[0] = min(math.pi/2, max(-math.pi/2, cam_rot[0]))
 
     def draw(self, surface):
         surface.blit(self.cross_surface,
