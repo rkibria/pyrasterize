@@ -171,6 +171,30 @@ def vec4_mat4_mul(v_4, m_4):
             m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2 + m_4[11] * v_4_3,
             m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15] * v_4_3]
 
+def vec4_mat4_mul_for_points(v_4, m_4):
+    """
+    Special form with less instructions, assumes v_4[3]=1!
+    """
+    v_4_0 = v_4[0]
+    v_4_1 = v_4[1]
+    v_4_2 = v_4[2]
+    return [m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2 + m_4[ 3],
+            m_4[ 4] * v_4_0 + m_4[ 5] * v_4_1 + m_4[ 6] * v_4_2 + m_4[ 7],
+            m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2 + m_4[11],
+            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15]]
+
+def vec4_mat4_mul_for_dirs(v_4, m_4):
+    """
+    Special form with less instructions, assumes v_4[3]=0!
+    """
+    v_4_0 = v_4[0]
+    v_4_1 = v_4[1]
+    v_4_2 = v_4[2]
+    return [m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2,
+            m_4[ 4] * v_4_0 + m_4[ 5] * v_4_1 + m_4[ 6] * v_4_2,
+            m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2,
+            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2]
+
 def get_unit_m4():
     """Return 4x4 unit matrix"""
     return [1.0, 0.0, 0.0, 0.0,

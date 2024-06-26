@@ -27,12 +27,12 @@ from pygame.gfxdraw import aapolygon, filled_polygon
 
 DEBUG_FONT = None
 
-from .vecmat import get_unit_m4, sub_vec3, norm_vec3, vec4_mat4_mul, norm_vec3_from_vec4
+from .vecmat import get_unit_m4, sub_vec3, norm_vec3, norm_vec3_from_vec4
 from .vecmat import get_vec3_triangle_centroid, mag_vec3, mat4_mat4_mul, get_unit_m4
 from .vecmat import get_2d_triangle_area, get_barycentric_vec2, get_average_color
 from .vecmat import TextureInterpolation, get_vec2_triangle_centroid, subdivide_2d_triangle_x4
 from .vecmat import get_2d_triangle_area, subdivide_2d_triangle, mul_vec3, add_vec3
-from .vecmat import cross_vec3
+from .vecmat import cross_vec3, vec4_mat4_mul_for_points, vec4_mat4_mul_for_dirs
 
 from . import drawing
 from . import meshes as pyr_meshes
@@ -159,8 +159,7 @@ def get_proj_light_dir(lighting, camera_m) -> list:
     Get the resulting light direction for the given camera
     """
     light_dir_vec3 = lighting["lightDir"]
-    light_dir_vec4 = (light_dir_vec3[0], light_dir_vec3[1], light_dir_vec3[2], 0)
-    return norm_vec3(vec4_mat4_mul(light_dir_vec4, camera_m)[0:3])
+    return norm_vec3(vec4_mat4_mul_for_dirs(light_dir_vec3, camera_m)[0:3])
 
 
 def project_to_clip_space(view_v, persp_m):
@@ -175,7 +174,7 @@ def project_to_clip_space(view_v, persp_m):
     # Skip values too close to zero
     if perp_div < 0.0001:
         return None
-    screen_v = vec4_mat4_mul(view_v, persp_m)
+    screen_v = vec4_mat4_mul_for_points(view_v, persp_m)
     return [screen_v[0] / perp_div, screen_v[1] / perp_div, z]
 
 def clip_space_tri_overlaps_view_frustum(v_0, v_1, v_2, near_clip, far_clip):
@@ -405,7 +404,7 @@ def _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, n
                [0, 0, -bbox_radius, 0]]
     for offset in offsets:
         bbox_p = [bbox_center[i] + offset[i] for i in range(4)]
-        bbox_v = vec4_mat4_mul(bbox_p, model_m)
+        bbox_v = vec4_mat4_mul_for_points(bbox_p, model_m)
         bbox_clip = project_to_clip_space(bbox_v, persp_m)
         if bbox_clip is not None:
             cx,cy,cz = bbox_clip
@@ -425,7 +424,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
     fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
 
     if model["model_type"] == MODEL_TYPE_BILLBOARD:
-        center_pos = vec4_mat4_mul(model["translate"], model_m)
+        center_pos = vec4_mat4_mul_for_points(model["translate"], model_m)
         cur_z = center_pos[2]
         if cur_z > near_clip or cur_z < far_clip:
             return
@@ -473,7 +472,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         img = model["img"]
         size = model["size"]
         enabled = model["enabled"]
-        cam_positions = [vec4_mat4_mul(v, model_m) for v in model["positions"]]
+        cam_positions = [vec4_mat4_mul_for_points(v, model_m) for v in model["positions"]]
         for i, center_pos in enumerate(cam_positions):
             if not enabled[i]:
                 continue
@@ -495,12 +494,12 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     DRAW_MODE_PARTICLE))
         return
     elif model["model_type"] == MODEL_TYPE_TEXTURE_RECT:
-        normal = norm_vec3_from_vec4(vec4_mat4_mul(model["normal"], model_m))
-        v_instance = vec4_mat4_mul((0, 0, 0, 1), model_m)
+        normal = norm_vec3_from_vec4(vec4_mat4_mul_for_dirs(model["normal"], model_m))
+        v_instance = vec4_mat4_mul_for_points((0, 0, 0, 1), model_m)
         if (v_instance[0] * normal[0] + v_instance[1] * normal[1] + v_instance[2] * normal[2]) >= 0:
             return
 
-        quad_verts = [vec4_mat4_mul(v, model_m) for v in model["quad"]]
+        quad_verts = [vec4_mat4_mul_for_points(v, model_m) for v in model["quad"]]
         cur_z = min([v[2] for v in quad_verts])
         if cur_z > 0 or cur_z < far_clip:
             return
@@ -514,7 +513,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         tex_h = len(img)
         verts = mip_verts[mip_level]
 
-        cam_verts = [vec4_mat4_mul(v, model_m) for v in verts]
+        cam_verts = [vec4_mat4_mul_for_points(v, model_m) for v in verts]
         clip_verts = [project_to_clip_space(v, persp_m) for v in cam_verts]
         
         scr_posns = [(int(scr_origin_x + v[0] * scr_origin_x),
@@ -540,8 +539,8 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
 
     if "instance_normal" in instance:
         instance_normal = instance["instance_normal"]
-        proj_inst_normal = vec4_mat4_mul((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
-        v_instance = vec4_mat4_mul((0, 0, 0, 1), model_m)
+        proj_inst_normal = vec4_mat4_mul_for_dirs((instance_normal[0], instance_normal[1], instance_normal[2], 0), model_m)
+        v_instance = vec4_mat4_mul_for_points((0, 0, 0, 1), model_m)
         if (v_instance[0] * proj_inst_normal[0] + v_instance[1] * proj_inst_normal[1] + v_instance[2] * proj_inst_normal[2]) >= 0:
             return
 
@@ -551,8 +550,8 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         if not _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
             return
 
-    view_verts = list(map(lambda model_v: vec4_mat4_mul(model_v, model_m), model["verts"]))
-    view_normals = list(map(lambda model_n: norm_vec3_from_vec4(vec4_mat4_mul(model_n, model_m)), model["normals"]))
+    view_verts = list(map(lambda model_v: vec4_mat4_mul_for_points(model_v, model_m), model["verts"]))
+    view_normals = list(map(lambda model_n: norm_vec3_from_vec4(vec4_mat4_mul_for_dirs(model_n, model_m)), model["normals"]))
 
     draw_as_wireframe = ("wireframe" in instance) and instance["wireframe"]
     no_culling = ("noCulling" in instance) and instance["noCulling"]
@@ -563,13 +562,13 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
     pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
     if pointlight_enabled:
         pointlight_falloff = lighting["pointlight_falloff"]
-        pointlight_cam_pos = vec4_mat4_mul(lighting["pointlight"], camera_m)
+        pointlight_cam_pos = vec4_mat4_mul_for_points(lighting["pointlight"], camera_m)
     subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
     ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
     vert_normals = None
     if draw_gouraud_shaded:
-        vert_normals = list(map(lambda model_n: norm_vec3_from_vec4(vec4_mat4_mul(model_n, model_m)), model["vert_normals"]))
+        vert_normals = list(map(lambda model_n: norm_vec3_from_vec4(vec4_mat4_mul_for_dirs(model_n, model_m)), model["vert_normals"]))
 
     # This function may add temporary triangles due to clipping
     # We reset the model's lists to their original size after processing
