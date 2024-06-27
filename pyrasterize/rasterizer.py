@@ -387,13 +387,13 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
 
 def _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, near_clip, far_clip):
     """Returns True if at least one point of the sphere bbox is inside frustum"""
-    offsets = [[0, 0, 0, 0],
-               [bbox_radius, 0, 0, 0],
-               [-bbox_radius, 0, 0, 0],
-               [0, bbox_radius, 0, 0],
-               [0, -bbox_radius, 0, 0],
-               [0, 0, bbox_radius, 0],
-               [0, 0, -bbox_radius, 0]]
+    offsets = ((0, 0, 0, 0),
+               (bbox_radius, 0, 0, 0),
+               (-bbox_radius, 0, 0, 0),
+               (0, bbox_radius, 0, 0),
+               (0, -bbox_radius, 0, 0),
+               (0, 0, bbox_radius, 0),
+               (0, 0, -bbox_radius, 0))
     for offset in offsets:
         bbox_p = [bbox_center[i] + offset[i] for i in range(4)]
         bbox_v = vec4_mat4_mul_for_points(bbox_p, model_m)
