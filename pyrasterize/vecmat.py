@@ -11,25 +11,25 @@ import random
 
 def sub_vec3(v_1, v_2):
     """Return v1 - v2"""
-    return [v_1[0] - v_2[0], v_1[1] - v_2[1], v_1[2] - v_2[2]]
+    return (v_1[0] - v_2[0], v_1[1] - v_2[1], v_1[2] - v_2[2])
 
 def sub_vec2(v_1, v_2):
     """Return v1 - v2"""
-    return [v_1[0] - v_2[0], v_1[1] - v_2[1]]
+    return (v_1[0] - v_2[0], v_1[1] - v_2[1])
 
 def add_vec3(v_1, v_2):
     """Return v1 + v2"""
-    return [v_1[0] + v_2[0], v_1[1] + v_2[1], v_1[2] + v_2[2]]
+    return (v_1[0] + v_2[0], v_1[1] + v_2[1], v_1[2] + v_2[2])
 
 def mul_vec3(f, v):
     """Return f * v_3"""
-    return [f * v[0], f * v[1], f * v[2]]
+    return (f * v[0], f * v[1], f * v[2])
 
 def cross_vec3(a, b):
     """Return vec3 result of cross product of 2 vec3's"""
-    return [a[1]*b[2] - a[2]*b[1],
-        a[2]*b[0] - a[0]*b[2],
-        a[0]*b[1] - a[1]*b[0]]
+    return (a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0])
 
 def dot_vec3(a, b):
     """Return dot product of vec3"""
@@ -57,27 +57,27 @@ def mag_vec2(v):
 
 def norm_vec3(v_3):
     """Return normalized vec3"""
-    mag = v_3[0]*v_3[0] + v_3[1]*v_3[1] + v_3[2]*v_3[2]
+    mag = v_3[0] * v_3[0] + v_3[1] * v_3[1] + v_3[2] * v_3[2]
     if mag == 0:
-        return [0, 0, 0]
+        return (0, 0, 0)
     mag = mag ** -0.5 # 1.0 / math.sqrt(mag)
-    return [v_3[0] * mag, v_3[1] * mag, v_3[2] * mag]
+    return (v_3[0] * mag, v_3[1] * mag, v_3[2] * mag)
 
 def norm_vec3_from_vec4(v_4):
     """
     Take first elements of vec4 as a vec3, normalize,
     return vec4 with normalized and 4th element from original
     """
-    mag = v_4[0]*v_4[0] + v_4[1]*v_4[1] + v_4[2]*v_4[2]
+    mag = v_4[0] * v_4[0] + v_4[1] * v_4[1] + v_4[2] * v_4[2]
     if mag == 0:
-        return [0, 0, 0]
+        return (0, 0, 0)
     mag = mag ** -0.5 # 1.0 / math.sqrt(mag)
-    return [v_4[0] * mag, v_4[1] * mag, v_4[2] * mag, v_4[3]]
+    return (v_4[0] * mag, v_4[1] * mag, v_4[2] * mag, v_4[3])
 
 def mat4_mat4_mul(m4_1 : list, m4_2 : list) -> list:
     """Return multiplication of 4x4 matrices
     Unrolled form is faster than loops"""
-    return [
+    return (
         m4_1[0] * m4_2[0] # row 1 x column 1
         + m4_1[1] * m4_2[4]
         + m4_1[2] * m4_2[8]
@@ -156,8 +156,7 @@ def mat4_mat4_mul(m4_1 : list, m4_2 : list) -> list:
         m4_1[12] * m4_2[3]
         + m4_1[13] * m4_2[7]
         + m4_1[14] * m4_2[11]
-        + m4_1[15] * m4_2[15]
-        ]
+        + m4_1[15] * m4_2[15])
 
 def vec4_mat4_mul(v_4, m_4):
     """Return vec4 multiplied by 4x4 matrix
@@ -166,10 +165,10 @@ def vec4_mat4_mul(v_4, m_4):
     v_4_1 = v_4[1]
     v_4_2 = v_4[2]
     v_4_3 = v_4[3]
-    return [m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2 + m_4[ 3] * v_4_3,
+    return (m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2 + m_4[ 3] * v_4_3,
             m_4[ 4] * v_4_0 + m_4[ 5] * v_4_1 + m_4[ 6] * v_4_2 + m_4[ 7] * v_4_3,
             m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2 + m_4[11] * v_4_3,
-            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15] * v_4_3]
+            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15] * v_4_3)
 
 def vec4_mat4_mul_for_points(v_4, m_4):
     """
@@ -178,10 +177,10 @@ def vec4_mat4_mul_for_points(v_4, m_4):
     v_4_0 = v_4[0]
     v_4_1 = v_4[1]
     v_4_2 = v_4[2]
-    return [m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2 + m_4[ 3],
+    return (m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2 + m_4[ 3],
             m_4[ 4] * v_4_0 + m_4[ 5] * v_4_1 + m_4[ 6] * v_4_2 + m_4[ 7],
             m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2 + m_4[11],
-            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15]]
+            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2 + m_4[15])
 
 def vec4_mat4_mul_for_dirs(v_4, m_4):
     """
@@ -190,58 +189,58 @@ def vec4_mat4_mul_for_dirs(v_4, m_4):
     v_4_0 = v_4[0]
     v_4_1 = v_4[1]
     v_4_2 = v_4[2]
-    return [m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2,
+    return (m_4[ 0] * v_4_0 + m_4[ 1] * v_4_1 + m_4[ 2] * v_4_2,
             m_4[ 4] * v_4_0 + m_4[ 5] * v_4_1 + m_4[ 6] * v_4_2,
             m_4[ 8] * v_4_0 + m_4[ 9] * v_4_1 + m_4[10] * v_4_2,
-            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2]
+            m_4[12] * v_4_0 + m_4[13] * v_4_1 + m_4[14] * v_4_2)
 
 def get_unit_m4():
     """Return 4x4 unit matrix"""
-    return [1.0, 0.0, 0.0, 0.0,
+    return (1.0, 0.0, 0.0, 0.0,
             0.0, 1.0, 0.0, 0.0,
             0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0]
+            0.0, 0.0, 0.0, 1.0)
 
 def get_transl_m4(d_x, d_y, d_z):
     """Return 4x4 translation matrix"""
-    return [1.0, 0.0, 0.0, float(d_x),
+    return (1.0, 0.0, 0.0, float(d_x),
             0.0, 1.0, 0.0, float(d_y),
             0.0, 0.0, 1.0, float(d_z),
-            0.0, 0.0, 0.0, 1.0]
+            0.0, 0.0, 0.0, 1.0)
 
 def get_scal_m4(s_x, s_y, s_z):
     """Return 4x4 scaling matrix"""
-    return [float(s_x), 0.0,       0.0,       0.0,
+    return (float(s_x), 0.0,       0.0,       0.0,
             0.0,       float(s_y), 0.0,       0.0,
             0.0,       0.0,       float(s_z), 0.0,
-            0.0,       0.0,       0.0,        1.0]
+            0.0,       0.0,       0.0,        1.0)
 
 def get_rot_x_m4(phi):
     """Return 4x4 x-rotation matrix"""
     cos_phi = math.cos(phi)
     sin_phi = math.sin(phi)
-    return [1.0, 0.0,     0.0,      0.0,
+    return (1.0, 0.0,     0.0,      0.0,
             0.0, cos_phi, -sin_phi, 0.0,
             0.0, sin_phi, cos_phi,  0.0,
-            0.0, 0.0,     0.0,      1.0]
+            0.0, 0.0,     0.0,      1.0)
 
 def get_rot_y_m4(phi):
     """Return 4x4 y-rotation matrix"""
     cos_phi = math.cos(phi)
     sin_phi = math.sin(phi)
-    return [cos_phi,  0.0,  sin_phi, 0.0,
+    return (cos_phi,  0.0,  sin_phi, 0.0,
             0.0,      1.0,  0.0,     0.0,
             -sin_phi, 0.0,  cos_phi, 0.0,
-            0.0,      0.0,  0.0,     1.0]
+            0.0,      0.0,  0.0,     1.0)
 
 def get_rot_z_m4(phi):
     """Return 4x4 z-rotation matrix"""
     cos_phi = math.cos(phi)
     sin_phi = math.sin(phi)
-    return [cos_phi, -sin_phi, 0.0, 0.0,
+    return (cos_phi, -sin_phi, 0.0, 0.0,
             sin_phi, cos_phi,  0.0, 0.0,
             0.0,     0.0,      1.0, 0.0,
-            0.0,     0.0,      0.0, 1.0]
+            0.0,     0.0,      0.0, 1.0)
 
 def deg_to_rad(degrees):
     """Return degrees converted to radians"""
@@ -253,10 +252,10 @@ def rad_to_deg(radians):
 
 def get_persp_m4(d, ar):
     """Return perspective transformation matrix"""
-    return [d,    0.0,   0.0,  0.0,
+    return (d,    0.0,   0.0,  0.0,
             0.0,  d*ar,  0.0,  0.0,
             0.0,  0.0,   1.0,  0.0,
-            0.0,  0.0,   1.0,  0.0]
+            0.0,  0.0,   1.0,  0.0)
 
 def get_view_plane_from_fov(fov):
     """Return view plane distance"""
@@ -264,7 +263,7 @@ def get_view_plane_from_fov(fov):
 
 def ray_sphere_intersect(r_orig3, r_dir3, sph_orig3, sph_r, t_min=0.001, t_max=10**6):
     """Return ray direction multi t if ray intersects sphere or None"""
-    oc = [r_orig3[0] - sph_orig3[0], r_orig3[1] - sph_orig3[1], r_orig3[2] - sph_orig3[2]]
+    oc = (r_orig3[0] - sph_orig3[0], r_orig3[1] - sph_orig3[1], r_orig3[2] - sph_orig3[2])
     a = r_dir3[0] * r_dir3[0] + r_dir3[1] * r_dir3[1] + r_dir3[2] * r_dir3[2]
     b = oc[0] * r_dir3[0] + oc[1] * r_dir3[1] + oc[2] * r_dir3[2]
     c = oc[0] * oc[0] + oc[1] * oc[1] + oc[2] * oc[2] - sph_r * sph_r
@@ -283,7 +282,7 @@ def mouse_pos_to_ray(pos, scr_size):
     """Get ray vec3 into scene from mouse position"""
     ndc_x = 2 * pos[0] / scr_size[0] - 1
     ndc_y = 1 - (2 * pos[1]) / scr_size[1]
-    return norm_vec3([ndc_x, ndc_y, -1])
+    return norm_vec3((ndc_x, ndc_y, -1))
 
 def get_rot_xyz_m4(x, y, z):
     """Return rotation order xyz matrix"""
@@ -329,19 +328,32 @@ def get_vec3_triangle_centroid(v_a, v_b, v_c):
 
 def get_average_color(c_0, c_1, c_2):
     """Average of 3 RGB colors"""
-    return [(i + j + k) / 3.0 for i, j, k in zip(c_0, c_1, c_2)]
+    return ((c_0[0] + c_1[0] + c_2[0]) / 3.0,
+            (c_0[1] + c_1[1] + c_2[1]) / 3.0,
+            (c_0[2] + c_1[2] + c_2[2]) / 3.0)
 
 def get_barycentric_vec2(v_a, v_b, v_c, v_p):
     """
     Return u,v,w for point p inside 2d triangle abc
     """
-    a_b = sub_vec2(v_b, v_a)
-    a_c = sub_vec2(v_c, v_a)
-    a_p = sub_vec2(v_p, v_a)
-    nac = [v_a[1] - v_c[1], v_c[0] - v_a[0]]
-    nab = [v_a[1] - v_b[1], v_b[0] - v_a[0]]
-    v = dot_vec2(a_p, nac) / dot_vec2(a_b, nac)
-    w = dot_vec2(a_p, nab) / dot_vec2(a_c, nab)
+    # a_b = sub_vec2(v_b, v_a)
+    a_b = (v_b[0] - v_a[0], v_b[1] - v_a[1])
+
+    # a_c = sub_vec2(v_c, v_a)
+    a_c = (v_c[0] - v_a[0], v_c[1] - v_a[1])
+
+    # a_p = sub_vec2(v_p, v_a)
+    a_p = (v_p[0] - v_a[0], v_p[1] - v_a[1])
+
+    nac = (v_a[1] - v_c[1], v_c[0] - v_a[0])
+    nab = (v_a[1] - v_b[1], v_b[0] - v_a[0])
+
+    # v = dot_vec2(a_p, nac) / dot_vec2(a_b, nac)
+    v = (a_p[0] * nac[0] + a_p[1] * nac[1]) / (a_b[0] * nac[0] + a_b[1] * nac[1])
+
+    # w = dot_vec2(a_p, nab) / dot_vec2(a_c, nab)
+    w = (a_p[0] * nab[0] + a_p[1] * nab[1]) / (a_c[0] * nab[0] + a_c[1] * nab[1])
+
     u = 1.0 - v - w
     return u, v, w
 
@@ -507,11 +519,11 @@ def refract_vec3(uv : list, n : list, etai_over_etat : float):
 
 def midpoint_v2(v_a : list, v_b : list) -> list:
     """Get midpoint between two vec2"""
-    return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1])]
+    return (0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1]))
 
 def midpoint_v3(v_a : list, v_b : list) -> list:
     """Get midpoint between two vec3"""
-    return [0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1]), 0.5 * (v_a[2] + v_b[2])]
+    return (0.5 * (v_a[0] + v_b[0]), 0.5 * (v_a[1] + v_b[1]), 0.5 * (v_a[2] + v_b[2]))
 
 def get_mip_level(distance, base_distance):
     """
