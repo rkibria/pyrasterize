@@ -175,7 +175,7 @@ def project_to_clip_space(view_v, persp_m):
     if perp_div < 0.0001:
         return None
     screen_v = vec4_mat4_mul_for_points(view_v, persp_m)
-    return [screen_v[0] / perp_div, screen_v[1] / perp_div, z]
+    return (screen_v[0] / perp_div, screen_v[1] / perp_div, z)
 
 def clip_space_tri_overlaps_view_frustum(v_0, v_1, v_2, near_clip, far_clip):
     """
@@ -303,18 +303,14 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
                 # t = (near - v0.z) / (v1.z - v0.z)
                 intersect_t_1 = (near_clip - front_point_z) / (back_point_1[2] - front_point_z)
                 intersect_t_2 = (near_clip - front_point_z) / (back_point_2[2] - front_point_z)
-                new_back_1 = [
-                    front_point[0] + intersect_t_1 * (back_point_1[0] - front_point[0]),
-                    front_point[1] + intersect_t_1 * (back_point_1[1] - front_point[1]),
-                    front_point[2] + intersect_t_1 * (back_point_1[2] - front_point[2]),
-                    1.0
-                ]
-                new_back_2 = [
-                    front_point[0] + intersect_t_2 * (back_point_2[0] - front_point[0]),
-                    front_point[1] + intersect_t_2 * (back_point_2[1] - front_point[1]),
-                    front_point[2] + intersect_t_2 * (back_point_2[2] - front_point[2]),
-                    1.0
-                ]
+                new_back_1 = (front_point[0] + intersect_t_1 * (back_point_1[0] - front_point[0]),
+                              front_point[1] + intersect_t_1 * (back_point_1[1] - front_point[1]),
+                              front_point[2] + intersect_t_1 * (back_point_1[2] - front_point[2]),
+                              1.0)
+                new_back_2 = (front_point[0] + intersect_t_2 * (back_point_2[0] - front_point[0]),
+                              front_point[1] + intersect_t_2 * (back_point_2[1] - front_point[1]),
+                              front_point[2] + intersect_t_2 * (back_point_2[2] - front_point[2]),
+                              1.0)
                 # Add the new vertices and their screen projections to the end of the list
                 new_verts_idx = len(view_verts)
                 view_verts.append(new_back_1)
@@ -354,18 +350,14 @@ def _get_visible_instance_tris(persp_m, near_clip, far_clip, model, view_verts, 
                 back_point_z = back_point[2]
                 intersect_t_1 = (near_clip - back_point_z) / (front_point_1[2] - back_point_z)
                 intersect_t_2 = (near_clip - back_point_z) / (front_point_2[2] - back_point_z)
-                new_front_1 = [
-                    back_point[0] + intersect_t_1 * (front_point_1[0] - back_point[0]),
-                    back_point[1] + intersect_t_1 * (front_point_1[1] - back_point[1]),
-                    back_point[2] + intersect_t_1 * (front_point_1[2] - back_point[2]),
-                    1.0
-                ]
-                new_front_2 = [
-                    back_point[0] + intersect_t_2 * (front_point_2[0] - back_point[0]),
-                    back_point[1] + intersect_t_2 * (front_point_2[1] - back_point[1]),
-                    back_point[2] + intersect_t_2 * (front_point_2[2] - back_point[2]),
-                    1.0
-                ]
+                new_front_1 = (back_point[0] + intersect_t_1 * (front_point_1[0] - back_point[0]),
+                               back_point[1] + intersect_t_1 * (front_point_1[1] - back_point[1]),
+                               back_point[2] + intersect_t_1 * (front_point_1[2] - back_point[2]),
+                               1.0)
+                new_front_2 = (back_point[0] + intersect_t_2 * (front_point_2[0] - back_point[0]),
+                               back_point[1] + intersect_t_2 * (front_point_2[1] - back_point[1]),
+                               back_point[2] + intersect_t_2 * (front_point_2[2] - back_point[2]),
+                               1.0)
                 # Add the new vertices and their screen projections to the end of the list
                 new_verts_idx = len(view_verts)
                 view_verts.append(new_front_1)
@@ -723,11 +715,12 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
             if tri_area <= 0:
                 continue
 
-            def get_interpolated_color(colors : tuple, x : float, y : float):
-                u,v,w = get_barycentric_vec2(v_a, v_b, v_c, (x, y))
-                r = max(0, min(255, int(colors[0][0] * u + colors[1][0] * v + colors[2][0] * w)))
-                g = max(0, min(255, int(colors[0][1] * u + colors[1][1] * v + colors[2][1] * w)))
-                b = max(0, min(255, int(colors[0][2] * u + colors[1][2] * v + colors[2][2] * w)))
+            def get_interpolated_color(colors : tuple, p : tuple):
+                col_0,col_1,col_2 = colors
+                u,v,w = get_barycentric_vec2(v_a, v_b, v_c, p)
+                r = max(0, min(255, int(col_0[0] * u + col_1[0] * v + col_2[0] * w)))
+                g = max(0, min(255, int(col_0[1] * u + col_1[1] * v + col_2[1] * w)))
+                b = max(0, min(255, int(col_0[2] * u + col_1[2] * v + col_2[2] * w)))
                 return (r, g, b)
 
             if not textured:
@@ -774,9 +767,9 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                             return True
                     else:
                         if area <= 5 or iteration == subdivide_max_iterations:
-                            c_0 = get_interpolated_color(colors, *v_0)
-                            c_1 = get_interpolated_color(colors, *v_1)
-                            c_2 = get_interpolated_color(colors, *v_2)
+                            c_0 = get_interpolated_color(colors, v_0)
+                            c_1 = get_interpolated_color(colors, v_1)
+                            c_2 = get_interpolated_color(colors, v_2)
                             avg_color = get_average_color(c_0, c_1, c_2)
                             posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
                             aapolygon(surface, posns, avg_color)
@@ -799,7 +792,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     for x,y in drawing.triangle(v_a[0], v_a[1], v_b[0], v_b[1], v_c[0], v_c[1]):
                         if x < scr_min_x or x > scr_max_x or y < scr_min_y or y > scr_max_y:
                             continue
-                        r,g,b = get_interpolated_color(colors, x, y)
+                        r,g,b = get_interpolated_color(colors, (x, y))
                         px_array[x, y] = (r << 16) | (g << 8) | b
                 del px_array
         elif draw_mode == DRAW_MODE_FLAT:
