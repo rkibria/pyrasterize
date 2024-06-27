@@ -55,6 +55,24 @@ MODEL_TYPE_ANIMATED_MESH = 3
 MODEL_TYPE_TEXTURE_RECT = 4
 
 
+def get_default_lighting():
+    """
+    Create a default lighting setup with reasonable values
+    Light comes from a right, top, and back direction (over the "right shoulder")
+    """
+    return {"lightDir": (1, 1, 1),
+            "ambient": 0.3,
+            "diffuse": 0.7,
+
+            "pointlight_enabled": False,
+            "pointlight": [0, 0, 0, 1], # Position vec4
+            "pointlight_falloff": 5,
+            "pointlight_color": (255, 255, 255), # TODO
+
+            "fog_distance": 0, # 0 means no fog
+            "fog_color": (64, 64, 64)
+            }
+
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None, create_bbox=True) -> dict:
     """
     Create a model instance
