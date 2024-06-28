@@ -23,16 +23,8 @@ from spritesheet import SpriteSheet
 RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
-
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
-
-LIGHTING = rasterizer.get_default_lighting()
-LIGHTING["pointlight_enabled"] = True
-LIGHTING["pointlight"] = [12, 2, -12, 1]
-LIGHTING["fog_distance"] = 15
-LIGHTING["fog_color"] = (64, 64, 64)
 
 FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA)
 
@@ -193,6 +185,13 @@ def main_function(): # PYGBAG: decorate with 'async'
     screen = pygame.display.set_mode(RASTER_SCR_SIZE, flags=pygame.SCALED)
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
+
+    LIGHTING = rasterizer.get_default_lighting()
+    LIGHTING["pointlight_enabled"] = True
+    LIGHTING["pointlight"] = [12, 2, -12, 1]
+    LIGHTING["fog_distance"] = -15
+    fog_color = (0, 32, 0)
+    LIGHTING["fog_color"] = fog_color
 
     labyrinth = {
         'cells': [
@@ -450,11 +449,11 @@ def main_function(): # PYGBAG: decorate with 'async'
         do_player_movement()
         do_projectile_movement()
 
-        screen.fill(RGB_BLACK)
-
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         # t = time.perf_counter()
         update_viewable_area(labyrinth, cell_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
+
+        screen.fill(fog_color)
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
                 vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING,
