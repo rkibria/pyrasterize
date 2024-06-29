@@ -872,6 +872,7 @@ def render(surface : pygame.surface.Surface, screen_area,
             else:
                 fog_img = pygame.Surface(scale_img.get_size()).convert_alpha()
                 f = min(1, (z_order - near_clip) / fog_denom)
+                f = max(0, f - pointlight_intensity)
                 neg_f = 1 - f
                 color = (255, 255, 255)
                 fog_img.fill((f * fog_color[0] + neg_f * color[0],
