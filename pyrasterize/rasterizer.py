@@ -664,7 +664,9 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         del model_tris[num_orig_model_tris:]
         del model_colors[num_orig_model_tris:]
 
-def _no_fog(z : float, color : tuple, intensity : float):
+def _no_fog(z : float, color : tuple, intensity : float, pointlight_intensity : float):
+    intensity = min(1, intensity + pointlight_intensity)
+    color = (intensity * color[0], intensity * color[1], intensity * color[2])
     return color
 
 def render(surface : pygame.surface.Surface, screen_area,
@@ -694,9 +696,12 @@ def render(surface : pygame.surface.Surface, screen_area,
 
     proj_light_dir = get_proj_light_dir(lighting, camera_m)
 
-    fog_distance = lighting["fog_distance"]
-    fog_color = lighting["fog_color"]
-    fog_denom = fog_distance - near_clip
+    if "fog_distance" in lighting:
+        fog_distance = lighting["fog_distance"]
+        fog_denom = fog_distance - near_clip
+        fog_color = lighting["fog_color"]
+    else:
+        fog_distance = 0
     def _get_color_with_fog(z : float, color : tuple, intensity : float, pointlight_intensity : float):
         intensity = min(1, intensity)
         if z <= fog_distance:
