@@ -55,6 +55,24 @@ MODEL_TYPE_ANIMATED_MESH = 3
 MODEL_TYPE_TEXTURE_RECT = 4
 
 
+def get_default_lighting():
+    """
+    Create a default lighting setup with reasonable values
+    Light comes from a right, top, and back direction (over the "right shoulder")
+    """
+    return {"lightDir": (1, 1, 1),
+            "ambient": 0.3,
+            "diffuse": 0.7,
+
+            "pointlight_enabled": False,
+            "pointlight": [0, 0, 0, 1], # Position vec4
+            "pointlight_falloff": 5,
+            "pointlight_color": (255, 255, 255), # TODO
+
+            "fog_distance": 0, # 0 means no fog
+            "fog_color": (64, 64, 64)
+            }
+
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None, create_bbox=True) -> dict:
     """
     Create a model instance
@@ -413,7 +431,11 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
 
     subdivide_default_max_iterations = 1
 
-    fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
+    pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
+    if pointlight_enabled:
+        pointlight_falloff = lighting["pointlight_falloff"]
+        pointlight_cam_pos = vec4_mat4_mul_for_points(lighting["pointlight"], camera_m)
+    ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
     if model["model_type"] == MODEL_TYPE_BILLBOARD:
         center_pos = vec4_mat4_mul_for_points(model["translate"], model_m)
@@ -430,18 +452,12 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
             if int_cur_frame >= num_frames:
                 return
 
-            if fade_distance > 0:
-                img = model_imgs[int_cur_frame].copy()
-                fade_factor = 1
-                if fade_distance > 0:
-                    z = abs(cur_z)
-                    fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-                dark = pygame.Surface(img.get_size()).convert_alpha()
-                darken_value = fade_factor * 255
-                dark.fill((darken_value, darken_value, darken_value, 255))
-                img.blit(dark, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
-            else:
-                img = model_imgs[int_cur_frame]
+            pointlight_intensity = 0
+            if pointlight_enabled:
+                dist_to_light = mag_vec3(sub_vec3(center_pos, pointlight_cam_pos))
+                pointlight_intensity = 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+
+            img = model_imgs[int_cur_frame]
 
             inv_z = 1.0 / abs(cur_z)
             proj_size = (img.get_width() * inv_z * size[0], img.get_height() * inv_z * size[1])
@@ -457,7 +473,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
             scene_primitives.append((
                 cur_z,
                 scr_pos,
-                scale_img,
+                (scale_img, pointlight_intensity),
                 DRAW_MODE_BILLBOARD))
         return
     elif model["model_type"] == MODEL_TYPE_PARTICLES:
@@ -551,12 +567,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
     textured = "texture" in model
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
-    pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
-    if pointlight_enabled:
-        pointlight_falloff = lighting["pointlight_falloff"]
-        pointlight_cam_pos = vec4_mat4_mul_for_points(lighting["pointlight"], camera_m)
     subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
-    ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
     vert_normals = None
     if draw_gouraud_shaded:
@@ -576,12 +587,12 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
     if not textured:
         model_colors = model["colors"]
 
-    def apply_pointlight(tri):
+    def get_pointlight_intensity(tri):
         if pointlight_enabled:
             centroid = get_vec3_triangle_centroid(view_verts[tri[0]], view_verts[tri[1]], view_verts[tri[2]])
             dist_to_light = mag_vec3(sub_vec3(centroid, pointlight_cam_pos))
-            nonlocal intensity
-            intensity += 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+            return 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+        return 0
 
     # Compute colors for each required vertex for Gouraud shading
     vert_colors = [None] * len(view_verts)
@@ -597,7 +608,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                         + proj_light_dir[1] * normal[1]
                         + proj_light_dir[2] * normal[2])
                     intensity = min(1, max(0, ambient + diffuse * dot_prd))
-                    apply_pointlight(tri)
+                    # apply_pointlight(tri)
                     if textured:
                         vert_colors[vert_idx] = intensity
                     else:
@@ -622,20 +633,13 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     + proj_light_dir[1] * normal[1]
                     + proj_light_dir[2] * normal[2])
                 intensity = min(1, max(0, ambient + diffuse * dot_prd))
-
-                fade_factor = 1
-                if fade_distance > 0:
-                    z = abs(z_order)
-                    fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-                    intensity *= fade_factor
-                apply_pointlight(tri)
             else:
                 intensity = 1
 
             intensity = min(1, intensity)
             textured = "texture" in model
             color_data = (textured,
-                          intensity, 
+                          (intensity, get_pointlight_intensity(tri)),
                           model["texture"] if textured else model_colors[tri_idx],
                           [model["uv"][vert_idx] for vert_idx in tri] if textured else None,
                           subdivide_max_iterations)
@@ -660,7 +664,16 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         del model_tris[num_orig_model_tris:]
         del model_colors[num_orig_model_tris:]
 
-def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_clip=-0.5, far_clip=-100.0, mip_dist=50):
+def _no_fog(z : float, color : tuple, intensity : float, pointlight_intensity : float):
+    intensity = min(1, intensity + pointlight_intensity)
+    color = (intensity * color[0], intensity * color[1], intensity * color[2])
+    return color
+
+def render(surface : pygame.surface.Surface, screen_area,
+           scene_graph,
+           camera_m, persp_m,
+           lighting,
+           near_clip=-0.5, far_clip=-100.0, mip_dist=50):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -682,6 +695,34 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
     scene_primitives = []
 
     proj_light_dir = get_proj_light_dir(lighting, camera_m)
+
+    if "fog_distance" in lighting:
+        fog_distance = lighting["fog_distance"]
+        fog_denom = fog_distance - near_clip
+        fog_color = lighting["fog_color"]
+    else:
+        fog_distance = 0
+    def _get_color_with_fog(z : float, color : tuple, intensity : float, pointlight_intensity : float):
+        intensity = min(1, intensity)
+        if z <= fog_distance:
+            if pointlight_intensity > 0:
+                color = (pointlight_intensity * color[0], pointlight_intensity * color[1], pointlight_intensity * color[2])
+                f = min(0.8, (z - near_clip) / fog_denom) # TODO Is this a good constant to use?
+                neg_f = 1 - f
+                return (f * fog_color[0] + neg_f * color[0],
+                        f * fog_color[1] + neg_f * color[1],
+                        f * fog_color[2] + neg_f * color[2])
+            else:
+                return fog_color
+        intensity = min(1, intensity + pointlight_intensity)
+        color = (intensity * color[0], intensity * color[1], intensity * color[2])
+        f = min(1, (z - near_clip) / fog_denom) # if 1 then equal to fog color
+        neg_f = 1 - f
+        return (f * fog_color[0] + neg_f * color[0],
+                f * fog_color[1] + neg_f * color[1],
+                f * fog_color[2] + neg_f * color[2])
+
+    get_color_with_fog = _no_fog if fog_distance == 0 else _get_color_with_fog
 
     def traverse_scene_graph(subgraph, parent_m):
         for _,instance in subgraph.items():
@@ -797,7 +838,7 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                 del px_array
         elif draw_mode == DRAW_MODE_FLAT:
             textured = shading_data[0]
-            intensity = shading_data[1]
+            intensity,pointlight_intensity = shading_data[1]
             subdivide_max_iterations = shading_data[4]
             if textured:
                 mip_textures = shading_data[2]
@@ -824,13 +865,29 @@ def render(surface, screen_area, scene_graph, camera_m, persp_m, lighting, near_
                     subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
             else:
                 color = shading_data[2]
-                color = (intensity * color[0], intensity * color[1], intensity * color[2])
+                color = get_color_with_fog(z_order, color, intensity, pointlight_intensity)
                 aapolygon(surface, points, color)
                 filled_polygon(surface, points, color)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             aapolygon(surface, points, shading_data)
         elif draw_mode == DRAW_MODE_BILLBOARD:
-            surface.blit(shading_data, points)
+            scale_img, pointlight_intensity = shading_data
+            if fog_distance == 0:
+                surface.blit(scale_img, points)
+            else:
+                fog_img = pygame.Surface(scale_img.get_size()).convert_alpha()
+                f = min(1, (z_order - near_clip) / fog_denom)
+                f = max(0, f - pointlight_intensity)
+                neg_f = 1 - f
+                color = (255, 255, 255)
+                fog_img.fill((f * fog_color[0] + neg_f * color[0],
+                              f * fog_color[1] + neg_f * color[1],
+                              f * fog_color[2] + neg_f * color[2],
+                              neg_f * 255))
+                scale_img.blit(fog_img, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+                scale_img.set_alpha(255 * neg_f) # TODO Can use max(K,neg_f) to show outline from far
+                surface.blit(scale_img, points)
+
         elif draw_mode == DRAW_MODE_PARTICLE:
             surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_DEBUG_DOT:

@@ -23,21 +23,13 @@ from spritesheet import SpriteSheet
 RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
-
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
-
-# Light comes from a right, top, and back direction (over the "right shoulder")
-LIGHTING = {"lightDir": (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
-            "pointlight_enabled": True, "pointlight": [12, 2, -12, 1], "pointlight_falloff": 5}
 
 FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA)
 
 # Original mesh width for scaling
 MODELS_ORIG_WIDTH = 2
-
-FADE_DISTANCE = 15
 
 def get_ceiling_height(cell_size):
     return 1.25 * cell_size / MODELS_ORIG_WIDTH
@@ -67,12 +59,10 @@ def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
                 root_instance["children"][cell_name]["children"]["floor"] = rasterizer.get_model_instance(floor_model,
                     preproc_m4=preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)), create_bbox=False)
-                root_instance["children"][cell_name]["children"]["floor"]["fade_distance"] = FADE_DISTANCE
 
                 root_instance["children"][cell_name]["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
                     preproc_m4=ceil_preproc_m4,
                     xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)), create_bbox=False)
-                root_instance["children"][cell_name]["children"]["ceiling"]["fade_distance"] = FADE_DISTANCE
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
@@ -86,7 +76,6 @@ def create_labyrinth_instances(root_instance, labyrinth, cell_size):
         preproc_m4=preproc_m4, create_bbox=False)
     # Wall meshes are culled if not facing the camera.
     wall_inst["instance_normal"] = [0, 0, 1]
-    wall_inst["fade_distance"] = FADE_DISTANCE
     wall_inst["use_minimum_z_order"] = True
 
     cells = labyrinth["cells"]
@@ -197,6 +186,13 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
+    LIGHTING = rasterizer.get_default_lighting()
+    LIGHTING["pointlight_enabled"] = True
+    LIGHTING["pointlight"] = [12, 2, -12, 1]
+    LIGHTING["fog_distance"] = -15
+    fog_color = (0, 32, 0)
+    LIGHTING["fog_color"] = fog_color
+
     labyrinth = {
         'cells': [
         '#################',
@@ -266,7 +262,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     skeleton_billboard["frame_advance"] = 0.1
     skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
     scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
-    skeleton_inst["fade_distance"] = FADE_DISTANCE
 
     # List of all enemies
     enemies = [skeleton_inst]
@@ -454,11 +449,11 @@ def main_function(): # PYGBAG: decorate with 'async'
         do_player_movement()
         do_projectile_movement()
 
-        screen.fill(RGB_BLACK)
-
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         # t = time.perf_counter()
         update_viewable_area(labyrinth, cell_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
+
+        screen.fill(fog_color)
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
                 vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING,
