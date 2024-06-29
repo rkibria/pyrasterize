@@ -431,7 +431,11 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
 
     subdivide_default_max_iterations = 1
 
-    # fade_distance = instance["fade_distance"] if "fade_distance" in instance else 0
+    pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
+    if pointlight_enabled:
+        pointlight_falloff = lighting["pointlight_falloff"]
+        pointlight_cam_pos = vec4_mat4_mul_for_points(lighting["pointlight"], camera_m)
+    ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
     if model["model_type"] == MODEL_TYPE_BILLBOARD:
         center_pos = vec4_mat4_mul_for_points(model["translate"], model_m)
@@ -448,18 +452,10 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
             if int_cur_frame >= num_frames:
                 return
 
-            # if fade_distance > 0:
-            #     img = model_imgs[int_cur_frame].copy()
-            #     fade_factor = 1
-            #     if fade_distance > 0:
-            #         z = abs(cur_z)
-            #         fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-            #     dark = pygame.Surface(img.get_size()).convert_alpha()
-            #     darken_value = fade_factor * 255
-            #     dark.fill((darken_value, darken_value, darken_value, 255))
-            #     img.blit(dark, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
-            # else:
-            #     img = model_imgs[int_cur_frame]
+            pointlight_intensity = 0
+            if pointlight_enabled:
+                dist_to_light = mag_vec3(sub_vec3(center_pos, pointlight_cam_pos))
+                pointlight_intensity = 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
 
             img = model_imgs[int_cur_frame]
 
@@ -477,7 +473,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
             scene_primitives.append((
                 cur_z,
                 scr_pos,
-                scale_img,
+                (scale_img, pointlight_intensity),
                 DRAW_MODE_BILLBOARD))
         return
     elif model["model_type"] == MODEL_TYPE_PARTICLES:
@@ -571,12 +567,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
     draw_gouraud_shaded = ("gouraud" in instance) and instance["gouraud"]
     textured = "texture" in model
     use_minimum_z_order = ("use_minimum_z_order" in instance) and instance["use_minimum_z_order"]
-    pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
-    if pointlight_enabled:
-        pointlight_falloff = lighting["pointlight_falloff"]
-        pointlight_cam_pos = vec4_mat4_mul_for_points(lighting["pointlight"], camera_m)
     subdivide_max_iterations = instance["subdivide_max_iterations"] if "subdivide_max_iterations" in instance else subdivide_default_max_iterations
-    ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
     vert_normals = None
     if draw_gouraud_shaded:
@@ -642,13 +633,6 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     + proj_light_dir[1] * normal[1]
                     + proj_light_dir[2] * normal[2])
                 intensity = min(1, max(0, ambient + diffuse * dot_prd))
-
-                # fade_factor = 1
-                # if fade_distance > 0:
-                #     z = abs(z_order)
-                #     fade_factor = 1 if z < 1 else max(0, (1 / fade_distance) * (fade_distance - z))
-                #     intensity *= fade_factor
-                # apply_pointlight(tri)
             else:
                 intensity = 1
 
@@ -718,8 +702,7 @@ def render(surface : pygame.surface.Surface, screen_area,
         if z <= fog_distance:
             if pointlight_intensity > 0:
                 color = (pointlight_intensity * color[0], pointlight_intensity * color[1], pointlight_intensity * color[2])
-                f = min(1, (z - near_clip) / fog_denom)
-                f = min(0.8, f)
+                f = min(0.8, (z - near_clip) / fog_denom) # TODO Is this a good constant to use?
                 neg_f = 1 - f
                 return (f * fog_color[0] + neg_f * color[0],
                         f * fog_color[1] + neg_f * color[1],
@@ -877,14 +860,28 @@ def render(surface : pygame.surface.Surface, screen_area,
                     subdivide_2d_triangle(v_a, v_b, v_c, cb_subdivide)
             else:
                 color = shading_data[2]
-                # color = (intensity * color[0], intensity * color[1], intensity * color[2])
                 color = get_color_with_fog(z_order, color, intensity, pointlight_intensity)
                 aapolygon(surface, points, color)
                 filled_polygon(surface, points, color)
         elif draw_mode == DRAW_MODE_WIREFRAME:
             aapolygon(surface, points, shading_data)
         elif draw_mode == DRAW_MODE_BILLBOARD:
-            surface.blit(shading_data, points)
+            scale_img, pointlight_intensity = shading_data
+            if fog_distance == 0:
+                surface.blit(scale_img, points)
+            else:
+                fog_img = pygame.Surface(scale_img.get_size()).convert_alpha()
+                f = min(1, (z_order - near_clip) / fog_denom)
+                neg_f = 1 - f
+                color = (255, 255, 255)
+                fog_img.fill((f * fog_color[0] + neg_f * color[0],
+                              f * fog_color[1] + neg_f * color[1],
+                              f * fog_color[2] + neg_f * color[2],
+                              neg_f * 255))
+                scale_img.blit(fog_img, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+                scale_img.set_alpha(255 * neg_f) # TODO Can use max(K,neg_f) to show outline from far
+                surface.blit(scale_img, points)
+
         elif draw_mode == DRAW_MODE_PARTICLE:
             surface.blit(shading_data, points)
         elif draw_mode == DRAW_MODE_DEBUG_DOT:
