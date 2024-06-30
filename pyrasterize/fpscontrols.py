@@ -6,7 +6,7 @@ Common code for FPS-like controls
 """
 
 import math
-import pygame
+import pygame as pg
 
 from . import vecmat
 from . import uiwndmgr
@@ -41,15 +41,15 @@ class FpsControls:
         # key: (index, value)
         self.key_moves = {
             # WASD
-            pygame.K_w: (2, -1),
-            pygame.K_s: (2, 1),
-            pygame.K_a: (0, -1),
-            pygame.K_d: (0, 1),
+            pg.K_w: (2, -1),
+            pg.K_s: (2, 1),
+            pg.K_a: (0, -1),
+            pg.K_d: (0, 1),
             # Camera rotation
-            pygame.K_LEFT: (3, 1),
-            pygame.K_RIGHT: (3, -1),
-            pygame.K_UP: (4, 1),
-            pygame.K_DOWN: (4, -1),
+            pg.K_LEFT: (3, 1),
+            pg.K_RIGHT: (3, -1),
+            pg.K_UP: (4, 1),
+            pg.K_DOWN: (4, -1),
         }
 
         self.first_mouse_move = True
@@ -57,14 +57,14 @@ class FpsControls:
         self.cross_size = 20
         cross_width = 2
         rgb_cross = (255, 255, 255, 100)
-        self.cross_surface = pygame.Surface((2 * self.cross_size, 2 * self.cross_size))
-        pygame.draw.rect(self.cross_surface, rgb_cross, (self.cross_size - cross_width,
+        self.cross_surface = pg.Surface((2 * self.cross_size, 2 * self.cross_size))
+        pg.draw.rect(self.cross_surface, rgb_cross, (self.cross_size - cross_width,
                                                          0,
                                                          cross_width * 2,
                                                          self.cross_size * 2))
-        pygame.draw.rect(self.cross_surface, rgb_cross, (0, self.cross_size - cross_width,
+        pg.draw.rect(self.cross_surface, rgb_cross, (0, self.cross_size - cross_width,
                                                          self.cross_size * 2, cross_width * 2))
-        pygame.draw.rect(self.cross_surface, (0, 0, 0), (self.cross_size - 2 * cross_width,
+        pg.draw.rect(self.cross_surface, (0, 0, 0), (self.cross_size - 2 * cross_width,
                                                          self.cross_size - 2 * cross_width,
                                                          cross_width * 4,
                                                          cross_width * 4))
@@ -73,8 +73,9 @@ class FpsControls:
 
         self.wmgr = uiwndmgr.WindowManager(self.RASTER_SCR_SIZE)
 
-        wnd_layout = uiwidget.Widget("root", (50, 50))
-        self.wmgr.add_widget(wnd_layout)
+        # F1 menu setup
+        settings_layout = uiwidget.Widget("settings", (50, 50))
+        self.wmgr.add_widget(settings_layout)
 
         def fog_dist_to_progress(dist):
             return abs(dist) / 30
@@ -83,16 +84,20 @@ class FpsControls:
         def fog_dist_text():
             return f"Fog distance: {round(render_settings['fog_distance'], 1)}"
 
-        fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
-        wnd_layout.add_child(fog_dist_label)
+        def add_fog_dist_widgets(pos : pg.Vector2):
+            fog_dist_layout = uiwidget.Widget("fog_dist_layout", pos)
+            settings_layout.add_child(fog_dist_layout)
+            fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
+            fog_dist_layout.add_child(fog_dist_label)
+            fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barBlue", "beige", (120, 3), (150, 6))
+            fog_distance_slider.progress = fog_dist_to_progress(self.render_settings["fog_distance"])
+            def on_fog_slider_changed(progress):
+                self.render_settings["fog_distance"] = fog_progress_to_dist(progress)
+                fog_dist_label.set_text(fog_dist_text(), 16, font_color=self.LABEL_COLOR)
+            fog_distance_slider.on_change_cb = on_fog_slider_changed
+            fog_dist_layout.add_child(fog_distance_slider)
 
-        fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barBlue", "beige", (120, 3), (150, 6))
-        fog_distance_slider.progress = fog_dist_to_progress(self.render_settings["fog_distance"])
-        def on_fog_slider_changed(progress):
-            self.render_settings["fog_distance"] = fog_progress_to_dist(progress)
-            fog_dist_label.set_text(fog_dist_text(), 16, font_color=self.LABEL_COLOR)
-        fog_distance_slider.on_change_cb = on_fog_slider_changed
-        wnd_layout.add_child(fog_distance_slider)
+        add_fog_dist_widgets((0, 0))
 
     def on_mouse_movement(self, x, y):
         """Handle mouse movement"""
@@ -107,7 +112,7 @@ class FpsControls:
 
     def on_key_down(self, key):
         """"""
-        if key == pygame.K_F1:
+        if key == pg.K_F1:
             self.mode = self.MODE_MENU if self.mode == self.MODE_GAME else self.MODE_GAME
         else:
             if self.mode == self.MODE_GAME:
@@ -128,27 +133,27 @@ class FpsControls:
 
     def on_event(self, event):
         if self.mode == self.MODE_GAME:
-            if event.type == pygame.KEYDOWN:
+            if event.type == pg.KEYDOWN:
                 self.on_key_down(event.key)
-            elif event.type == pygame.KEYUP:
+            elif event.type == pg.KEYUP:
                 self.on_key_up(event.key)
-            elif event.type == pygame.MOUSEMOTION:
-                mouse_position = pygame.mouse.get_rel()
+            elif event.type == pg.MOUSEMOTION:
+                mouse_position = pg.mouse.get_rel()
                 if self.first_mouse_move:
                     self.first_mouse_move = False
                 else:
                     self.on_mouse_movement(mouse_position[0], mouse_position[1])
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pg.MOUSEBUTTONDOWN:
                 if self.on_mouse_button_down_cb is not None:
                     self.on_mouse_button_down_cb(event)
         else:
-            if event.type == pygame.KEYDOWN:
+            if event.type == pg.KEYDOWN:
                 self.on_key_down(event.key)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     self.wmgr.on_mouse_button_down(event)
-            elif event.type == pygame.MOUSEMOTION:
-                mouse_position = pygame.mouse.get_pos()
+            elif event.type == pg.MOUSEMOTION:
+                mouse_position = pg.mouse.get_pos()
                 self.wmgr.set_cursor_pos(mouse_position)
 
     def do_movement(self):
@@ -197,7 +202,7 @@ class FpsControls:
             surface.blit(self.cross_surface,
                         (self.RASTER_SCR_WIDTH // 2 - self.cross_size,
                         self.RASTER_SCR_HEIGHT // 2 - self.cross_size),
-                        special_flags=pygame.BLEND_RGBA_ADD)
+                        special_flags=pg.BLEND_RGBA_ADD)
             if self.textblock_fps:
                 surface.blit(self.textblock_fps, (30, 30))
         else:
