@@ -97,6 +97,9 @@ class FpsControls:
             return comp / 255.0
         def color_comp_progress_to_int(progress):
             return int(progress * 255)
+        def fog_rgb_text():
+            color = [int(v) for v in render_settings["fog_color"]]
+            return f"{color[0]}, {color[1]}, {color[2]}"
 
         def add_fog_widgets(pos : pg.Vector2):
             fog_dist_layout = uiwidget.Widget("fog_dist_layout", pos)
@@ -115,20 +118,27 @@ class FpsControls:
             settings_layout.add_child(fog_color_layout)
             fog_color_label = uiwidget.Label("fog_color", "Fog color", 16, font_color=self.LABEL_COLOR, pos=(0, 0))
             fog_color_layout.add_child(fog_color_label)
+            fog_rgb_label = uiwidget.Label("fog_rgb", fog_rgb_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 14))
+            fog_color_layout.add_child(fog_rgb_label)
+            def update_fog_rgb_label():
+                fog_rgb_label.set_text(fog_rgb_text(), 16, font_color=self.LABEL_COLOR)
 
             fog_red_slider = uiwidget.HorizontalSlider("fog_red_slider", self.wmgr, "barRed", "beige", (120, 3), (150, 6))
             def on_fog_red_changed(progress):
                 self.render_settings["fog_color"][0] = color_comp_progress_to_int(progress)
+                update_fog_rgb_label()
             fog_red_slider.on_change_cb = on_fog_red_changed
             fog_color_layout.add_child(fog_red_slider)
             fog_green_slider = uiwidget.HorizontalSlider("fog_green_slider", self.wmgr, "barGreen", "beige", (120, 3+8), (150, 6))
             def on_fog_green_changed(progress):
                 self.render_settings["fog_color"][1] = color_comp_progress_to_int(progress)
+                update_fog_rgb_label()
             fog_green_slider.on_change_cb = on_fog_green_changed
             fog_color_layout.add_child(fog_green_slider)
             fog_blue_slider = uiwidget.HorizontalSlider("fog_blue_slider", self.wmgr, "barBlue", "beige", (120, 3+2*8), (150, 6))
             def on_fog_blue_changed(progress):
                 self.render_settings["fog_color"][2] = color_comp_progress_to_int(progress)
+                update_fog_rgb_label()
             fog_blue_slider.on_change_cb = on_fog_blue_changed
             fog_color_layout.add_child(fog_blue_slider)
 
