@@ -41,7 +41,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     render_settings["pointlight"] = [0.5, 1, -5.2, 1]
     render_settings["pointlight_falloff"] = 2.5
 
-    FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings)
+    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
     # Use separate scene graphs for sky, ground and everything else to avoid problems with overlapping
     scene_graphs = [
@@ -216,7 +216,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     done = False
     paused = False
 
-    FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
+    fpscontrols.update_hud(font, TEXT_COLOR)
 
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
@@ -264,10 +264,10 @@ def main_function(): # PYGBAG: decorate with 'async'
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     done = True
-            FPSCONTROLS.on_event(event)
+            fpscontrols.on_event(event)
 
         do_animation()
-        FPSCONTROLS.do_movement()
+        fpscontrols.do_movement()
         do_sky()
 
         screen.fill(sky_color_2)
@@ -283,10 +283,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         # if frame % 30 == 0:
         #     print(f"render time: {round(elapsed_time, 3)} s")
 
-        FPSCONTROLS.draw(screen)
+        fpscontrols.draw(screen)
 
         if frame % 60 == 0:
-            FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
+            fpscontrols.update_hud(font, TEXT_COLOR)
 
         pygame.display.flip()
         frame += 1 if not paused else 0
