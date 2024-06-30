@@ -106,13 +106,17 @@ class Label(Widget):
     """
     """
     def __init__(self, name, text,
-                 font_size, font_color=(0,0,0), font_name=None, antialias=True,
+                 font_size, font_color=(0,0,0), font_name=None, antialias=True, under_color=None,
                  pos=Vector2(), size=Vector2()):
         super().__init__(name, pos, size)
-        self.set_text(text, font_size, font_color, font_name, antialias)
+        self.set_text(text, font_size, font_color, under_color, font_name, antialias)
 
-    def set_text(self, text, font_size, font_color=(0,0,0), font_name=None, antialias=True):
+    def set_text(self, text, font_size, font_color=(0,0,0), under_color=None, font_name=None, antialias=True):
         font = pg.font.Font(font_name, font_size)
+        if under_color is not None:
+            self.under_img = font.render(text, antialias, under_color)
+        else:
+            self.under_img = None
         self.img = font.render(text, antialias, font_color)
         self.size = self.img.get_size()
 
@@ -124,6 +128,8 @@ class Label(Widget):
     def draw(self, wnd_mgr, surface, dest=Vector2()):
         """
         """
+        if self.under_img is not None:
+            surface.blit(pg.transform.scale(self.under_img, self.size), dest + self.pos + pg.Vector2(1, 1))
         surface.blit(pg.transform.scale(self.img, self.size), dest + self.pos)
         super().draw(wnd_mgr, surface, dest)
 

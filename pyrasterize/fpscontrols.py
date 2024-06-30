@@ -19,6 +19,7 @@ class FpsControls:
     MODE_MENU = 1
 
     LABEL_COLOR = (255, 255, 255)
+    UNDER_LABEL_COLOR = (32, 32, 32)
 
     def __init__(self, RASTER_SCR_SIZE, camera, render_settings, clock : pg.Clock) -> None:
         self.time = time.perf_counter()
@@ -84,7 +85,7 @@ class FpsControls:
 
         self.fps_label = None
         def add_fps_widgets(pos : pg.Vector2):
-            self.fps_label = uiwidget.Label("fps", "---", 16, font_color=self.LABEL_COLOR, pos=pos)
+            self.fps_label = uiwidget.Label("fps", "---", 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=pos)
             settings_layout.add_child(self.fps_label)
 
         def fog_dist_to_progress(dist):
@@ -104,24 +105,24 @@ class FpsControls:
         def add_fog_widgets(pos : pg.Vector2):
             fog_dist_layout = uiwidget.Widget("fog_dist_layout", pos)
             settings_layout.add_child(fog_dist_layout)
-            fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
+            fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 0))
             fog_dist_layout.add_child(fog_dist_label)
             fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barYellow", "blue", (120, 3), (150, 6))
             fog_distance_slider.progress = fog_dist_to_progress(self.render_settings["fog_distance"])
             def on_fog_slider_changed(progress):
                 self.render_settings["fog_distance"] = fog_progress_to_dist(progress)
-                fog_dist_label.set_text(fog_dist_text(), 16, font_color=self.LABEL_COLOR)
+                fog_dist_label.set_text(fog_dist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
             fog_distance_slider.on_change_cb = on_fog_slider_changed
             fog_dist_layout.add_child(fog_distance_slider)
 
             fog_color_layout = uiwidget.Widget("fog_color_layout", pos + pg.Vector2(0, 20))
             settings_layout.add_child(fog_color_layout)
-            fog_color_label = uiwidget.Label("fog_color", "Fog color", 16, font_color=self.LABEL_COLOR, pos=(0, 0))
+            fog_color_label = uiwidget.Label("fog_color", "Fog color", 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 0))
             fog_color_layout.add_child(fog_color_label)
-            fog_rgb_label = uiwidget.Label("fog_rgb", fog_rgb_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 14))
+            fog_rgb_label = uiwidget.Label("fog_rgb", fog_rgb_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 14))
             fog_color_layout.add_child(fog_rgb_label)
             def update_fog_rgb_label():
-                fog_rgb_label.set_text(fog_rgb_text(), 16, font_color=self.LABEL_COLOR)
+                fog_rgb_label.set_text(fog_rgb_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
 
             fog_red_slider = uiwidget.HorizontalSlider("fog_red_slider", self.wmgr, "barRed", "beige", (120, 3), (150, 6))
             def on_fog_red_changed(progress):
@@ -159,23 +160,23 @@ class FpsControls:
         def add_clipdist_widgets(pos : pg.Vector2):
             clipdist_layout = uiwidget.Widget("clipdist_layout", pos)
             settings_layout.add_child(clipdist_layout)
-            nearclipdist_label = uiwidget.Label("nearclipdist", nearclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
+            nearclipdist_label = uiwidget.Label("nearclipdist", nearclipdist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 0))
             clipdist_layout.add_child(nearclipdist_label)
-            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barYellow", "beige", (120, 3), (150, 6))
+            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barYellow", "blue", (120, 3), (150, 6))
             nearclipdist_slider.progress = nearclipdist_to_progress(self.render_settings["near_clip"])
             def on_nearclipdist_slider_changed(progress):
                 self.render_settings["near_clip"] = nearclipdist_progress_to_dist(progress)
-                nearclipdist_label.set_text(nearclipdist_text(), 16, font_color=self.LABEL_COLOR)
+                nearclipdist_label.set_text(nearclipdist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
             nearclipdist_slider.on_change_cb = on_nearclipdist_slider_changed
             clipdist_layout.add_child(nearclipdist_slider)
 
-            farclipdist_label = uiwidget.Label("farclipdist", farclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 20))
+            farclipdist_label = uiwidget.Label("farclipdist", farclipdist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 20))
             clipdist_layout.add_child(farclipdist_label)
-            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barYellow", "beige", (120, 23), (150, 6))
+            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barYellow", "blue", (120, 23), (150, 6))
             farclipdist_slider.progress = farclipdist_to_progress(self.render_settings["far_clip"])
             def on_farclipdist_slider_changed(progress):
                 self.render_settings["far_clip"] = farclipdist_progress_to_dist(progress)
-                farclipdist_label.set_text(farclipdist_text(), 16, font_color=self.LABEL_COLOR)
+                farclipdist_label.set_text(farclipdist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
             farclipdist_slider.on_change_cb = on_farclipdist_slider_changed
             clipdist_layout.add_child(farclipdist_slider)
 
@@ -187,7 +188,7 @@ class FpsControls:
         self.update_fps_label()
 
     def update_fps_label(self):
-        self.fps_label.set_text(f"{round(self.clock.get_fps(), 1)} fps", 16, font_color=self.LABEL_COLOR)
+        self.fps_label.set_text(f"{round(self.clock.get_fps(), 1)} fps", 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
 
     def on_mouse_movement(self, x, y):
         """Handle mouse movement"""
