@@ -97,7 +97,46 @@ class FpsControls:
             fog_distance_slider.on_change_cb = on_fog_slider_changed
             fog_dist_layout.add_child(fog_distance_slider)
 
-        add_fog_dist_widgets((0, 0))
+        def nearclipdist_to_progress(dist):
+            return abs(dist) / 10
+        def nearclipdist_progress_to_dist(prog):
+            return min(-0.1, -10.0 * prog)
+        def nearclipdist_text():
+            return f"Near clip: {round(render_settings['near_clip'], 1)}"
+
+        def farclipdist_to_progress(dist):
+            return abs(dist) / 100
+        def farclipdist_progress_to_dist(prog):
+            return min(-0.1, -100.0 * prog)
+        def farclipdist_text():
+            return f"Far clip: {round(render_settings['far_clip'], 1)}"
+
+        def add_clipdist_widgets(pos : pg.Vector2):
+            clipdist_layout = uiwidget.Widget("clipdist_layout", pos)
+            settings_layout.add_child(clipdist_layout)
+            nearclipdist_label = uiwidget.Label("nearclipdist", nearclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
+            clipdist_layout.add_child(nearclipdist_label)
+            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barBlue", "beige", (120, 3), (150, 6))
+            nearclipdist_slider.progress = nearclipdist_to_progress(self.render_settings["near_clip"])
+            def on_nearclipdist_slider_changed(progress):
+                self.render_settings["near_clip"] = nearclipdist_progress_to_dist(progress)
+                nearclipdist_label.set_text(nearclipdist_text(), 16, font_color=self.LABEL_COLOR)
+            nearclipdist_slider.on_change_cb = on_nearclipdist_slider_changed
+            clipdist_layout.add_child(nearclipdist_slider)
+
+            farclipdist_label = uiwidget.Label("farclipdist", farclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 20))
+            clipdist_layout.add_child(farclipdist_label)
+            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barBlue", "beige", (120, 23), (150, 6))
+            farclipdist_slider.progress = farclipdist_to_progress(self.render_settings["far_clip"])
+            def on_farclipdist_slider_changed(progress):
+                self.render_settings["far_clip"] = farclipdist_progress_to_dist(progress)
+                farclipdist_label.set_text(farclipdist_text(), 16, font_color=self.LABEL_COLOR)
+            farclipdist_slider.on_change_cb = on_farclipdist_slider_changed
+            clipdist_layout.add_child(farclipdist_slider)
+
+        # Add subwidgets
+        add_clipdist_widgets((0, 0))
+        add_fog_dist_widgets((0, 45))
 
     def on_mouse_movement(self, x, y):
         """Handle mouse movement"""

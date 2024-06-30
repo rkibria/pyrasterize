@@ -255,4 +255,5 @@ class HorizontalSlider(Widget):
                 self.progress = dx / self.size.x
                 if callable(self.on_change_cb):
                     self.on_change_cb(self.progress)
-        return True
+                return True
+        return False
