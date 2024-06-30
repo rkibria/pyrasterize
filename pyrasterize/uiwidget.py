@@ -52,15 +52,15 @@ class Widget:
         """
         self.children.append(child)
 
-    def on_mouse_button_down(self, wnd_mgr, event):
-        x, y = event.pos
-        if self.rect.collidepoint(x, y):
+    def on_mouse_button_down(self, wnd_mgr, pos : pg.Vector2):
+        rel_pos = pos - self.pos
+        if self.rect.collidepoint(rel_pos):
             if callable(self.on_mouse_button_down_cb):
-                done = self.on_mouse_button_down_cb(self, wnd_mgr, event)
+                done = self.on_mouse_button_down_cb(self, wnd_mgr, rel_pos)
                 if done:
                     return True
         for child in self.children:
-            done = child.on_mouse_button_down(wnd_mgr, event)
+            done = child.on_mouse_button_down(wnd_mgr, rel_pos)
             if done:
                 return True
         return False
@@ -209,6 +209,50 @@ class HorizontalBar(Widget):
         """
         """
         uidraw.draw_horizontal_bar(surface, self.wnd_mgr.ui_images, self.style,
-                                 self.progress,
-                                 dest.x + self.pos.x, dest.y + self.pos.y, self.size.x, self.size.y)
+                                   self.progress,
+                                   dest.x + self.pos.x, dest.y + self.pos.y,
+                                   self.size.x, self.size.y)
         super().draw(wnd_mgr, surface, dest)
+
+class HorizontalSlider(Widget):
+    """
+    Horizontal progress bar. Set .progress to value between 0 and 1
+    """
+    def __init__(self, name, wnd_mgr, bar_style, circle_style, pos=Vector2(), size=Vector2()):
+        """
+        """
+        super().__init__(name, pos, size)
+        self.wnd_mgr = wnd_mgr
+        self.bar_style = bar_style
+        self.circle_style = circle_style
+        self.progress = 0.0
+        self.on_change_cb = None # Signature (progress)
+
+    def __str__(self):
+        """
+        """
+        return f"horizontal_slider({self.name}, {self.pos}, {self.size})"
+
+    def draw(self, wnd_mgr, surface, dest=Vector2()):
+        """
+        """
+        uidraw.draw_horizontal_bar(surface, self.wnd_mgr.ui_images, self.bar_style,
+                                   1.0,
+                                   dest.x + self.pos.x, dest.y + self.pos.y,
+                                   self.size.x, self.size.y)
+        circle = self.wnd_mgr.ui_images["iconCircle_" + self.circle_style]
+        circle_size = self.size.y
+        surface.blit(pg.transform.scale(circle["img"],
+                                        (circle_size, circle_size)),
+                     (dest.x + self.pos.x + int(self.size.x * self.progress - circle_size / 2),
+                      dest.y + self.pos.y))
+        super().draw(wnd_mgr, surface, dest)
+
+    def on_mouse_button_down(self, wnd_mgr, pos : pg.Vector2):
+        if self.rect.collidepoint(pos):
+            dx = pos.x - self.pos.x
+            if dx >= 0 and dx < self.size.x:
+                self.progress = dx / self.size.x
+                if callable(self.on_change_cb):
+                    self.on_change_cb(self.progress)
+        return True

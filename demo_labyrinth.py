@@ -184,14 +184,14 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
-    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA)
-
     LIGHTING = rasterizer.get_default_lighting()
     LIGHTING["pointlight_enabled"] = True
     LIGHTING["pointlight"] = [12, 2, -12, 1]
     LIGHTING["fog_distance"] = -15
     fog_color = (0, 32, 0)
     LIGHTING["fog_color"] = fog_color
+
+    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, LIGHTING)
 
     labyrinth = {
         'cells': [

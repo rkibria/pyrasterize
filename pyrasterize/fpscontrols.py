@@ -16,9 +16,9 @@ class FpsControls:
     MODE_GAME = 0
     MODE_MENU = 1
 
-    LABEL_COLOR = (40, 40, 60)
+    LABEL_COLOR = (255, 255, 255)
 
-    def __init__(self, RASTER_SCR_SIZE, camera) -> None:
+    def __init__(self, RASTER_SCR_SIZE, camera, lighting) -> None:
         self.on_mouse_button_down_cb = None
  
         self.RASTER_SCR_SIZE = RASTER_SCR_SIZE
@@ -35,6 +35,8 @@ class FpsControls:
         # xyz delta relative to camera direction / xyz camera rotation
         self.move_dir = [0, 0, 0,
                          0, 0, 0]
+
+        self.lighting = lighting
 
         # key: (index, value)
         self.key_moves = {
@@ -70,14 +72,21 @@ class FpsControls:
         self.textblock_fps = None
 
         self.wmgr = uiwndmgr.WindowManager(self.RASTER_SCR_SIZE)
-        button_1 = uiwidget.Window("button_new_game", self.wmgr, "blue", pygame.Vector2(30, 30), pygame.Vector2(110, 35))
-        button_1.add_child(uiwidget.Label("new game", "New Game", 26, font_color=self.LABEL_COLOR, pos=pygame.Vector2(12, 8)))
-        def on_new_game_pressed(widget, wnd_mgr, event):
-            print("button 1 pressed")
-            return True
-        button_1.on_mouse_button_down_cb = on_new_game_pressed
-        self.wmgr.add_widget(button_1)
 
+        wnd_1 = uiwidget.Widget("root", (50, 50))
+        self.wmgr.add_widget(wnd_1)
+
+        wnd_1.add_child(uiwidget.Label("fog_distance", "Fog distance", 16, font_color=self.LABEL_COLOR, pos=(0, 0)))
+        fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barBlue", "beige", (80, 3), (150, 6))
+        def fog_dist_to_progress(dist):
+            return abs(dist) / 30
+        def fog_progress_to_dist(prog):
+            return -30.0 * prog
+        fog_distance_slider.progress = fog_dist_to_progress(self.lighting["fog_distance"])
+        def on_fog_slider_changed(progress):
+            self.lighting["fog_distance"] = fog_progress_to_dist(progress)
+        fog_distance_slider.on_change_cb = on_fog_slider_changed
+        wnd_1.add_child(fog_distance_slider)
 
     def on_mouse_movement(self, x, y):
         """Handle mouse movement"""

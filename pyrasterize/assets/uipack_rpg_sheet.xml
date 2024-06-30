@@ -44,7 +44,7 @@
 	<SubTexture name="barBack_verticalBottom.png" x="290" y="189" width="18" height="9"/>
 	<SubTexture name="barBack_verticalMid.png" x="338" y="404" width="18" height="18"/>
 	<SubTexture name="barBack_verticalTop.png" x="338" y="440" width="18" height="9"/>
-	<SubTexture name="barBlue_horizontalBlue.png" x="356" y="431" width="18" height="18"/>
+	<SubTexture name="barBlue_horizontalMid.png" x="356" y="431" width="18" height="18"/>
 	<SubTexture name="barBlue_horizontalLeft.png" x="372" y="294" width="9" height="18"/>
 	<SubTexture name="barBlue_horizontalRight.png" x="372" y="312" width="9" height="18"/>
 	<SubTexture name="barBlue_verticalBottom.png" x="344" y="189" width="18" height="9"/>

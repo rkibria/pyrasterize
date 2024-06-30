@@ -44,8 +44,9 @@ class WindowManager:
         self.cursor_pos = pos
 
     def on_mouse_button_down(self, event):
+        pos = pg.Vector2(event.pos)
         for widget in self.widgets:
-            done = widget.on_mouse_button_down(self, event)
+            done = widget.on_mouse_button_down(self, pos)
             if done:
                 break
 
