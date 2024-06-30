@@ -15,27 +15,26 @@ from pyrasterize import rasterizer
 from pyrasterize import textures
 from pyrasterize.fpscontrols import FpsControls
 
-# CONSTANTS
-
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
-RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
-
-# Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0, 1, 5], "rot": [0.0, -0.003490658503988659, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
-
-# Light comes from a right, top, and back direction (over the "right shoulder")
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
-            "pointlight_enabled": True, "pointlight": [0.5, 1, -5.2, 1], "pointlight_falloff": 2.5}
-
-FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA)
 
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     pygame.init()
 
+    # CONSTANTS
+    RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
+    RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
+
+    # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
+    CAMERA = { "pos": [0, 1, 5], "rot": [0.0, -0.003490658503988659, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+
+    # Light comes from a right, top, and back direction (over the "right shoulder")
+    render_settings = rasterizer.get_default_render_settings()
+
     screen = pygame.display.set_mode(RASTER_SCR_SIZE, pygame.SCALED)
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
+
+    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
     # Use separate scene graphs for sky, ground and everything else to avoid problems with overlapping
     scene_graphs = [
@@ -72,7 +71,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     done = False
     paused = False
 
-    FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
+    fpscontrols.update_hud(font, TEXT_COLOR)
 
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
@@ -85,27 +84,27 @@ def main_function(): # PYGBAG: decorate with 'async'
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     done = True
-            FPSCONTROLS.on_event(event)
+            fpscontrols.on_event(event)
 
-        FPSCONTROLS.do_movement()
+        fpscontrols.do_movement()
 
-        screen.fill((0, 0, 0))
+        screen.fill(render_settings["fog_color"])
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         cam_m = vecmat.get_simple_camera_m(CAMERA)
         t = time.perf_counter()
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-                cam_m, persp_m, LIGHTING)
+                cam_m, persp_m, render_settings)
 
         # elapsed_time = time.perf_counter() - t
         # if frame % 30 == 0:
         #     print(f"render time: {round(elapsed_time, 3)} s")
 
-        FPSCONTROLS.draw(screen)
+        fpscontrols.draw(screen)
 
         if frame % 60 == 0:
-            FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
+            fpscontrols.update_hud(font, TEXT_COLOR)
 
         pygame.display.flip()
         frame += 1 if not paused else 0

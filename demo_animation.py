@@ -9,23 +9,17 @@ from pyrasterize import vecmat
 from pyrasterize import rasterizer
 from pyrasterize import model_file_io
 
-# CONSTANTS
-
-SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 640, 480
-SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
-
-RGB_BLACK = (0, 0, 0)
-RGB_WHITE = (255, 255, 255)
-
-CAMERA = { "pos": [0, 1, 3], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
-
-# MAIN
 
 def main_function():
     """Main"""
     pygame.init()
 
+    # CONSTANTS
+    SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 640, 480
+    SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
+
+    CAMERA = { "pos": [0, 1, 3], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
+    render_settings = rasterizer.get_default_render_settings()
     screen = pygame.display.set_mode(SCR_SIZE, flags=pygame.SCALED)
     pygame.display.set_caption("pyrasterize demo")
     clock = pygame.time.Clock()
@@ -52,12 +46,12 @@ def main_function():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     done = True
-        screen.fill(RGB_BLACK)
+        screen.fill(render_settings["fog_color"])
 
         scene_graph["root"]["xform_m4"] = vecmat.get_rot_y_m4(vecmat.deg_to_rad(frame * 0.5))
 
         rasterizer.render(screen, SCR_AREA, scene_graph,
-            vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+            vecmat.get_simple_camera_m(CAMERA), persp_m, render_settings)
 
         pygame.display.flip()
         frame += 1

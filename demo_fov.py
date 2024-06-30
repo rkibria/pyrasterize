@@ -15,11 +15,10 @@ from pyrasterize import meshes
 SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 800, 600
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
 RGB_WHITE = (255, 255, 255)
 
 CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+render_settings = rasterizer.get_default_render_settings()
 
 def get_sprite_instance():
     """Make sprite instance"""
@@ -121,7 +120,7 @@ def draw_scene_graph(surface, frame, scene_graph):
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph,
-        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+        vecmat.get_simple_camera_m(CAMERA), persp_m, render_settings)
 
 # MAIN
 
@@ -130,7 +129,7 @@ def main_function():
     pygame.init()
 
     screen = pygame.display.set_mode(SCR_SIZE)
-    pygame.display.set_caption("PyRasterize")
+    pygame.display.set_caption("pyrasterize")
     clock = pygame.time.Clock()
 
     scene_graph = create_scene_graph()
@@ -143,7 +142,10 @@ def main_function():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-        screen.fill(RGB_BLACK)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done = True
+        screen.fill(render_settings["fog_color"])
 
         draw_scene_graph(screen, frame, scene_graph)
 

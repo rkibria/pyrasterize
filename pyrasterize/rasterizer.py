@@ -74,7 +74,7 @@ def get_default_render_settings():
             "pointlight_color": (255, 255, 255), # TODO
 
             "fog_distance": 0, # 0 means no fog
-            "fog_color": [64, 64, 64, 0]
+            "fog_color": [0, 0, 0, 0]
             }
 
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None, create_bbox=True) -> dict:
@@ -176,11 +176,11 @@ def visit_instances(scene_graph, func, enabled_only=False):
                 visit_instances(instance["children"], func, enabled_only)
 
 
-def get_proj_light_dir(lighting, camera_m) -> list:
+def get_proj_light_dir(render_settings, camera_m) -> list:
     """
     Get the resulting light direction for the given camera
     """
-    light_dir_vec3 = lighting["lightDir"]
+    light_dir_vec3 = render_settings["lightDir"]
     return norm_vec3(vec4_mat4_mul_for_dirs(light_dir_vec3, camera_m)[0:3])
 
 
@@ -427,7 +427,7 @@ def _is_bounding_sphere_in_frustum(bbox_center, bbox_radius, model_m, persp_m, n
     return False
 
 def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m, scr_origin_x, scr_origin_y,
-                                        lighting, proj_light_dir, instance, model_m, camera_m):
+                                        render_settings, proj_light_dir, instance, model_m, camera_m):
     """Get primitives and shading data from this instance"""
     model = instance["model"]
     if not model:
@@ -435,10 +435,12 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
 
     subdivide_default_max_iterations = 1
 
-    pointlight_enabled = ("pointlight_enabled" in lighting) and lighting["pointlight_enabled"]
+    ambient = render_settings["ambient"]
+    diffuse = render_settings["diffuse"]
+    pointlight_enabled = ("pointlight_enabled" in render_settings) and render_settings["pointlight_enabled"]
     if pointlight_enabled:
-        pointlight_falloff = lighting["pointlight_falloff"]
-        pointlight_cam_pos = vec4_mat4_mul_for_points(lighting["pointlight"], camera_m)
+        pointlight_falloff = render_settings["pointlight_falloff"]
+        pointlight_cam_pos = vec4_mat4_mul_for_points(render_settings["pointlight"], camera_m)
     ignore_lighting = ("ignore_lighting" in instance) and instance["ignore_lighting"]
 
     if model["model_type"] == MODEL_TYPE_BILLBOARD:
@@ -511,6 +513,16 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         if (v_instance[0] * normal[0] + v_instance[1] * normal[1] + v_instance[2] * normal[2]) >= 0:
             return
 
+        dot_prd = max(0, proj_light_dir[0] * normal[0]
+            + proj_light_dir[1] * normal[1]
+            + proj_light_dir[2] * normal[2])
+        intensity = min(1, max(0, ambient + diffuse * dot_prd))
+
+        pointlight_intensity = 0
+        if pointlight_enabled:
+            dist_to_light = mag_vec3(sub_vec3(v_instance, pointlight_cam_pos))
+            pointlight_intensity = 1 if dist_to_light < 1 else max(0, (1 / pointlight_falloff) * (pointlight_falloff - dist_to_light))
+
         quad_verts = [vec4_mat4_mul_for_points(v, model_m) for v in model["quad"]]
         cur_z = min([v[2] for v in quad_verts])
         if cur_z > 0 or cur_z < far_clip:
@@ -527,7 +539,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
 
         cam_verts = [vec4_mat4_mul_for_points(v, model_m) for v in verts]
         clip_verts = [project_to_clip_space(v, persp_m) for v in cam_verts]
-        
+
         scr_posns = [(int(scr_origin_x + v[0] * scr_origin_x),
                       int(scr_origin_y - v[1] * scr_origin_y)) if v is not None else None
                       for v in clip_verts]
@@ -535,7 +547,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
         scene_primitives.append((
             cur_z,
             (clip_verts, scr_posns),
-            [img, tex_w, tex_h],
+            (img, tex_w, tex_h, intensity, pointlight_intensity),
             DRAW_MODE_TEXTURE_RECT))
         return
 
@@ -585,9 +597,6 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
 
     draw_mode = DRAW_MODE_WIREFRAME if draw_as_wireframe else (DRAW_MODE_GOURAUD if draw_gouraud_shaded else DRAW_MODE_FLAT)
 
-    ambient = lighting["ambient"]
-    diffuse = lighting["diffuse"]
-
     if not textured:
         model_colors = model["colors"]
 
@@ -612,7 +621,6 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                         + proj_light_dir[1] * normal[1]
                         + proj_light_dir[2] * normal[2])
                     intensity = min(1, max(0, ambient + diffuse * dot_prd))
-                    # apply_pointlight(tri)
                     if textured:
                         vert_colors[vert_idx] = intensity
                     else:
@@ -676,7 +684,7 @@ def _no_fog(z : float, color : tuple, intensity : float, pointlight_intensity : 
 def render(surface : pygame.surface.Surface, screen_area,
            scene_graph,
            camera_m, persp_m,
-           settings):
+           render_settings):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
@@ -684,9 +692,9 @@ def render(surface : pygame.surface.Surface, screen_area,
     # if DEBUG_FONT is None:
     #     DEBUG_FONT = pygame.font.Font(None, 16)
 
-    near_clip = settings["near_clip"]
-    far_clip = settings["far_clip"]
-    mip_dist = settings["mip_dist"]
+    near_clip = render_settings["near_clip"]
+    far_clip = render_settings["far_clip"]
+    mip_dist = render_settings["mip_dist"]
 
     scr_origin_x = screen_area[0] + screen_area[2] / 2
     scr_origin_y = screen_area[1] + screen_area[3] / 2
@@ -701,12 +709,12 @@ def render(surface : pygame.surface.Surface, screen_area,
     # Sorted by depth before drawing, draw mode overrides order so wireframes come last
     scene_primitives = []
 
-    proj_light_dir = get_proj_light_dir(settings, camera_m)
+    proj_light_dir = get_proj_light_dir(render_settings, camera_m)
 
-    if "fog_distance" in settings:
-        fog_distance = settings["fog_distance"]
+    if "fog_distance" in render_settings:
+        fog_distance = render_settings["fog_distance"]
         fog_denom = fog_distance - near_clip
-        fog_color = settings["fog_color"]
+        fog_color = render_settings["fog_color"]
     else:
         fog_distance = 0
     def _get_color_with_fog(z : float, color : tuple, intensity : float, pointlight_intensity : float):
@@ -738,7 +746,7 @@ def render(surface : pygame.surface.Surface, screen_area,
                 proj_m = mat4_mat4_mul(parent_m, proj_m)
                 proj_m = mat4_mat4_mul(camera_m, proj_m)
                 _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m,
-                                                    scr_origin_x, scr_origin_y, settings, proj_light_dir,
+                                                    scr_origin_x, scr_origin_y, render_settings, proj_light_dir,
                                                     instance, proj_m, camera_m)
                 pass_m = mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:
@@ -900,7 +908,7 @@ def render(surface : pygame.surface.Surface, screen_area,
         elif draw_mode == DRAW_MODE_DEBUG_DOT:
             pygame.draw.rect(surface, shading_data, pygame.Rect(points[0]-1, points[1]-1, 2, 2))
         elif draw_mode == DRAW_MODE_TEXTURE_RECT:
-            img,cols,rows = shading_data
+            img,cols,rows,intensity,pointlight_intensity = shading_data
             clip_verts, scr_posns = points
             for row in range(rows):
                 for col in range(cols):
@@ -914,11 +922,17 @@ def render(surface : pygame.surface.Surface, screen_area,
                              scr_posns[i_2],
                              scr_posns[i_3])
                     if not any(map(lambda x: x is None, posns)):
-                        if clip_space_quad_overlaps_view_frustum(clip_verts[i_0],
-                                                                 clip_verts[i_1],
-                                                                 clip_verts[i_2],
-                                                                 clip_verts[i_3],
+                        cv_0 = clip_verts[i_0]
+                        cv_1 = clip_verts[i_1]
+                        cv_2 = clip_verts[i_2]
+                        cv_3 = clip_verts[i_3]
+                        if clip_space_quad_overlaps_view_frustum(cv_0,
+                                                                 cv_1,
+                                                                 cv_2,
+                                                                 cv_3,
                                                                  near_clip, far_clip):
+                            z = min(cv_0[2], cv_1[2], cv_2[2], cv_3[2])
+                            color = get_color_with_fog(z, color, intensity, pointlight_intensity)
                             aapolygon(surface, posns, color)
                             filled_polygon(surface, posns, color)
 

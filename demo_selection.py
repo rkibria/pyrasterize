@@ -19,12 +19,12 @@ from pyrasterize import selecting
 SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 800, 600
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
 RGB_WHITE = (255, 255, 255)
 RGB_GREEN = (0, 255, 0)
 
 CAMERA = { "pos": [0,0,0], "rot": [0,0,0], "fov": 90, "ar": SCR_WIDTH/SCR_HEIGHT }
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+render_settings = rasterizer.get_default_render_settings()
+
 NUM_OBJECTS = 8
 CUR_SELECTED = None
 
@@ -52,7 +52,7 @@ def draw_scene_graph(surface, frame, scene_graph):
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph,
-        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+        vecmat.get_simple_camera_m(CAMERA), persp_m, render_settings)
 
 # MAIN
 
@@ -98,7 +98,7 @@ def main_function():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_left_down(pygame.mouse.get_pos(), scene_graph)
 
-        screen.fill(RGB_BLACK)
+        screen.fill(render_settings["fog_color"])
 
         draw_scene_graph(screen, frame, scene_graph)
 
