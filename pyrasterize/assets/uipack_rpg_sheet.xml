@@ -102,7 +102,8 @@
 	<SubTexture name="iconCheck_bronze.png" x="370" y="45" width="16" height="15"/>
 	<SubTexture name="iconCheck_grey.png" x="370" y="75" width="16" height="15"/>
 	<SubTexture name="iconCircle_beige.png" x="356" y="466" width="17" height="17"/>
-	<SubTexture name="iconCircle_blue.png" x="365" y="483" width="17" height="17"/>
+	<SubTexture name="iconCircle_blue.png" x="383" y="483" width="17" height="17"/>
+	<SubTexture name="iconCircle_darkgray.png" x="365" y="483" width="17" height="17"/>
 	<SubTexture name="iconCircle_brown.png" x="369" y="152" width="17" height="17"/>
 	<SubTexture name="iconCircle_grey.png" x="356" y="449" width="17" height="17"/>
 	<SubTexture name="iconCross_beige.png" x="369" y="169" width="16" height="15"/>

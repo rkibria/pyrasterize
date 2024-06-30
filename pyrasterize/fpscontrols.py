@@ -103,7 +103,7 @@ class FpsControls:
             settings_layout.add_child(fog_dist_layout)
             fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
             fog_dist_layout.add_child(fog_dist_label)
-            fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barBack", "beige", (120, 3), (150, 6))
+            fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barYellow", "blue", (120, 3), (150, 6))
             fog_distance_slider.progress = fog_dist_to_progress(self.render_settings["fog_distance"])
             def on_fog_slider_changed(progress):
                 self.render_settings["fog_distance"] = fog_progress_to_dist(progress)
@@ -151,7 +151,7 @@ class FpsControls:
             settings_layout.add_child(clipdist_layout)
             nearclipdist_label = uiwidget.Label("nearclipdist", nearclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
             clipdist_layout.add_child(nearclipdist_label)
-            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barBack", "beige", (120, 3), (150, 6))
+            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barYellow", "beige", (120, 3), (150, 6))
             nearclipdist_slider.progress = nearclipdist_to_progress(self.render_settings["near_clip"])
             def on_nearclipdist_slider_changed(progress):
                 self.render_settings["near_clip"] = nearclipdist_progress_to_dist(progress)
@@ -161,7 +161,7 @@ class FpsControls:
 
             farclipdist_label = uiwidget.Label("farclipdist", farclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 20))
             clipdist_layout.add_child(farclipdist_label)
-            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barBack", "beige", (120, 23), (150, 6))
+            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barYellow", "beige", (120, 23), (150, 6))
             farclipdist_slider.progress = farclipdist_to_progress(self.render_settings["far_clip"])
             def on_farclipdist_slider_changed(progress):
                 self.render_settings["far_clip"] = farclipdist_progress_to_dist(progress)
