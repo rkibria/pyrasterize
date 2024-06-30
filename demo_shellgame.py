@@ -55,7 +55,8 @@ CAMERA = { "pos": [0, 4, 7],
     "rot": [vecmat.deg_to_rad(-20), 0, 0],
     "fov": 90,
     "ar": SCR_WIDTH/SCR_HEIGHT }
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+
+render_settings = rasterizer.get_default_render_settings()
 
 # 3D ANIMATION FUNCTIONS
 
@@ -264,7 +265,7 @@ def draw_game_state(surface, font_cache, game_state, scene_graph):
 
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     rasterizer.render(surface, SCR_AREA, scene_graph,
-        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+        vecmat.get_simple_camera_m(CAMERA), persp_m, render_settings)
 
 def on_left_down(pos, game_state, scene_graph):
     """Handle left button down"""
@@ -301,9 +302,14 @@ def main_function():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 on_left_down(pygame.mouse.get_pos(), game_state, scene_graph)
-        screen.fill((0, 0, 0))
+
+        screen.fill(render_settings["fog_color"])
+
         run_game_state_machine(game_state, scene_graph)
         draw_game_state(screen, font_cache, game_state, scene_graph)
         pygame.display.flip()

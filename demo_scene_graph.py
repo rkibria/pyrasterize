@@ -16,10 +16,10 @@ import pyrasterize.meshes as meshes
 SCR_SIZE = SCR_WIDTH, SCR_HEIGHT = 800, 600
 SCR_AREA = (0, 0, SCR_WIDTH, SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
 RGB_WHITE = (255, 255, 255)
 
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+render_settings = rasterizer.get_default_render_settings()
+
 SPRITE_SPEED = 0.1
 CUBE_COLOR_1 = (200, 0, 0)
 CUBE_COLOR_2 = (0, 0, 200)
@@ -135,7 +135,7 @@ def draw_scene_graph(surface, frame, scene_graph):
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(90), SCR_WIDTH/SCR_HEIGHT)
 
     t = time.perf_counter()
-    rasterizer.render(surface, SCR_AREA, scene_graph, camera_m, persp_m, LIGHTING)
+    rasterizer.render(surface, SCR_AREA, scene_graph, camera_m, persp_m, render_settings)
     elapsed_time = time.perf_counter() - t
     if frame % 30 == 0:
         print(f"render time: {round(elapsed_time, 3)} s")
@@ -172,7 +172,11 @@ def main_function():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-        screen.fill(RGB_BLACK)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    done = True
+
+        screen.fill(render_settings["fog_color"])
 
         draw_scene_graph(screen, frame, scene_graph)
 

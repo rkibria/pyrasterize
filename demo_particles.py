@@ -19,13 +19,10 @@ from pyrasterize import meshes
 RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 800, 600
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
-RGB_BLACK = (0, 0, 0)
-
 # Set up a camera that is a little back from the origin point, facing forward (i.e. to negative z)
 CAMERA = { "pos": [0,0,5], "rot": [0,0,0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
-# Light comes from a right, top, and back direction (over the "right shoulder")
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7}
+render_settings = rasterizer.get_default_render_settings()
 
 def draw_scene_graph(surface, frame, scene_graph):
     """Draw and animate the scene graph"""
@@ -39,7 +36,7 @@ def draw_scene_graph(surface, frame, scene_graph):
     persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
     t = time.perf_counter()
     rasterizer.render(surface, RASTER_SCR_AREA, scene_graph,
-        vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING)
+        vecmat.get_simple_camera_m(CAMERA), persp_m, render_settings)
     elapsed_time = time.perf_counter() - t
     if frame % 30 == 0:
         print(f"render time: {round(elapsed_time, 3)} s")
@@ -100,7 +97,7 @@ def main_function():
                 if event.key == pygame.K_ESCAPE:
                     done = True
 
-        screen.fill(RGB_BLACK)
+        screen.fill(render_settings["fog_color"])
         draw_scene_graph(screen, frame, scene_graph)
         screen.blit(textblock_fps, (30, 10))
 

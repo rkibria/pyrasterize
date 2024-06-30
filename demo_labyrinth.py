@@ -26,8 +26,6 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
-FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA)
-
 # Original mesh width for scaling
 MODELS_ORIG_WIDTH = 2
 
@@ -186,12 +184,14 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
-    LIGHTING = rasterizer.get_default_lighting()
-    LIGHTING["pointlight_enabled"] = True
-    LIGHTING["pointlight"] = [12, 2, -12, 1]
-    LIGHTING["fog_distance"] = -15
-    fog_color = (0, 32, 0)
-    LIGHTING["fog_color"] = fog_color
+    render_settings = rasterizer.get_default_render_settings()
+    render_settings["pointlight_enabled"] = True
+    render_settings["pointlight"] = [12, 2, -12, 1]
+    render_settings["fog_distance"] = -15
+    fog_color = [0, 32, 0, 0]
+    render_settings["fog_color"] = fog_color
+
+    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
     labyrinth = {
         'cells': [
@@ -239,7 +239,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     projectile_inst = rasterizer.get_model_instance(projectile_billboard)
     scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
     projectile_inst["enabled"] = False
-    LIGHTING["pointlight_enabled"] = False
+    render_settings["pointlight_enabled"] = False
 
     # Projectile explosion - only one active at any time
     explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
@@ -273,8 +273,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     done = False
     paused = False
 
-    FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
-
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
 
@@ -282,7 +280,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         """Handle mouse button down"""
         if not projectile_inst["enabled"]:
             projectile_inst["enabled"] = True
-            LIGHTING["pointlight_enabled"] = True
+            render_settings["pointlight_enabled"] = True
             projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
             projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
             projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
@@ -366,12 +364,12 @@ def main_function(): # PYGBAG: decorate with 'async'
         return True
 
     def do_player_movement():
-        FPSCONTROLS.do_movement()
+        fpscontrols.do_movement()
         # Prevent clipping through walls
         cam_pos = CAMERA["pos"]
         if not is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
-            CAMERA["pos"][0] = FPSCONTROLS.last_cam_pos[0]
-            CAMERA["pos"][2] = FPSCONTROLS.last_cam_pos[2]
+            CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
+            CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
 
     def projectile_collides_with_enemy(projectile_pos, enemy_pos):
         # For simplicity enemy collision volume is a stack of spheres
@@ -393,7 +391,7 @@ def main_function(): # PYGBAG: decorate with 'async'
             if not is_position_reachable(*mdl_tr_copy[0:3]):
                 # Projectile explodes and is removed
                 projectile_inst["enabled"] = False
-                LIGHTING["pointlight_enabled"] = False
+                render_settings["pointlight_enabled"] = False
                 explo_inst["enabled"] = True
                 explo_billboard["cur_frame"] = 0
                 explo_billboard["size_scale"] = 1
@@ -406,7 +404,7 @@ def main_function(): # PYGBAG: decorate with 'async'
                 mdl_tr[0] = mdl_tr_copy[0]
                 mdl_tr[1] = mdl_tr_copy[1]
                 mdl_tr[2] = mdl_tr_copy[2]
-                pl_tr = LIGHTING["pointlight"]
+                pl_tr = render_settings["pointlight"]
                 pl_tr[0] = mdl_tr_copy[0]
                 pl_tr[1] = mdl_tr_copy[1]
                 pl_tr[2] = mdl_tr_copy[2]
@@ -421,7 +419,7 @@ def main_function(): # PYGBAG: decorate with 'async'
                         if projectile_collides_with_enemy(projectile_pos, enemy_pos):
                             projectile_inst["enabled"] = False
                             enemy_inst["enabled"] = False
-                            LIGHTING["pointlight_enabled"] = False
+                            render_settings["pointlight_enabled"] = False
                             explo_inst["enabled"] = True
                             explo_billboard["cur_frame"] = 0
                             explo_billboard["size_scale"] = 3
@@ -431,20 +429,19 @@ def main_function(): # PYGBAG: decorate with 'async'
                             explo_tr[2] = projectile_pos[2]
 
     view_max = 3 * cell_size
-    near_clip = -0.5
-    far_clip = -view_max
+    render_settings["far_clip"] = -view_max
+
+    fpscontrols.on_mouse_button_down_cb = on_mouse_button_down
 
     while not done:
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                on_mouse_button_down(event)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     done = True
-            FPSCONTROLS.on_event(event)
+            fpscontrols.on_event(event)
 
         do_player_movement()
         do_projectile_movement()
@@ -456,16 +453,13 @@ def main_function(): # PYGBAG: decorate with 'async'
         screen.fill(fog_color)
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-                vecmat.get_simple_camera_m(CAMERA), persp_m, LIGHTING,
-                near_clip, far_clip)
+                              vecmat.get_simple_camera_m(CAMERA), persp_m,
+                              render_settings)
         # elapsed_time = time.perf_counter() - t
         # if frame % 60 == 0:
         #     print(f"render time: {round(elapsed_time, 3)} s")
 
-        FPSCONTROLS.draw(screen)
-
-        if frame % 30 == 0:
-            FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
+        fpscontrols.draw(screen)
 
         pygame.display.flip()
         frame += 1 if not paused else 0
