@@ -75,18 +75,23 @@ class FpsControls:
                                                          cross_width * 4,
                                                          cross_width * 4))
 
-        self.textblock_fps = None
+        self.wmgr_mode_menu = uiwndmgr.WindowManager(self.RASTER_SCR_SIZE)
+        self.wmgr_mode_game = uiwndmgr.WindowManager(self.RASTER_SCR_SIZE)
+        self.wmgr_mode_game.cursor_enable = False
 
-        self.wmgr = uiwndmgr.WindowManager(self.RASTER_SCR_SIZE)
+        self.fps_label = uiwidget.Label("fps", "---", 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 0))
+
+        # Game mode HUD
+        hud_layout = uiwidget.Widget("hud", (20, 20))
+        hud_layout.add_child(self.fps_label)
+        hud_layout.add_child(uiwidget.Label("info", "F1: menu", 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 14)))
+        self.wmgr_mode_game.add_widget(hud_layout)
 
         # F1 menu setup
         settings_layout = uiwidget.Widget("settings", (20, 20))
-        self.wmgr.add_widget(settings_layout)
+        self.wmgr_mode_menu.add_widget(settings_layout)
 
-        self.fps_label = None
-        def add_fps_widgets(pos : pg.Vector2):
-            self.fps_label = uiwidget.Label("fps", "---", 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=pos)
-            settings_layout.add_child(self.fps_label)
+        settings_layout.add_child(self.fps_label)
 
         def fog_dist_to_progress(dist):
             return abs(dist) / 30
@@ -107,7 +112,7 @@ class FpsControls:
             settings_layout.add_child(fog_dist_layout)
             fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 0))
             fog_dist_layout.add_child(fog_dist_label)
-            fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barYellow", "blue", (120, 3), (150, 6))
+            fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr_mode_menu, "barYellow", "blue", (120, 3), (150, 6))
             fog_distance_slider.progress = fog_dist_to_progress(self.render_settings["fog_distance"])
             def on_fog_slider_changed(progress):
                 self.render_settings["fog_distance"] = fog_progress_to_dist(progress)
@@ -124,19 +129,19 @@ class FpsControls:
             def update_fog_rgb_label():
                 fog_rgb_label.set_text(fog_rgb_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
 
-            fog_red_slider = uiwidget.HorizontalSlider("fog_red_slider", self.wmgr, "barRed", "beige", (120, 3), (150, 6))
+            fog_red_slider = uiwidget.HorizontalSlider("fog_red_slider", self.wmgr_mode_menu, "barRed", "beige", (120, 3), (150, 6))
             def on_fog_red_changed(progress):
                 self.render_settings["fog_color"][0] = color_comp_progress_to_int(progress)
                 update_fog_rgb_label()
             fog_red_slider.on_change_cb = on_fog_red_changed
             fog_color_layout.add_child(fog_red_slider)
-            fog_green_slider = uiwidget.HorizontalSlider("fog_green_slider", self.wmgr, "barGreen", "beige", (120, 3+8), (150, 6))
+            fog_green_slider = uiwidget.HorizontalSlider("fog_green_slider", self.wmgr_mode_menu, "barGreen", "beige", (120, 3+8), (150, 6))
             def on_fog_green_changed(progress):
                 self.render_settings["fog_color"][1] = color_comp_progress_to_int(progress)
                 update_fog_rgb_label()
             fog_green_slider.on_change_cb = on_fog_green_changed
             fog_color_layout.add_child(fog_green_slider)
-            fog_blue_slider = uiwidget.HorizontalSlider("fog_blue_slider", self.wmgr, "barBlue", "beige", (120, 3+2*8), (150, 6))
+            fog_blue_slider = uiwidget.HorizontalSlider("fog_blue_slider", self.wmgr_mode_menu, "barBlue", "beige", (120, 3+2*8), (150, 6))
             def on_fog_blue_changed(progress):
                 self.render_settings["fog_color"][2] = color_comp_progress_to_int(progress)
                 update_fog_rgb_label()
@@ -162,7 +167,7 @@ class FpsControls:
             settings_layout.add_child(clipdist_layout)
             nearclipdist_label = uiwidget.Label("nearclipdist", nearclipdist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 0))
             clipdist_layout.add_child(nearclipdist_label)
-            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barYellow", "blue", (120, 3), (150, 6))
+            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr_mode_menu, "barYellow", "blue", (120, 3), (150, 6))
             nearclipdist_slider.progress = nearclipdist_to_progress(self.render_settings["near_clip"])
             def on_nearclipdist_slider_changed(progress):
                 self.render_settings["near_clip"] = nearclipdist_progress_to_dist(progress)
@@ -172,7 +177,7 @@ class FpsControls:
 
             farclipdist_label = uiwidget.Label("farclipdist", farclipdist_text(), 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR, pos=(0, 20))
             clipdist_layout.add_child(farclipdist_label)
-            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barYellow", "blue", (120, 23), (150, 6))
+            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr_mode_menu, "barYellow", "blue", (120, 23), (150, 6))
             farclipdist_slider.progress = farclipdist_to_progress(self.render_settings["far_clip"])
             def on_farclipdist_slider_changed(progress):
                 self.render_settings["far_clip"] = farclipdist_progress_to_dist(progress)
@@ -181,14 +186,16 @@ class FpsControls:
             clipdist_layout.add_child(farclipdist_slider)
 
         # Add subwidgets
-        add_fps_widgets((0, 0))
         add_clipdist_widgets((0, 25))
         add_fog_widgets((0, 70))
 
         self.update_fps_label()
 
     def update_fps_label(self):
-        self.fps_label.set_text(f"{round(self.clock.get_fps(), 1)} fps", 16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
+        pos = [round(p, 1) for p in self.camera['pos']]
+        rot = [round(vecmat.rad_to_deg(p), 1) for p in self.camera['rot']]
+        self.fps_label.set_text(f"pos {pos} rot {rot} - {round(self.clock.get_fps(), 1)} fps",
+                                16, font_color=self.LABEL_COLOR, under_color=self.UNDER_LABEL_COLOR)
 
     def on_mouse_movement(self, x, y):
         """Handle mouse movement"""
@@ -242,10 +249,10 @@ class FpsControls:
                 self.on_key_down(event.key)
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    self.wmgr.on_mouse_button_down(event)
+                    self.wmgr_mode_menu.on_mouse_button_down(event)
             elif event.type == pg.MOUSEMOTION:
                 mouse_position = pg.mouse.get_pos()
-                self.wmgr.set_cursor_pos(mouse_position)
+                self.wmgr_mode_menu.set_cursor_pos(mouse_position)
 
     def do_movement(self):
         """"""
@@ -289,22 +296,15 @@ class FpsControls:
         cam_rot[0] = min(math.pi/2, max(-math.pi/2, cam_rot[0]))
 
     def draw(self, surface):
+        elapsed_time = time.perf_counter() - self.time
+        if elapsed_time > 0.5:
+            self.update_fps_label()
+            self.time = time.perf_counter()
         if self.mode == self.MODE_GAME:
             surface.blit(self.cross_surface,
                         (self.RASTER_SCR_WIDTH // 2 - self.cross_size,
                         self.RASTER_SCR_HEIGHT // 2 - self.cross_size),
                         special_flags=pg.BLEND_RGBA_ADD)
-            if self.textblock_fps:
-                surface.blit(self.textblock_fps, (30, 30))
+            self.wmgr_mode_game.draw(surface)
         else:
-            elapsed_time = time.perf_counter() - self.time
-            if elapsed_time > 0.5:
-                self.update_fps_label()
-                self.time = time.perf_counter()
-            self.wmgr.draw(surface)
-
-    def update_hud(self, font, text_col=(200, 200, 230)):
-        pos = [round(p, 2) for p in self.camera['pos']]
-        rot = [round(vecmat.rad_to_deg(p), 2) for p in self.camera['rot']]
-        self.textblock_fps = font.render(f"pos: {pos} - rot: {rot} - {round(self.clock.get_fps(), 1)} fps",
-                                         True, text_col)
+            self.wmgr_mode_menu.draw(surface)

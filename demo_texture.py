@@ -71,8 +71,6 @@ def main_function(): # PYGBAG: decorate with 'async'
     done = False
     paused = False
 
-    fpscontrols.update_hud(font, TEXT_COLOR)
-
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
 
@@ -102,9 +100,6 @@ def main_function(): # PYGBAG: decorate with 'async'
         #     print(f"render time: {round(elapsed_time, 3)} s")
 
         fpscontrols.draw(screen)
-
-        if frame % 60 == 0:
-            fpscontrols.update_hud(font, TEXT_COLOR)
 
         pygame.display.flip()
         frame += 1 if not paused else 0
