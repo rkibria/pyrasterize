@@ -188,7 +188,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     render_settings["pointlight_enabled"] = True
     render_settings["pointlight"] = [12, 2, -12, 1]
     render_settings["fog_distance"] = -15
-    fog_color = (0, 32, 0)
+    fog_color = [0, 32, 0, 0]
     render_settings["fog_color"] = fog_color
 
     fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)

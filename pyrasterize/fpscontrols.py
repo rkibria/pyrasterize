@@ -93,19 +93,44 @@ class FpsControls:
             return -30.0 * prog
         def fog_dist_text():
             return f"Fog distance: {round(render_settings['fog_distance'], 1)}"
+        def color_comp_to_progress(comp):
+            return comp / 255.0
+        def color_comp_progress_to_int(progress):
+            return int(progress * 255)
 
-        def add_fog_dist_widgets(pos : pg.Vector2):
+        def add_fog_widgets(pos : pg.Vector2):
             fog_dist_layout = uiwidget.Widget("fog_dist_layout", pos)
             settings_layout.add_child(fog_dist_layout)
             fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
             fog_dist_layout.add_child(fog_dist_label)
-            fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barBlue", "beige", (120, 3), (150, 6))
+            fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barBack", "beige", (120, 3), (150, 6))
             fog_distance_slider.progress = fog_dist_to_progress(self.render_settings["fog_distance"])
             def on_fog_slider_changed(progress):
                 self.render_settings["fog_distance"] = fog_progress_to_dist(progress)
                 fog_dist_label.set_text(fog_dist_text(), 16, font_color=self.LABEL_COLOR)
             fog_distance_slider.on_change_cb = on_fog_slider_changed
             fog_dist_layout.add_child(fog_distance_slider)
+
+            fog_color_layout = uiwidget.Widget("fog_color_layout", pos + pg.Vector2(0, 20))
+            settings_layout.add_child(fog_color_layout)
+            fog_color_label = uiwidget.Label("fog_color", "Fog color", 16, font_color=self.LABEL_COLOR, pos=(0, 0))
+            fog_color_layout.add_child(fog_color_label)
+
+            fog_red_slider = uiwidget.HorizontalSlider("fog_red_slider", self.wmgr, "barRed", "beige", (120, 3), (150, 6))
+            def on_fog_red_changed(progress):
+                self.render_settings["fog_color"][0] = color_comp_progress_to_int(progress)
+            fog_red_slider.on_change_cb = on_fog_red_changed
+            fog_color_layout.add_child(fog_red_slider)
+            fog_green_slider = uiwidget.HorizontalSlider("fog_green_slider", self.wmgr, "barGreen", "beige", (120, 3+8), (150, 6))
+            def on_fog_green_changed(progress):
+                self.render_settings["fog_color"][1] = color_comp_progress_to_int(progress)
+            fog_green_slider.on_change_cb = on_fog_green_changed
+            fog_color_layout.add_child(fog_green_slider)
+            fog_blue_slider = uiwidget.HorizontalSlider("fog_blue_slider", self.wmgr, "barBlue", "beige", (120, 3+2*8), (150, 6))
+            def on_fog_blue_changed(progress):
+                self.render_settings["fog_color"][2] = color_comp_progress_to_int(progress)
+            fog_blue_slider.on_change_cb = on_fog_blue_changed
+            fog_color_layout.add_child(fog_blue_slider)
 
         def nearclipdist_to_progress(dist):
             return abs(dist) / 10
@@ -126,7 +151,7 @@ class FpsControls:
             settings_layout.add_child(clipdist_layout)
             nearclipdist_label = uiwidget.Label("nearclipdist", nearclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
             clipdist_layout.add_child(nearclipdist_label)
-            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barBlue", "beige", (120, 3), (150, 6))
+            nearclipdist_slider = uiwidget.HorizontalSlider("nearclipdist_slider", self.wmgr, "barBack", "beige", (120, 3), (150, 6))
             nearclipdist_slider.progress = nearclipdist_to_progress(self.render_settings["near_clip"])
             def on_nearclipdist_slider_changed(progress):
                 self.render_settings["near_clip"] = nearclipdist_progress_to_dist(progress)
@@ -136,7 +161,7 @@ class FpsControls:
 
             farclipdist_label = uiwidget.Label("farclipdist", farclipdist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 20))
             clipdist_layout.add_child(farclipdist_label)
-            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barBlue", "beige", (120, 23), (150, 6))
+            farclipdist_slider = uiwidget.HorizontalSlider("farclipdist_slider", self.wmgr, "barBack", "beige", (120, 23), (150, 6))
             farclipdist_slider.progress = farclipdist_to_progress(self.render_settings["far_clip"])
             def on_farclipdist_slider_changed(progress):
                 self.render_settings["far_clip"] = farclipdist_progress_to_dist(progress)
@@ -147,7 +172,7 @@ class FpsControls:
         # Add subwidgets
         add_fps_widgets((0, 0))
         add_clipdist_widgets((0, 25))
-        add_fog_dist_widgets((0, 70))
+        add_fog_widgets((0, 70))
 
         self.update_fps_label()
 

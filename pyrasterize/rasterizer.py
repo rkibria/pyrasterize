@@ -74,7 +74,7 @@ def get_default_render_settings():
             "pointlight_color": (255, 255, 255), # TODO
 
             "fog_distance": 0, # 0 means no fog
-            "fog_color": (64, 64, 64)
+            "fog_color": [64, 64, 64, 0]
             }
 
 def get_model_instance(model : dict, preproc_m4 : list = None, xform_m4 : list = None, children : dict = None, create_bbox=True) -> dict:
