@@ -21,27 +21,27 @@ from pyrasterize.fpscontrols import FpsControls
 
 from spritesheet import SpriteSheet
 
-# CONSTANTS
-
-RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
-RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
-
-# Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [-1.5, 1, 0], "rot": [0, vecmat.deg_to_rad(-90), 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
-
-# Light comes from a right, top, and back direction (over the "right shoulder")
-LIGHTING = {"lightDir" : (1, 1, 1), "ambient": 0.3, "diffuse": 0.7,
-            "pointlight_enabled": True, "pointlight": [0.5, 1, -5.2, 1], "pointlight_falloff": 2.5}
-
-FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA)
-
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
+    # CONSTANTS
+    RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
+    RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
+
     pygame.init()
 
     screen = pygame.display.set_mode(RASTER_SCR_SIZE, pygame.SCALED)
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
+
+    # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
+    CAMERA = { "pos": [-1.5, 1, 0], "rot": [0, vecmat.deg_to_rad(-90), 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
+
+    render_settings = rasterizer.get_default_render_settings()
+    render_settings["pointlight_enabled"] = True
+    render_settings["pointlight"] = [0.5, 1, -5.2, 1]
+    render_settings["pointlight_falloff"] = 2.5
+
+    FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings)
 
     # Use separate scene graphs for sky, ground and everything else to avoid problems with overlapping
     scene_graphs = [
@@ -55,7 +55,10 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     # Sky graph
     sky_color_1 = (98, 207, 244)
-    sky_color_2 = (44, 103, 242)
+    sky_color_2 = [44, 103, 242]
+
+    render_settings["fog_color"] = sky_color_2
+
     wall_divs = (1, 20)
     sky_graph["root"]["children"]["blue_sky"] = rasterizer.get_model_instance(None)
     blue_sky_instance = sky_graph["root"]["children"]["blue_sky"]
@@ -240,10 +243,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         red_sphere["xform_m4"] = m
         if frame % 9 == 0:
             d = 0.08
-            LIGHTING["pointlight"] = [random.uniform(-d, d) + 1,
+            render_settings["pointlight"] = [random.uniform(-d, d) + 1,
                                       random.uniform(-d, d) + 1,
                                       random.uniform(-d, d) + -5, 1]
-            LIGHTING["pointlight_falloff"] = random.uniform(1.5, 1.6)
+            render_settings["pointlight_falloff"] = random.uniform(1.5, 1.6)
 
         npc_dur = 300
         npc = world_graph["root"]["children"]["npc"]
@@ -274,7 +277,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         # t = time.perf_counter()
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-                cam_m, persp_m, LIGHTING)
+                cam_m, persp_m, render_settings)
 
         # elapsed_time = time.perf_counter() - t
         # if frame % 30 == 0:
