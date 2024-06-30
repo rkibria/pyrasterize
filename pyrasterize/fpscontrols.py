@@ -6,6 +6,8 @@ Common code for FPS-like controls
 """
 
 import math
+import time
+
 import pygame as pg
 
 from . import vecmat
@@ -18,7 +20,9 @@ class FpsControls:
 
     LABEL_COLOR = (255, 255, 255)
 
-    def __init__(self, RASTER_SCR_SIZE, camera, render_settings) -> None:
+    def __init__(self, RASTER_SCR_SIZE, camera, render_settings, clock : pg.Clock) -> None:
+        self.time = time.perf_counter()
+
         self.on_mouse_button_down_cb = None
  
         self.RASTER_SCR_SIZE = RASTER_SCR_SIZE
@@ -37,6 +41,7 @@ class FpsControls:
                          0, 0, 0]
 
         self.render_settings = render_settings
+        self.clock = clock
 
         # key: (index, value)
         self.key_moves = {
@@ -74,8 +79,13 @@ class FpsControls:
         self.wmgr = uiwndmgr.WindowManager(self.RASTER_SCR_SIZE)
 
         # F1 menu setup
-        settings_layout = uiwidget.Widget("settings", (50, 50))
+        settings_layout = uiwidget.Widget("settings", (20, 20))
         self.wmgr.add_widget(settings_layout)
+
+        self.fps_label = None
+        def add_fps_widgets(pos : pg.Vector2):
+            self.fps_label = uiwidget.Label("fps", "---", 16, font_color=self.LABEL_COLOR, pos=pos)
+            settings_layout.add_child(self.fps_label)
 
         def fog_dist_to_progress(dist):
             return abs(dist) / 30
@@ -135,8 +145,14 @@ class FpsControls:
             clipdist_layout.add_child(farclipdist_slider)
 
         # Add subwidgets
-        add_clipdist_widgets((0, 0))
-        add_fog_dist_widgets((0, 45))
+        add_fps_widgets((0, 0))
+        add_clipdist_widgets((0, 25))
+        add_fog_dist_widgets((0, 70))
+
+        self.update_fps_label()
+
+    def update_fps_label(self):
+        self.fps_label.set_text(f"{round(self.clock.get_fps(), 1)} fps", 16, font_color=self.LABEL_COLOR)
 
     def on_mouse_movement(self, x, y):
         """Handle mouse movement"""
@@ -245,10 +261,14 @@ class FpsControls:
             if self.textblock_fps:
                 surface.blit(self.textblock_fps, (30, 30))
         else:
+            elapsed_time = time.perf_counter() - self.time
+            if elapsed_time > 0.5:
+                self.update_fps_label()
+                self.time = time.perf_counter()
             self.wmgr.draw(surface)
 
-    def update_hud(self, font, clock, text_col=(200, 200, 230)):
+    def update_hud(self, font, text_col=(200, 200, 230)):
         pos = [round(p, 2) for p in self.camera['pos']]
         rot = [round(vecmat.rad_to_deg(p), 2) for p in self.camera['rot']]
-        self.textblock_fps = font.render(f"pos: {pos} - rot: {rot} - {round(clock.get_fps(), 1)} fps",
+        self.textblock_fps = font.render(f"pos: {pos} - rot: {rot} - {round(self.clock.get_fps(), 1)} fps",
                                          True, text_col)

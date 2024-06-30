@@ -191,7 +191,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     fog_color = (0, 32, 0)
     render_settings["fog_color"] = fog_color
 
-    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings)
+    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
     labyrinth = {
         'cells': [
@@ -273,7 +273,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     done = False
     paused = False
 
-    fpscontrols.update_hud(font, clock, TEXT_COLOR)
+    fpscontrols.update_hud(font, TEXT_COLOR)
 
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
@@ -464,7 +464,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         fpscontrols.draw(screen)
 
         if frame % 30 == 0:
-            fpscontrols.update_hud(font, clock, TEXT_COLOR)
+            fpscontrols.update_hud(font, TEXT_COLOR)
 
         pygame.display.flip()
         frame += 1 if not paused else 0
