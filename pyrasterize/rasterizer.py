@@ -55,12 +55,16 @@ MODEL_TYPE_ANIMATED_MESH = 3
 MODEL_TYPE_TEXTURE_RECT = 4
 
 
-def get_default_lighting():
+def get_default_render_settings():
     """
-    Create a default lighting setup with reasonable values
-    Light comes from a right, top, and back direction (over the "right shoulder")
+    Create a default render settings/lighting setup with reasonable values
     """
-    return {"lightDir": (1, 1, 1),
+    return {"near_clip": -0.5,
+            "far_clip": -100.0,
+            "mip_dist": 50,
+
+            # Light comes from a right, top, and back direction (over the "right shoulder")
+            "lightDir": (1, 1, 1),
             "ambient": 0.3,
             "diffuse": 0.7,
 
@@ -672,14 +676,17 @@ def _no_fog(z : float, color : tuple, intensity : float, pointlight_intensity : 
 def render(surface : pygame.surface.Surface, screen_area,
            scene_graph,
            camera_m, persp_m,
-           lighting,
-           near_clip=-0.5, far_clip=-100.0, mip_dist=50):
+           settings):
     """Render the scene graph
     screen_area is (x,y,w,h) inside the surface
     """
     # global DEBUG_FONT
     # if DEBUG_FONT is None:
     #     DEBUG_FONT = pygame.font.Font(None, 16)
+
+    near_clip = settings["near_clip"]
+    far_clip = settings["far_clip"]
+    mip_dist = settings["mip_dist"]
 
     scr_origin_x = screen_area[0] + screen_area[2] / 2
     scr_origin_y = screen_area[1] + screen_area[3] / 2
@@ -694,12 +701,12 @@ def render(surface : pygame.surface.Surface, screen_area,
     # Sorted by depth before drawing, draw mode overrides order so wireframes come last
     scene_primitives = []
 
-    proj_light_dir = get_proj_light_dir(lighting, camera_m)
+    proj_light_dir = get_proj_light_dir(settings, camera_m)
 
-    if "fog_distance" in lighting:
-        fog_distance = lighting["fog_distance"]
+    if "fog_distance" in settings:
+        fog_distance = settings["fog_distance"]
         fog_denom = fog_distance - near_clip
-        fog_color = lighting["fog_color"]
+        fog_color = settings["fog_color"]
     else:
         fog_distance = 0
     def _get_color_with_fog(z : float, color : tuple, intensity : float, pointlight_intensity : float):
@@ -731,7 +738,7 @@ def render(surface : pygame.surface.Surface, screen_area,
                 proj_m = mat4_mat4_mul(parent_m, proj_m)
                 proj_m = mat4_mat4_mul(camera_m, proj_m)
                 _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, persp_m,
-                                                    scr_origin_x, scr_origin_y, lighting, proj_light_dir,
+                                                    scr_origin_x, scr_origin_y, settings, proj_light_dir,
                                                     instance, proj_m, camera_m)
                 pass_m = mat4_mat4_mul(parent_m, instance["xform_m4"])
                 if instance["children"]:

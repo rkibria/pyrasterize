@@ -18,7 +18,7 @@ class FpsControls:
 
     LABEL_COLOR = (255, 255, 255)
 
-    def __init__(self, RASTER_SCR_SIZE, camera, lighting) -> None:
+    def __init__(self, RASTER_SCR_SIZE, camera, render_settings) -> None:
         self.on_mouse_button_down_cb = None
  
         self.RASTER_SCR_SIZE = RASTER_SCR_SIZE
@@ -36,7 +36,7 @@ class FpsControls:
         self.move_dir = [0, 0, 0,
                          0, 0, 0]
 
-        self.lighting = lighting
+        self.render_settings = render_settings
 
         # key: (index, value)
         self.key_moves = {
@@ -81,15 +81,15 @@ class FpsControls:
         def fog_progress_to_dist(prog):
             return -30.0 * prog
         def fog_dist_text():
-            return f"Fog distance: {round(lighting['fog_distance'], 1)}"
+            return f"Fog distance: {round(render_settings['fog_distance'], 1)}"
 
         fog_dist_label = uiwidget.Label("fog_distance", fog_dist_text(), 16, font_color=self.LABEL_COLOR, pos=(0, 0))
         wnd_layout.add_child(fog_dist_label)
 
         fog_distance_slider = uiwidget.HorizontalSlider("fog_distance_slider", self.wmgr, "barBlue", "beige", (120, 3), (150, 6))
-        fog_distance_slider.progress = fog_dist_to_progress(self.lighting["fog_distance"])
+        fog_distance_slider.progress = fog_dist_to_progress(self.render_settings["fog_distance"])
         def on_fog_slider_changed(progress):
-            self.lighting["fog_distance"] = fog_progress_to_dist(progress)
+            self.render_settings["fog_distance"] = fog_progress_to_dist(progress)
             fog_dist_label.set_text(fog_dist_text(), 16, font_color=self.LABEL_COLOR)
         fog_distance_slider.on_change_cb = on_fog_slider_changed
         wnd_layout.add_child(fog_distance_slider)
