@@ -9,11 +9,22 @@ import math
 import pygame
 
 from . import vecmat
+from . import uiwndmgr
+from . import uiwidget
 
 class FpsControls:
+    MODE_GAME = 0
+    MODE_MENU = 1
+
+    LABEL_COLOR = (40, 40, 60)
+
     def __init__(self, RASTER_SCR_SIZE, camera) -> None:
+        self.on_mouse_button_down_cb = None
+ 
         self.RASTER_SCR_SIZE = RASTER_SCR_SIZE
         self.RASTER_SCR_WIDTH,self.RASTER_SCR_HEIGHT = RASTER_SCR_SIZE
+
+        self.mode = self.MODE_GAME
 
         self.DELTA_ROT = vecmat.deg_to_rad(3)
         self.DELTA_POS = 0.2
@@ -58,40 +69,78 @@ class FpsControls:
 
         self.textblock_fps = None
 
+        self.wmgr = uiwndmgr.WindowManager(self.RASTER_SCR_SIZE)
+        button_1 = uiwidget.Window("button_new_game", self.wmgr, "blue", pygame.Vector2(30, 30), pygame.Vector2(110, 35))
+        button_1.add_child(uiwidget.Label("new game", "New Game", 26, font_color=self.LABEL_COLOR, pos=pygame.Vector2(12, 8)))
+        def on_new_game_pressed(widget, wnd_mgr, event):
+            print("button 1 pressed")
+            return True
+        button_1.on_mouse_button_down_cb = on_new_game_pressed
+        self.wmgr.add_widget(button_1)
+
+
     def on_mouse_movement(self, x, y):
         """Handle mouse movement"""
-        rot = self.camera["rot"]
-        rot[0] -= vecmat.deg_to_rad(y * 0.2)
-        rot[1] -= vecmat.deg_to_rad(x * 0.2)
-        # limit up/down rotation around x-axis to straight up/down at most
-        rot[0] = min(math.pi/2, max(-math.pi/2, rot[0]))
+        if self.mode == self.MODE_GAME:
+            rot = self.camera["rot"]
+            rot[0] -= vecmat.deg_to_rad(y * 0.2)
+            rot[1] -= vecmat.deg_to_rad(x * 0.2)
+            # limit up/down rotation around x-axis to straight up/down at most
+            rot[0] = min(math.pi/2, max(-math.pi/2, rot[0]))
+        else:
+            pass
 
     def on_key_down(self, key):
         """"""
-        if key in self.key_moves:
-            index, value = self.key_moves[key]
-            self.move_dir[index] = value
+        if key == pygame.K_F1:
+            self.mode = self.MODE_MENU if self.mode == self.MODE_GAME else self.MODE_GAME
+        else:
+            if self.mode == self.MODE_GAME:
+                if key in self.key_moves:
+                    index, value = self.key_moves[key]
+                    self.move_dir[index] = value
+            else:
+                pass
 
     def on_key_up(self, key):
         """"""
-        if key in self.key_moves:
-            index, _ = self.key_moves[key]
-            self.move_dir[index] = 0
+        if self.mode == self.MODE_GAME:
+            if key in self.key_moves:
+                index, _ = self.key_moves[key]
+                self.move_dir[index] = 0
+        else:
+            pass
 
     def on_event(self, event):
-      if event.type == pygame.KEYDOWN:
-          self.on_key_down(event.key)
-      elif event.type == pygame.KEYUP:
-          self.on_key_up(event.key)
-      elif event.type == pygame.MOUSEMOTION:
-          mouse_position = pygame.mouse.get_rel()
-          if self.first_mouse_move:
-              self.first_mouse_move = False
-          else:
-              self.on_mouse_movement(mouse_position[0], mouse_position[1])
+        if self.mode == self.MODE_GAME:
+            if event.type == pygame.KEYDOWN:
+                self.on_key_down(event.key)
+            elif event.type == pygame.KEYUP:
+                self.on_key_up(event.key)
+            elif event.type == pygame.MOUSEMOTION:
+                mouse_position = pygame.mouse.get_rel()
+                if self.first_mouse_move:
+                    self.first_mouse_move = False
+                else:
+                    self.on_mouse_movement(mouse_position[0], mouse_position[1])
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.on_mouse_button_down_cb is not None:
+                    self.on_mouse_button_down_cb(event)
+        else:
+            if event.type == pygame.KEYDOWN:
+                self.on_key_down(event.key)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self.wmgr.on_mouse_button_down(event)
+            elif event.type == pygame.MOUSEMOTION:
+                mouse_position = pygame.mouse.get_pos()
+                self.wmgr.set_cursor_pos(mouse_position)
 
     def do_movement(self):
         """"""
+        if self.mode != self.MODE_GAME:
+            return
+
         if not any(self.move_dir):
             return
 
@@ -129,12 +178,15 @@ class FpsControls:
         cam_rot[0] = min(math.pi/2, max(-math.pi/2, cam_rot[0]))
 
     def draw(self, surface):
-        surface.blit(self.cross_surface,
-                     (self.RASTER_SCR_WIDTH // 2 - self.cross_size,
-                      self.RASTER_SCR_HEIGHT // 2 - self.cross_size),
-                      special_flags=pygame.BLEND_RGBA_ADD)
-        if self.textblock_fps:
-            surface.blit(self.textblock_fps, (30, 30))
+        if self.mode == self.MODE_GAME:
+            surface.blit(self.cross_surface,
+                        (self.RASTER_SCR_WIDTH // 2 - self.cross_size,
+                        self.RASTER_SCR_HEIGHT // 2 - self.cross_size),
+                        special_flags=pygame.BLEND_RGBA_ADD)
+            if self.textblock_fps:
+                surface.blit(self.textblock_fps, (30, 30))
+        else:
+            self.wmgr.draw(surface)
 
     def update_hud(self, font, clock, text_col=(200, 200, 230)):
         pos = [round(p, 2) for p in self.camera['pos']]

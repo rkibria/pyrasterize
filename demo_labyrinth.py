@@ -26,8 +26,6 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
-FPSCONTROLS = FpsControls(RASTER_SCR_SIZE, CAMERA)
-
 # Original mesh width for scaling
 MODELS_ORIG_WIDTH = 2
 
@@ -186,6 +184,8 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.display.set_caption("pyrasterize first person demo")
     clock = pygame.time.Clock()
 
+    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA)
+
     LIGHTING = rasterizer.get_default_lighting()
     LIGHTING["pointlight_enabled"] = True
     LIGHTING["pointlight"] = [12, 2, -12, 1]
@@ -273,7 +273,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     done = False
     paused = False
 
-    FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
+    fpscontrols.update_hud(font, clock, TEXT_COLOR)
 
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
@@ -366,12 +366,12 @@ def main_function(): # PYGBAG: decorate with 'async'
         return True
 
     def do_player_movement():
-        FPSCONTROLS.do_movement()
+        fpscontrols.do_movement()
         # Prevent clipping through walls
         cam_pos = CAMERA["pos"]
         if not is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
-            CAMERA["pos"][0] = FPSCONTROLS.last_cam_pos[0]
-            CAMERA["pos"][2] = FPSCONTROLS.last_cam_pos[2]
+            CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
+            CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
 
     def projectile_collides_with_enemy(projectile_pos, enemy_pos):
         # For simplicity enemy collision volume is a stack of spheres
@@ -434,17 +434,17 @@ def main_function(): # PYGBAG: decorate with 'async'
     near_clip = -0.5
     far_clip = -view_max
 
+    fpscontrols.on_mouse_button_down_cb = on_mouse_button_down
+
     while not done:
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                on_mouse_button_down(event)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     done = True
-            FPSCONTROLS.on_event(event)
+            fpscontrols.on_event(event)
 
         do_player_movement()
         do_projectile_movement()
@@ -462,10 +462,10 @@ def main_function(): # PYGBAG: decorate with 'async'
         # if frame % 60 == 0:
         #     print(f"render time: {round(elapsed_time, 3)} s")
 
-        FPSCONTROLS.draw(screen)
+        fpscontrols.draw(screen)
 
         if frame % 30 == 0:
-            FPSCONTROLS.update_hud(font, clock, TEXT_COLOR)
+            fpscontrols.update_hud(font, clock, TEXT_COLOR)
 
         pygame.display.flip()
         frame += 1 if not paused else 0
