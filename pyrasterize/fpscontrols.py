@@ -21,7 +21,7 @@ class FpsControls:
     LABEL_COLOR = (255, 255, 255)
     UNDER_LABEL_COLOR = (32, 32, 32)
 
-    def __init__(self, RASTER_SCR_SIZE, camera, render_settings, clock : pg.Clock) -> None:
+    def __init__(self, RASTER_SCR_SIZE, camera, render_settings, clock : pg.time.Clock) -> None:
         self.time = time.perf_counter()
 
         self.on_mouse_button_down_cb = None
