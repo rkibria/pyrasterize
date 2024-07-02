@@ -15,6 +15,7 @@ from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import model_file_io
 from pyrasterize.fpscontrols import FpsControls
+from pyrasterize.tiledarea import TiledArea
 
 from spritesheet import SpriteSheet
 
@@ -27,16 +28,16 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
 # Original mesh width for scaling
-MODELS_ORIG_WIDTH = 2
+tile_mesh_original_size = 2
 
-def get_ceiling_height(cell_size):
-    return 1.25 * cell_size / MODELS_ORIG_WIDTH
+def get_ceiling_height(tile_size):
+    return 1.25 * tile_size / tile_mesh_original_size
 
-def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
+def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, tile_size):
     """
     """
     lab_rows,lab_cols = labyrinth["size"]
-    scale_factor = cell_size / MODELS_ORIG_WIDTH
+    scale_factor = tile_size / tile_mesh_original_size
 
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
@@ -44,7 +45,7 @@ def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
     ceil_model = meshes.get_rect_mesh((2, 2), (5,5))
     ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))
     ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor), ceil_preproc_m4)
-    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, get_ceiling_height(cell_size), 0), ceil_preproc_m4)
+    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, get_ceiling_height(tile_size), 0), ceil_preproc_m4)
 
     cells = labyrinth["cells"]
     for row in range(lab_rows):
@@ -56,16 +57,16 @@ def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, cell_size):
                 root_instance["children"][cell_name] = rasterizer.get_model_instance(None)
                 root_instance["children"][cell_name]["children"]["floor"] = rasterizer.get_model_instance(floor_model,
                     preproc_m4=preproc_m4,
-                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)), create_bbox=False)
+                    xform_m4=vecmat.get_transl_m4(tile_size / 2 + tile_size * col, 0, -tile_size / 2 + -tile_size * (lab_rows - 1 - row)), create_bbox=False)
 
                 root_instance["children"][cell_name]["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
                     preproc_m4=ceil_preproc_m4,
-                    xform_m4=vecmat.get_transl_m4(cell_size / 2 + cell_size * col, 0, -cell_size / 2 + -cell_size * (lab_rows - 1 - row)), create_bbox=False)
+                    xform_m4=vecmat.get_transl_m4(tile_size / 2 + tile_size * col, 0, -tile_size / 2 + -tile_size * (lab_rows - 1 - row)), create_bbox=False)
 
 
 def create_labyrinth_instances(root_instance, labyrinth, cell_size):
     lab_rows,lab_cols = labyrinth["size"]
-    scale_factor = cell_size / MODELS_ORIG_WIDTH
+    scale_factor = cell_size / tile_mesh_original_size
 
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
     preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
@@ -193,7 +194,50 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
-    labyrinth = {
+    tiled_area = TiledArea(8)
+
+    tiles = [
+        '#################',
+        '#.........#.....#',
+        '#..########..####',
+        '#.#.......#...#.#',
+        '#.#....##.###.#.#',
+        '#.#.....#.....#.#',
+        '#.#####.#####.#.#',
+        '#.....#.#.......#',
+        '#.....#.#.......#',
+        '#.....#.....#...#',
+        '#.....#####.#...#',
+        '#.#.#...#.#.#.#.#',
+        '###.###.#.#.#.#.#',
+        '#...#.....#...#.#',
+        '#..############.#',
+        '#...............#',
+        '#################']
+    tiled_area.set_area(tiles, (17, 17))
+
+    # We use separate scene graphs for ground and other objects to avoid problems with overlapping
+    scene_graphs = [
+        { "root": rasterizer.get_model_instance(None) },
+        { "root": rasterizer.get_model_instance(None) }
+    ]
+
+    tile_mesh_original_size = 2
+    ceil_height = 1.25 * tiled_area.tile_size / tile_mesh_original_size
+    tiled_area.create_floor_and_ceiling(scene_graphs[0]["root"],
+                                        2,
+                                        ceil_height,
+                                        model_file_io.get_model_from_obj_file("assets/floor_62tris.obj"),
+                                        meshes.get_rect_mesh((2, 2), (5,5)))
+
+
+
+    scene_graphs = [
+        { "root": rasterizer.get_model_instance(None) },
+        { "root": rasterizer.get_model_instance(None) }
+    ]
+
+    area = {
         'cells': [
         '#################',
         '#.........#.....#',
@@ -214,25 +258,19 @@ def main_function(): # PYGBAG: decorate with 'async'
         '#################'],
         'size': (17, 17)}
 
-    lab_rows,lab_cols = labyrinth["size"]
+    lab_rows,lab_cols = area["size"]
 
-    # Use separate scene graphs for ground and other objects to avoid problems with overlapping
-    scene_graphs = [
-        { "root": rasterizer.get_model_instance(None) },
-        { "root": rasterizer.get_model_instance(None) }
-    ]
-
-    cell_size = 8
+    tile_size = 8
     player_radius = 1
 
-    CAMERA["pos"][0] = cell_size * 1.5
+    CAMERA["pos"][0] = tile_size * 1.5
     CAMERA["pos"][1] = 2
-    CAMERA["pos"][2] = -cell_size * 1.5
+    CAMERA["pos"][2] = -tile_size * 1.5
 
-    create_labyrinth_floor_and_ceiling(scene_graphs[0]["root"], labyrinth, cell_size)
+    create_labyrinth_floor_and_ceiling(scene_graphs[0]["root"], area, tile_size)
 
     # Interior: walls
-    create_labyrinth_instances(scene_graphs[1]["root"], labyrinth, cell_size)
+    create_labyrinth_instances(scene_graphs[1]["root"], area, tile_size)
 
     # Projectile - only one active at any time
     projectile_billboard = rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha())
@@ -258,7 +296,7 @@ def main_function(): # PYGBAG: decorate with 'async'
     skeleton_imgs = []
     for x in range(3):
         skeleton_imgs.append(skeleton_ss.get_image(3*32 + x * 32, 0 * 64, 32, 64))
-    skeleton_billboard = rasterizer.get_animated_billboard(cell_size * (1 + 0.5), 2, -cell_size * (3 + 0.5), 20, 20, skeleton_imgs)
+    skeleton_billboard = rasterizer.get_animated_billboard(tile_size * (1 + 0.5), 2, -tile_size * (3 + 0.5), 20, 20, skeleton_imgs)
     skeleton_billboard["frame_advance"] = 0.1
     skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
     scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
@@ -294,18 +332,18 @@ def main_function(): # PYGBAG: decorate with 'async'
         Lower left corner of the map is at 0,0
         (the cell in the last row and first column)
         """
-        row = lab_rows - 1 + int(z / cell_size)
-        col = int(x / cell_size)
+        row = lab_rows - 1 + int(z / tile_size)
+        col = int(x / tile_size)
         return row, col
 
     def cell_to_world_pos(row, col):
-        x = col * cell_size
-        z = (lab_rows - 1 - row) * -cell_size
+        x = col * tile_size
+        z = (lab_rows - 1 - row) * -tile_size
         return x,z
 
     def is_position_reachable(x, y, z):
         """Is this position in open air (i.e. not inside a wall)"""
-        if y < 0 or y > get_ceiling_height(cell_size):
+        if y < 0 or y > get_ceiling_height(tile_size):
             return False
 
         row,col = get_cell_pos(x, z)
@@ -313,7 +351,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         if row < 0 or row >= lab_rows or col < 0 or col >= lab_cols:
             return False
 
-        if labyrinth["cells"][row][col] == "#":
+        if area["cells"][row][col] == "#":
             return False
 
         return True
@@ -327,26 +365,26 @@ def main_function(): # PYGBAG: decorate with 'async'
         cell_x,cell_z = cell_to_world_pos(row, col)
 
         # Check if we are too close to any surrounding walls
-        cells = labyrinth["cells"]
+        cells = area["cells"]
         # NW
         if (cells[row - 1][col - 1] == "#"):
-            if x < cell_x + char_radius and z < cell_z - cell_size + char_radius:
+            if x < cell_x + char_radius and z < cell_z - tile_size + char_radius:
                 return False
         # N
         if (cells[row - 1][col] == "#"):
-            if z < cell_z - cell_size + char_radius:
+            if z < cell_z - tile_size + char_radius:
                 return False
         # NE
         if (cells[row - 1][col + 1] == "#"):
-            if x > cell_x + cell_size - char_radius and z < cell_z - cell_size + char_radius:
+            if x > cell_x + tile_size - char_radius and z < cell_z - tile_size + char_radius:
                 return False
         # E
         if (cells[row][col + 1] == "#"):
-            if x > cell_x + cell_size - char_radius:
+            if x > cell_x + tile_size - char_radius:
                 return False
         # SE
         if (cells[row + 1][col + 1] == "#"):
-            if x > cell_x + cell_size - char_radius and z > cell_z - char_radius:
+            if x > cell_x + tile_size - char_radius and z > cell_z - char_radius:
                 return False
         # S
         if (cells[row + 1][col] == "#"):
@@ -428,7 +466,7 @@ def main_function(): # PYGBAG: decorate with 'async'
                             explo_tr[1] = projectile_pos[1]
                             explo_tr[2] = projectile_pos[2]
 
-    view_max = 3 * cell_size
+    view_max = 3 * tile_size
     render_settings["far_clip"] = -view_max
 
     fpscontrols.on_mouse_button_down_cb = on_mouse_button_down
@@ -448,7 +486,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         # t = time.perf_counter()
-        update_viewable_area(labyrinth, cell_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
+        update_viewable_area(area, tile_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
 
         screen.fill(fog_color)
         for scene_graph in scene_graphs:
