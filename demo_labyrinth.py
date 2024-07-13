@@ -102,7 +102,8 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
-    labyrinth = Labyrinth(8, 2.5)
+    labyrinth = Labyrinth(8, 4)
+    CAMERA["pos"][1] = 2
 
     # tiles = [
     #     '#################',
@@ -139,15 +140,9 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
     floor_extents = meshes.get_mesh_extents(floor_model)
-    floor_avg = meshes.get_mesh_vertex_average(floor_model)
-    print("floor", floor_extents, floor_avg)
     floor_x_scale = labyrinth.tile_size / (floor_extents[1] - floor_extents[0])
     floor_z_scale = labyrinth.tile_size / (floor_extents[5] - floor_extents[4])
-
-    floor_preproc_m4 = vecmat.get_transl_m4(*meshes.get_mesh_centering_offset(floor_model))
-    floor_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(floor_x_scale, 1, floor_z_scale),
-                                            floor_preproc_m4)
-
+    floor_preproc_m4 = vecmat.get_scal_m4(floor_x_scale, 1, floor_z_scale)
     ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(180))
     ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(floor_x_scale, 1, floor_z_scale),
                                            ceil_preproc_m4)
@@ -157,8 +152,6 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
     wall_extents = meshes.get_mesh_extents(wall_model)
-    wall_avg = meshes.get_mesh_vertex_average(wall_model)
-    print("wall", wall_extents, wall_avg)
     wall_x_scale = labyrinth.tile_size / (wall_extents[1] - wall_extents[0])
     wall_y_scale = labyrinth.ceil_height / (wall_extents[3] - wall_extents[2])
     wall_preproc_m4 = vecmat.get_transl_m4(*meshes.get_mesh_centering_offset(wall_model))
