@@ -352,6 +352,23 @@ def get_mesh_sphere_bbox(model):
         radius = max(vecmat.mag_sq_vec3(vecmat.sub_vec3(v, center_v3)), radius)
     return [[*center_v3, 1.0], math.sqrt(radius)]
 
+def get_mesh_extents(model : dict) -> list:
+    """Get xyz extents of model = (xmin, xmax, ymin, ymax, zmin, zmax)"""
+    xmin = math.inf
+    xmax = -math.inf
+    ymin = math.inf
+    ymax = -math.inf
+    zmin = math.inf
+    zmax = -math.inf
+    for x,y,z in model["verts"]:
+        xmin = min(x, xmin)
+        xmax = max(x, xmax)
+        ymin = min(y, ymin)
+        ymax = max(y, ymax)
+        zmin = min(z, zmin)
+        zmax = max(z, zmax)
+    return (xmin, xmax, ymin, ymax, zmin, zmax)
+
 def subdivide_triangles(mesh):
     """Return same mesh with each triangle halved into two triangles"""
     new_mesh = {"model_type": rasterizer.MODEL_TYPE_MESH,

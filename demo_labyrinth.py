@@ -33,98 +33,6 @@ tile_mesh_original_size = 2
 def get_ceiling_height(tile_size):
     return 1.25 * tile_size / tile_mesh_original_size
 
-def create_labyrinth_floor_and_ceiling(root_instance, labyrinth, tile_size):
-    """
-    """
-    lab_rows,lab_cols = labyrinth["size"]
-    scale_factor = tile_size / tile_mesh_original_size
-
-    floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
-    preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
-
-    ceil_model = meshes.get_rect_mesh((2, 2), (5,5))
-    ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(90))
-    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor), ceil_preproc_m4)
-    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, get_ceiling_height(tile_size), 0), ceil_preproc_m4)
-
-    cells = labyrinth["cells"]
-    for row in range(lab_rows):
-        row_cells = cells[row]
-        for col in range(lab_cols):
-            cell = row_cells[col]
-            if cell != "#":
-                cell_name = f"cell_{row}_{col}"
-                root_instance["children"][cell_name] = rasterizer.get_model_instance(None)
-                root_instance["children"][cell_name]["children"]["floor"] = rasterizer.get_model_instance(floor_model,
-                    preproc_m4=preproc_m4,
-                    xform_m4=vecmat.get_transl_m4(tile_size / 2 + tile_size * col, 0, -tile_size / 2 + -tile_size * (lab_rows - 1 - row)), create_bbox=False)
-
-                root_instance["children"][cell_name]["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
-                    preproc_m4=ceil_preproc_m4,
-                    xform_m4=vecmat.get_transl_m4(tile_size / 2 + tile_size * col, 0, -tile_size / 2 + -tile_size * (lab_rows - 1 - row)), create_bbox=False)
-
-
-def create_labyrinth_instances(root_instance, labyrinth, cell_size):
-    lab_rows,lab_cols = labyrinth["size"]
-    scale_factor = cell_size / tile_mesh_original_size
-
-    wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
-    preproc_m4 = vecmat.get_scal_m4(scale_factor, scale_factor, scale_factor)
-
-    wall_inst = rasterizer.get_model_instance(wall_model,
-        preproc_m4=preproc_m4, create_bbox=False)
-    # Wall meshes are culled if not facing the camera.
-    wall_inst["instance_normal"] = [0, 0, 1]
-    wall_inst["use_minimum_z_order"] = True
-
-    cells = labyrinth["cells"]
-    for row in range(lab_rows):
-        row_cells = cells[row]
-        for col in range(lab_cols):
-            cell_name = f"cell_{row}_{col}"
-            root_instance["children"][cell_name] = rasterizer.get_model_instance(None,
-                xform_m4=vecmat.get_transl_m4(cell_size * col, 0, -cell_size * (lab_rows - 1 - row)))
-            cell_inst = root_instance["children"][cell_name]
-
-            wall_n = False
-            wall_s = False
-            wall_w = False
-            wall_e = False
-
-            cell = row_cells[col]
-            if cell == "#":
-                if row != 0 and cells[row - 1][col] != "#":
-                    wall_n = True
-                if row != lab_rows -1 and cells[row + 1][col] != "#":
-                    wall_s = True
-                if col != 0 and cells[row][col - 1] != "#":
-                    wall_w = True
-                if col != lab_cols - 1 and cells[row][col + 1] != "#":
-                    wall_e = True
-
-            # cell_inst["children"]["test_cube"] = rasterizer.get_model_instance(meshes.get_cube_mesh((255, 0, 0)), vecmat.get_scal_m4(0.1, 0.1, 0.1))
-
-            if wall_n:
-                cell_inst["children"]["wall_n"] = rasterizer.get_model_instance(None, None,
-                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, 0, -cell_size),
-                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(180))),
-                    {"wall": wall_inst})
-            if wall_s:
-                cell_inst["children"]["wall_s"] = rasterizer.get_model_instance(None, None,
-                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size / 2, 0, 0),
-                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(0))),
-                    {"wall": wall_inst})
-            if wall_w:
-                cell_inst["children"]["wall_w"] = rasterizer.get_model_instance(None, None,
-                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(0, 0, -cell_size / 2),
-                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(-90))),
-                    {"wall": wall_inst})
-            if wall_e:
-                cell_inst["children"]["wall_e"] = rasterizer.get_model_instance(None, None,
-                    vecmat.mat4_mat4_mul(vecmat.get_transl_m4(cell_size, 0, -cell_size / 2),
-                    vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
-                    {"wall": wall_inst})
-
 def update_viewable_area(labyrinth, cell_size, view_max, root_instances):
     """
     """
@@ -194,7 +102,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
-    tiled_area = Labyrinth(8)
+    labyrinth = Labyrinth(8, 2.5)
 
     # tiles = [
     #     '#################',
@@ -221,7 +129,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         '#..#',
         '#..#',
         '####']
-    tiled_area.set_area(tiles, (4, 4))
+    labyrinth.set_area(tiles, (4, 4))
 
     # We use separate scene graphs for ground and other objects to avoid problems with overlapping
     scene_graphs = [
@@ -229,21 +137,34 @@ def main_function(): # PYGBAG: decorate with 'async'
         { "root": rasterizer.get_model_instance(None) }
     ]
 
-    tile_mesh_original_size = 2
-    scale_factor = tiled_area.tile_size / tile_mesh_original_size
-    floor_preproc_m4 = vecmat.get_scal_m4(scale_factor, 1, scale_factor)
+    floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
+    floor_extents = meshes.get_mesh_extents(floor_model)
+    floor_avg = meshes.get_mesh_vertex_average(floor_model)
+    print("floor", floor_extents, floor_avg)
+    floor_x_scale = labyrinth.tile_size / (floor_extents[1] - floor_extents[0])
+    floor_z_scale = labyrinth.tile_size / (floor_extents[5] - floor_extents[4])
+
+    floor_preproc_m4 = vecmat.get_transl_m4(*meshes.get_mesh_centering_offset(floor_model))
+    floor_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(floor_x_scale, 1, floor_z_scale),
+                                            floor_preproc_m4)
 
     ceil_preproc_m4 = vecmat.get_rot_x_m4(vecmat.deg_to_rad(180))
-    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(scale_factor, 1, scale_factor),
-                                            ceil_preproc_m4)
+    ceil_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(floor_x_scale, 1, floor_z_scale),
+                                           ceil_preproc_m4)
+    labyrinth.create_floor_and_ceiling(scene_graphs[0]["root"],
+                                       floor_model, floor_model,
+                                       floor_preproc_m4, ceil_preproc_m4)
 
-    floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
-
-    ceil_height = 2.5
-    tiled_area.create_floor_and_ceiling(scene_graphs[0]["root"],
-                                        ceil_height,
-                                        floor_model, floor_model,
-                                        floor_preproc_m4, ceil_preproc_m4)
+    wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
+    wall_extents = meshes.get_mesh_extents(wall_model)
+    wall_avg = meshes.get_mesh_vertex_average(wall_model)
+    print("wall", wall_extents, wall_avg)
+    wall_x_scale = labyrinth.tile_size / (wall_extents[1] - wall_extents[0])
+    wall_y_scale = labyrinth.ceil_height / (wall_extents[3] - wall_extents[2])
+    wall_preproc_m4 = vecmat.get_transl_m4(*meshes.get_mesh_centering_offset(wall_model))
+    wall_preproc_m4 = vecmat.mat4_mat4_mul(vecmat.get_scal_m4(wall_x_scale, wall_y_scale, 1),
+                                           wall_preproc_m4)
+    labyrinth.create_walls(scene_graphs[1]["root"], wall_model, wall_preproc_m4)
 
 
     # scene_graphs = [
