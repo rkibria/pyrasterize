@@ -64,7 +64,7 @@ def get_default_render_settings():
             "mip_dist": 50,
 
             # Light comes from a right, top, and back direction (over the "right shoulder")
-            "lightDir": (1, 1, 1),
+            "light_dir": norm_vec3((1, 1, 1)),
             "ambient": 0.3,
             "diffuse": 0.7,
 
@@ -180,7 +180,7 @@ def get_proj_light_dir(render_settings, camera_m) -> list:
     """
     Get the resulting light direction for the given camera
     """
-    light_dir_vec3 = render_settings["lightDir"]
+    light_dir_vec3 = render_settings["light_dir"]
     return norm_vec3(vec4_mat4_mul_for_dirs(light_dir_vec3, camera_m)[0:3])
 
 

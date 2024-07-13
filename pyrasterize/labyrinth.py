@@ -47,6 +47,9 @@ class Labyrinth:
                     tile_inst["children"]["ceiling"] = rasterizer.get_model_instance(ceil_model,
                         preproc_m4=ceil_preproc_m4, xform_m4=tile_transl, create_bbox=False)
 
+                    tile_inst["children"]["floor"]["ignore_lighting"] = True
+                    tile_inst["children"]["ceiling"]["ignore_lighting"] = True
+
     def create_walls(self,
                      scene_graph_root_instance,
                      wall_model,
@@ -58,6 +61,7 @@ class Labyrinth:
         # Wall meshes are culled if not facing the camera.
         wall_inst["instance_normal"] = [0, 0, 1]
         wall_inst["use_minimum_z_order"] = True
+        wall_inst["ignore_lighting"] = True
 
         for row in range(self.rows):
             row_tiles = self.tiles[row]

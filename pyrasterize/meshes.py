@@ -438,3 +438,33 @@ def subdivide_triangles(mesh):
         new_mesh["colors"].append([random.randint(0, 255) for _ in range(3)])
 
     return new_mesh
+
+def bake_lighting(model : dict, proj_light_dir : list, ambient : float, diffuse : float):
+    """
+    Precompute lighted colors on the model's triangles
+    """
+    if "normals" not in model:
+        normals = []
+        verts = model["verts"]
+        for tri in model["tris"]:
+            i_0 = tri[0]
+            i_1 = tri[1]
+            i_2 = tri[2]
+            v_0 = verts[i_0]
+            v_1 = verts[i_1]
+            v_2 = verts[i_2]
+            v_a = vecmat.sub_vec3(v_1, v_0)
+            v_b = vecmat.sub_vec3(v_2, v_0)
+            normal = vecmat.norm_vec3(vecmat.cross_vec3(v_a, v_b))
+            normals.append(normal)
+    else:
+        normals = model["normals"]
+
+    colors = model["colors"]
+    for i,normal in enumerate(normals):
+        dot_prd = max(0, proj_light_dir[0] * normal[0]
+            + proj_light_dir[1] * normal[1]
+            + proj_light_dir[2] * normal[2])
+        intensity = min(1, max(0, ambient + diffuse * dot_prd))
+        color = colors[i]
+        colors[i] = [intensity * v for v in color]

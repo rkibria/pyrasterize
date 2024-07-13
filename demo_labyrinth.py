@@ -138,7 +138,12 @@ def main_function(): # PYGBAG: decorate with 'async'
         { "root": rasterizer.get_model_instance(None) }
     ]
 
+    baked_light_dir = vecmat.norm_vec3((1, 1, 1))
+    baked_ambient = 0.05
+    baked_diffuse = 0.6
+
     floor_model = model_file_io.get_model_from_obj_file("assets/floor_62tris.obj")
+    meshes.bake_lighting(floor_model, baked_light_dir, baked_ambient, baked_diffuse)
     floor_extents = meshes.get_mesh_extents(floor_model)
     floor_x_scale = labyrinth.tile_size / (floor_extents[1] - floor_extents[0])
     floor_z_scale = labyrinth.tile_size / (floor_extents[5] - floor_extents[4])
@@ -151,6 +156,7 @@ def main_function(): # PYGBAG: decorate with 'async'
                                        floor_preproc_m4, ceil_preproc_m4)
 
     wall_model = model_file_io.get_model_from_obj_file("assets/wall_1_145tris.obj")
+    meshes.bake_lighting(wall_model, baked_light_dir, baked_ambient, baked_diffuse)
     wall_extents = meshes.get_mesh_extents(wall_model)
     wall_x_scale = labyrinth.tile_size / (wall_extents[1] - wall_extents[0])
     wall_y_scale = labyrinth.ceil_height / (wall_extents[3] - wall_extents[2])
