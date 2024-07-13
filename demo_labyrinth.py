@@ -15,7 +15,7 @@ from pyrasterize import rasterizer
 from pyrasterize import meshes
 from pyrasterize import model_file_io
 from pyrasterize.fpscontrols import FpsControls
-from pyrasterize.tiledarea import TiledArea
+from pyrasterize.labyrinth import Labyrinth
 
 from spritesheet import SpriteSheet
 
@@ -194,7 +194,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
-    tiled_area = TiledArea(8)
+    tiled_area = Labyrinth(8)
 
     # tiles = [
     #     '#################',

@@ -1,10 +1,11 @@
 """
+A flat area consisting of quadratic tiles that are either floor or wall
 """
 
 from . import rasterizer
 from . import vecmat
 
-class TiledArea:
+class Labyrinth:
     def __init__(self, tile_size : float) -> None:
         self.tile_size = tile_size
 
