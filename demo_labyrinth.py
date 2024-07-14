@@ -45,9 +45,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
     labyrinth = Labyrinth(CAMERA, 8, 4)
-    CAMERA["pos"][0] = 14
+    CAMERA["pos"][0] = labyrinth.tile_size * 1.5
     CAMERA["pos"][1] = 2
-    CAMERA["pos"][2] = -14
+    CAMERA["pos"][2] = -labyrinth.tile_size * 1.5
 
     tiles = [
         '#################',
@@ -109,81 +109,42 @@ def main_function(): # PYGBAG: decorate with 'async'
                                            wall_preproc_m4)
     labyrinth.create_walls(scene_graphs[1]["root"], wall_model, wall_preproc_m4)
 
+    player_radius = 1
 
-    # scene_graphs = [
-    #     { "root": rasterizer.get_model_instance(None) },
-    #     { "root": rasterizer.get_model_instance(None) }
-    # ]
+    # Projectile - only one active at any time
+    projectile_billboard = rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha())
+    projectile_inst = rasterizer.get_model_instance(projectile_billboard)
+    scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
+    projectile_inst["enabled"] = False
+    render_settings["pointlight_enabled"] = False
 
-    # area = {
-    #     'cells': [
-    #     '#################',
-    #     '#.........#.....#',
-    #     '#..########..####',
-    #     '#.#.......#...#.#',
-    #     '#.#....##.###.#.#',
-    #     '#.#.....#.....#.#',
-    #     '#.#####.#####.#.#',
-    #     '#.....#.#.......#',
-    #     '#.....#.#.......#',
-    #     '#.....#.....#...#',
-    #     '#.....#####.#...#',
-    #     '#.#.#...#.#.#.#.#',
-    #     '###.###.#.#.#.#.#',
-    #     '#...#.....#...#.#',
-    #     '#..############.#',
-    #     '#...............#',
-    #     '#################'],
-    #     'size': (17, 17)}
+    # Projectile explosion - only one active at any time
+    explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
+    explo_imgs = []
+    for y in range(4):
+        for x in range(4):
+            explo_imgs.append(explo_ss.get_image(x * 32, y * 32, 32, 32))
+    explo_billboard = rasterizer.get_animated_billboard(0, 0, 0, 16, 16, explo_imgs)
+    explo_billboard["play_mode"] = rasterizer.BILLBOARD_PLAY_ONCE
+    explo_inst = rasterizer.get_model_instance(explo_billboard)
+    scene_graphs[1]["root"]["children"]["projectile_explo"] = explo_inst
+    explo_inst["enabled"] = False
 
-    # lab_rows,lab_cols = area["size"]
+    # Skeleton
+    skeleton_ss = SpriteSheet("assets/zombie_n_skeleton2.png")
+    skeleton_imgs = []
+    for x in range(3):
+        skeleton_imgs.append(skeleton_ss.get_image(3*32 + x * 32, 0 * 64, 32, 64))
+    skeleton_billboard = rasterizer.get_animated_billboard(labyrinth.tile_size * (1 + 0.5),
+                                                           2,
+                                                           -labyrinth.tile_size * (3 + 0.5),
+                                                           20, 20, skeleton_imgs)
+    skeleton_billboard["frame_advance"] = 0.1
+    skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
+    scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
 
-    # tile_size = 8
-    # player_radius = 1
-
-    # CAMERA["pos"][0] = tile_size * 1.5
-    # CAMERA["pos"][1] = 2
-    # CAMERA["pos"][2] = -tile_size * 1.5
-
-    # create_labyrinth_floor_and_ceiling(scene_graphs[0]["root"], area, tile_size)
-
-    # # Interior: walls
-    # create_labyrinth_instances(scene_graphs[1]["root"], area, tile_size)
-
-    # # Projectile - only one active at any time
-    # projectile_billboard = rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha())
-    # projectile_inst = rasterizer.get_model_instance(projectile_billboard)
-    # scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
-    # projectile_inst["enabled"] = False
-    # render_settings["pointlight_enabled"] = False
-
-    # # Projectile explosion - only one active at any time
-    # explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
-    # explo_imgs = []
-    # for y in range(4):
-    #     for x in range(4):
-    #         explo_imgs.append(explo_ss.get_image(x * 32, y * 32, 32, 32))
-    # explo_billboard = rasterizer.get_animated_billboard(0, 0, 0, 16, 16, explo_imgs)
-    # explo_billboard["play_mode"] = rasterizer.BILLBOARD_PLAY_ONCE
-    # explo_inst = rasterizer.get_model_instance(explo_billboard)
-    # scene_graphs[1]["root"]["children"]["projectile_explo"] = explo_inst
-    # explo_inst["enabled"] = False
-
-    # # Skeleton
-    # skeleton_ss = SpriteSheet("assets/zombie_n_skeleton2.png")
-    # skeleton_imgs = []
-    # for x in range(3):
-    #     skeleton_imgs.append(skeleton_ss.get_image(3*32 + x * 32, 0 * 64, 32, 64))
-    # skeleton_billboard = rasterizer.get_animated_billboard(tile_size * (1 + 0.5), 2, -tile_size * (3 + 0.5), 20, 20, skeleton_imgs)
-    # skeleton_billboard["frame_advance"] = 0.1
-    # skeleton_inst = rasterizer.get_model_instance(skeleton_billboard)
-    # scene_graphs[1]["root"]["children"]["skeleton"] = skeleton_inst
-
-    # # List of all enemies
-    # enemies = [skeleton_inst]
-
-    font = pygame.font.Font(None, 30)
-    TEXT_COLOR = (200, 200, 230)
+    # List of all enemies
+    enemies = [skeleton_inst]
 
     frame = 0
     done = False
@@ -192,162 +153,162 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
 
-    # def on_mouse_button_down(event):
-    #     """Handle mouse button down"""
-    #     if not projectile_inst["enabled"]:
-    #         projectile_inst["enabled"] = True
-    #         render_settings["pointlight_enabled"] = True
-    #         projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
-    #         projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
-    #         projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
-    #         dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0], vecmat.get_rot_x_m4(CAMERA["rot"][0]))
-    #         dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
-    #         f = 1
-    #         projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
+    def on_mouse_button_down(event):
+        """Handle mouse button down"""
+        if not projectile_inst["enabled"]:
+            projectile_inst["enabled"] = True
+            render_settings["pointlight_enabled"] = True
+            projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
+            projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
+            projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
+            dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0], vecmat.get_rot_x_m4(CAMERA["rot"][0]))
+            dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
+            f = 1
+            projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
 
-    # def get_cell_pos(x, z):
-    #     """
-    #     Lower left corner of the map is at 0,0
-    #     (the cell in the last row and first column)
-    #     """
-    #     row = lab_rows - 1 + int(z / tile_size)
-    #     col = int(x / tile_size)
-    #     return row, col
+    def get_tile_pos(x, z):
+        """
+        Lower left corner of the map is at 0,0
+        (the cell in the last row and first column)
+        """
+        row = labyrinth.rows - 1 + int(z / labyrinth.tile_size)
+        col = int(x / labyrinth.tile_size)
+        return row, col
 
-    # def cell_to_world_pos(row, col):
-    #     x = col * tile_size
-    #     z = (lab_rows - 1 - row) * -tile_size
-    #     return x,z
+    def tile_to_world_pos(row, col):
+        x = col * labyrinth.ceil_height
+        z = (labyrinth.rows - 1 - row) * -labyrinth.tile_size
+        return x,z
 
-    # def is_position_reachable(x, y, z):
-    #     """Is this position in open air (i.e. not inside a wall)"""
-    #     if y < 0 or y > get_ceiling_height(tile_size):
-    #         return False
+    def is_position_reachable(x, y, z):
+        """Is this position in open air (i.e. not inside a wall)"""
+        if y < 0 or y > labyrinth.ceil_height:
+            return False
 
-    #     row,col = get_cell_pos(x, z)
+        row,col = get_tile_pos(x, z)
 
-    #     if row < 0 or row >= lab_rows or col < 0 or col >= lab_cols:
-    #         return False
+        if row < 0 or row >= labyrinth.rows or col < 0 or col >= labyrinth.cols:
+            return False
 
-    #     if area["cells"][row][col] == "#":
-    #         return False
+        if labyrinth.tiles[row][col] == "#":
+            return False
 
-    #     return True
+        return True
 
-    # def is_position_walkable(x, y, z, char_radius):
-    #     if not is_position_reachable(x, y, z):
-    #         return False
+    def is_position_walkable(x, y, z, char_radius):
+        if not is_position_reachable(x, y, z):
+            return False
 
-    #     # We are in a free cell, don't let char get closer than their radius to walls
-    #     row,col = get_cell_pos(x, z)
-    #     cell_x,cell_z = cell_to_world_pos(row, col)
+        # We are in a free cell, don't let char get closer than their radius to walls
+        row,col = get_tile_pos(x, z)
+        tile_x,tile_z = tile_to_world_pos(row, col)
 
-    #     # Check if we are too close to any surrounding walls
-    #     cells = area["cells"]
-    #     # NW
-    #     if (cells[row - 1][col - 1] == "#"):
-    #         if x < cell_x + char_radius and z < cell_z - tile_size + char_radius:
-    #             return False
-    #     # N
-    #     if (cells[row - 1][col] == "#"):
-    #         if z < cell_z - tile_size + char_radius:
-    #             return False
-    #     # NE
-    #     if (cells[row - 1][col + 1] == "#"):
-    #         if x > cell_x + tile_size - char_radius and z < cell_z - tile_size + char_radius:
-    #             return False
-    #     # E
-    #     if (cells[row][col + 1] == "#"):
-    #         if x > cell_x + tile_size - char_radius:
-    #             return False
-    #     # SE
-    #     if (cells[row + 1][col + 1] == "#"):
-    #         if x > cell_x + tile_size - char_radius and z > cell_z - char_radius:
-    #             return False
-    #     # S
-    #     if (cells[row + 1][col] == "#"):
-    #         if z > cell_z - char_radius:
-    #             return False
-    #     # SW
-    #     if (cells[row + 1][col - 1] == "#"):
-    #         if x < cell_x + char_radius and z > cell_z - char_radius:
-    #             return False
-    #     # W
-    #     if (cells[row][col - 1] == "#"):
-    #         if x < cell_x + char_radius:
-    #             return False
+        # Check if we are too close to any surrounding walls
+        tiles = labyrinth.tiles
+        # NW
+        if (tiles[row - 1][col - 1] == "#"):
+            if x < tile_x + char_radius and z < tile_z - labyrinth.tile_size + char_radius:
+                return False
+        # N
+        if (tiles[row - 1][col] == "#"):
+            if z < tile_z - labyrinth.tile_size + char_radius:
+                return False
+        # NE
+        if (tiles[row - 1][col + 1] == "#"):
+            if x > tile_x + labyrinth.tile_size - char_radius and z < tile_z - labyrinth.tile_size + char_radius:
+                return False
+        # E
+        if (tiles[row][col + 1] == "#"):
+            if x > tile_x + labyrinth.tile_size - char_radius:
+                return False
+        # SE
+        if (tiles[row + 1][col + 1] == "#"):
+            if x > tile_x + labyrinth.tile_size - char_radius and z > tile_z - char_radius:
+                return False
+        # S
+        if (tiles[row + 1][col] == "#"):
+            if z > tile_z - char_radius:
+                return False
+        # SW
+        if (tiles[row + 1][col - 1] == "#"):
+            if x < tile_x + char_radius and z > tile_z - char_radius:
+                return False
+        # W
+        if (tiles[row][col - 1] == "#"):
+            if x < tile_x + char_radius:
+                return False
 
-    #     return True
+        return True
 
-    # def do_player_movement():
-    #     fpscontrols.do_movement()
-    #     # Prevent clipping through walls
-    #     cam_pos = CAMERA["pos"]
-    #     if not is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
-    #         CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
-    #         CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
+    def do_player_movement():
+        fpscontrols.do_movement()
+        # Prevent clipping through walls
+        cam_pos = CAMERA["pos"]
+        if not is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
+            CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
+            CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
 
-    # def projectile_collides_with_enemy(projectile_pos, enemy_pos):
-    #     # For simplicity enemy collision volume is a stack of spheres
-    #     sphere_radius = 0.5
-    #     for i in range(3):
-    #         sphere_pos = [enemy_pos[0], sphere_radius + i * 2 * sphere_radius, enemy_pos[2]]
-    #         dist_sq_v = vecmat.mag_sq_vec3(vecmat.sub_vec3(sphere_pos, projectile_pos))
-    #         if dist_sq_v <= 1:
-    #             return True
-    #     return False
+    def projectile_collides_with_enemy(projectile_pos, enemy_pos):
+        # For simplicity enemy collision volume is a stack of spheres
+        sphere_radius = 0.5
+        for i in range(3):
+            sphere_pos = [enemy_pos[0], sphere_radius + i * 2 * sphere_radius, enemy_pos[2]]
+            dist_sq_v = vecmat.mag_sq_vec3(vecmat.sub_vec3(sphere_pos, projectile_pos))
+            if dist_sq_v <= 1:
+                return True
+        return False
 
-    # def do_projectile_movement():
-    #     if projectile_inst["enabled"]:
-    #         mdl_tr = projectile_inst["model"]["translate"]
-    #         mdl_tr_copy = mdl_tr.copy()
-    #         mdl_tr_copy[0] += projectile_inst["dir"][0]
-    #         mdl_tr_copy[1] += projectile_inst["dir"][1]
-    #         mdl_tr_copy[2] += projectile_inst["dir"][2]
-    #         if not is_position_reachable(*mdl_tr_copy[0:3]):
-    #             # Projectile explodes and is removed
-    #             projectile_inst["enabled"] = False
-    #             render_settings["pointlight_enabled"] = False
-    #             explo_inst["enabled"] = True
-    #             explo_billboard["cur_frame"] = 0
-    #             explo_billboard["size_scale"] = 1
-    #             explo_tr = explo_billboard["translate"]
-    #             explo_tr[0] = mdl_tr[0]
-    #             explo_tr[1] = mdl_tr[1]
-    #             explo_tr[2] = mdl_tr[2]
-    #         else:
-    #             # Projectile moves
-    #             mdl_tr[0] = mdl_tr_copy[0]
-    #             mdl_tr[1] = mdl_tr_copy[1]
-    #             mdl_tr[2] = mdl_tr_copy[2]
-    #             pl_tr = render_settings["pointlight"]
-    #             pl_tr[0] = mdl_tr_copy[0]
-    #             pl_tr[1] = mdl_tr_copy[1]
-    #             pl_tr[2] = mdl_tr_copy[2]
-    #             # Collision check
-    #             nonlocal enemies
-    #             nonlocal projectile_billboard
-    #             projectile_pos = projectile_billboard["translate"]
-    #             for enemy_inst in enemies:
-    #                 if enemy_inst["enabled"]:
-    #                     enemy_billboard = enemy_inst["model"]
-    #                     enemy_pos = enemy_billboard["translate"]
-    #                     if projectile_collides_with_enemy(projectile_pos, enemy_pos):
-    #                         projectile_inst["enabled"] = False
-    #                         enemy_inst["enabled"] = False
-    #                         render_settings["pointlight_enabled"] = False
-    #                         explo_inst["enabled"] = True
-    #                         explo_billboard["cur_frame"] = 0
-    #                         explo_billboard["size_scale"] = 3
-    #                         explo_tr = explo_billboard["translate"]
-    #                         explo_tr[0] = projectile_pos[0]
-    #                         explo_tr[1] = projectile_pos[1]
-    #                         explo_tr[2] = projectile_pos[2]
+    def do_projectile_movement():
+        if projectile_inst["enabled"]:
+            mdl_tr = projectile_inst["model"]["translate"]
+            mdl_tr_copy = mdl_tr.copy()
+            mdl_tr_copy[0] += projectile_inst["dir"][0]
+            mdl_tr_copy[1] += projectile_inst["dir"][1]
+            mdl_tr_copy[2] += projectile_inst["dir"][2]
+            if not is_position_reachable(*mdl_tr_copy[0:3]):
+                # Projectile explodes and is removed
+                projectile_inst["enabled"] = False
+                render_settings["pointlight_enabled"] = False
+                explo_inst["enabled"] = True
+                explo_billboard["cur_frame"] = 0
+                explo_billboard["size_scale"] = 1
+                explo_tr = explo_billboard["translate"]
+                explo_tr[0] = mdl_tr[0]
+                explo_tr[1] = mdl_tr[1]
+                explo_tr[2] = mdl_tr[2]
+            else:
+                # Projectile moves
+                mdl_tr[0] = mdl_tr_copy[0]
+                mdl_tr[1] = mdl_tr_copy[1]
+                mdl_tr[2] = mdl_tr_copy[2]
+                pl_tr = render_settings["pointlight"]
+                pl_tr[0] = mdl_tr_copy[0]
+                pl_tr[1] = mdl_tr_copy[1]
+                pl_tr[2] = mdl_tr_copy[2]
+                # Collision check
+                nonlocal enemies
+                nonlocal projectile_billboard
+                projectile_pos = projectile_billboard["translate"]
+                for enemy_inst in enemies:
+                    if enemy_inst["enabled"]:
+                        enemy_billboard = enemy_inst["model"]
+                        enemy_pos = enemy_billboard["translate"]
+                        if projectile_collides_with_enemy(projectile_pos, enemy_pos):
+                            projectile_inst["enabled"] = False
+                            enemy_inst["enabled"] = False
+                            render_settings["pointlight_enabled"] = False
+                            explo_inst["enabled"] = True
+                            explo_billboard["cur_frame"] = 0
+                            explo_billboard["size_scale"] = 3
+                            explo_tr = explo_billboard["translate"]
+                            explo_tr[0] = projectile_pos[0]
+                            explo_tr[1] = projectile_pos[1]
+                            explo_tr[2] = projectile_pos[2]
 
     view_max = 3 * labyrinth.tile_size
     render_settings["far_clip"] = -view_max
 
-    # fpscontrols.on_mouse_button_down_cb = on_mouse_button_down
+    fpscontrols.on_mouse_button_down_cb = on_mouse_button_down
 
     root_instances = [scene_graph["root"] for scene_graph in scene_graphs]
     while not done:
@@ -360,14 +321,11 @@ def main_function(): # PYGBAG: decorate with 'async'
                     done = True
             fpscontrols.on_event(event)
 
-        fpscontrols.do_movement()
-
-        # do_player_movement()
-        # do_projectile_movement()
+        do_player_movement()
+        do_projectile_movement()
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         # t = time.perf_counter()
-        # update_viewable_area(area, tile_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
         labyrinth.update_viewable_area(view_max, root_instances)
 
         screen.fill(fog_color)
