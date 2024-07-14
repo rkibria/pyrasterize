@@ -27,64 +27,6 @@ RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
 CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
-# Original mesh width for scaling
-tile_mesh_original_size = 2
-
-def get_ceiling_height(tile_size):
-    return 1.25 * tile_size / tile_mesh_original_size
-
-def update_viewable_area(labyrinth, cell_size, view_max, root_instances):
-    """
-    """
-    lab_rows,lab_cols = labyrinth["size"]
-    cells = labyrinth["cells"]
-
-    def enable_cell(row, col, enable):
-        cell_name = f"cell_{row}_{col}"
-        for root_instance in root_instances:
-            children = root_instance["children"]
-            if cell_name in children:
-                root_instance["children"][cell_name]["enabled"] = enable
-
-    # Turn off everything
-    for row in range(lab_rows):
-        for col in range(lab_cols):
-            enable_cell(row, col, False)
-
-    def pos_to_cell(z, x):
-        return [lab_rows - 1 + int(z / cell_size), int(x / cell_size)]
-
-    cam_rot_y = CAMERA["rot"][1]
-    cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
-
-    step = cell_size / 4.0
-    enables = set()
-    for delta_angle in range(-60, 60, 2):
-        delta_rad = vecmat.deg_to_rad(delta_angle)
-        cos = math.cos(delta_rad)
-        sin = math.sin(delta_rad)
-        rot_forward = [cos * cam_v_forward[0] - sin * cam_v_forward[1], sin * cam_v_forward[0] + cos * cam_v_forward[1]]
-        pos_zx = [CAMERA["pos"][2], CAMERA["pos"][0]]
-        for _ in range(int(view_max / step)):
-            pos_zx[0] += rot_forward[0] * step
-            pos_zx[1] += rot_forward[1] * step
-            row,col = pos_to_cell(pos_zx[0], pos_zx[1])
-            if row < 0:
-                break
-            if col < 0:
-                break
-            if row >= lab_rows:
-                break
-            if col >= lab_cols:
-                break
-            if cells[row][col] == "#":
-                enables.add((row, col))
-                break
-            enables.add((row, col))
-
-    for row,col in enables:
-        enable_cell(row, col, True)
-
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     pygame.init()
@@ -102,35 +44,37 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
 
-    labyrinth = Labyrinth(8, 4)
+    labyrinth = Labyrinth(CAMERA, 8, 4)
+    CAMERA["pos"][0] = 14
     CAMERA["pos"][1] = 2
-
-    # tiles = [
-    #     '#################',
-    #     '#.........#.....#',
-    #     '#..########..####',
-    #     '#.#.......#...#.#',
-    #     '#.#....##.###.#.#',
-    #     '#.#.....#.....#.#',
-    #     '#.#####.#####.#.#',
-    #     '#.....#.#.......#',
-    #     '#.....#.#.......#',
-    #     '#.....#.....#...#',
-    #     '#.....#####.#...#',
-    #     '#.#.#...#.#.#.#.#',
-    #     '###.###.#.#.#.#.#',
-    #     '#...#.....#...#.#',
-    #     '#..############.#',
-    #     '#...............#',
-    #     '#################']
-    # tiled_area.set_area(tiles, (17, 17))
+    CAMERA["pos"][2] = -14
 
     tiles = [
-        '####',
-        '#..#',
-        '#..#',
-        '####']
-    labyrinth.set_area(tiles, (4, 4))
+        '#################',
+        '#.........#.....#',
+        '#..########..####',
+        '#.#.......#...#.#',
+        '#.#....##.###.#.#',
+        '#.#.....#.....#.#',
+        '#.#####.#####.#.#',
+        '#.....#.#.......#',
+        '#.....#.#.......#',
+        '#.....#.....#...#',
+        '#.....#####.#...#',
+        '#.#.#...#.#.#.#.#',
+        '###.###.#.#.#.#.#',
+        '#...#.....#...#.#',
+        '#..############.#',
+        '#...............#',
+        '#################']
+    labyrinth.set_area(tiles, (17, 17))
+
+    # tiles = [
+    #     '####',
+    #     '#..#',
+    #     '#..#',
+    #     '####']
+    # labyrinth.set_area(tiles, (4, 4))
 
     # We use separate scene graphs for ground and other objects to avoid problems with overlapping
     scene_graphs = [
@@ -400,11 +344,12 @@ def main_function(): # PYGBAG: decorate with 'async'
     #                         explo_tr[1] = projectile_pos[1]
     #                         explo_tr[2] = projectile_pos[2]
 
-    # view_max = 3 * tile_size
-    # render_settings["far_clip"] = -view_max
+    view_max = 3 * labyrinth.tile_size
+    render_settings["far_clip"] = -view_max
 
     # fpscontrols.on_mouse_button_down_cb = on_mouse_button_down
 
+    root_instances = [scene_graph["root"] for scene_graph in scene_graphs]
     while not done:
         clock.tick(60)
         for event in pygame.event.get():
@@ -423,6 +368,7 @@ def main_function(): # PYGBAG: decorate with 'async'
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         # t = time.perf_counter()
         # update_viewable_area(area, tile_size, view_max, [scene_graph["root"] for scene_graph in scene_graphs])
+        labyrinth.update_viewable_area(view_max, root_instances)
 
         screen.fill(fog_color)
         for scene_graph in scene_graphs:

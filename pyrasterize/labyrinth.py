@@ -2,11 +2,14 @@
 A flat area consisting of quadratic tiles that are either floor or wall
 """
 
+import math
+
 from . import rasterizer
 from . import vecmat
 
 class Labyrinth:
-    def __init__(self, tile_size : float, ceil_height : float) -> None:
+    def __init__(self, camera : dict, tile_size : float, ceil_height : float) -> None:
+        self.camera = camera
         self.tile_size = tile_size
         self.ceil_height = ceil_height
 
@@ -119,3 +122,52 @@ class Labyrinth:
                                                                   -half_tile),
                         vecmat.get_rot_y_m4(vecmat.deg_to_rad(90))),
                         {"wall": wall_inst})
+
+    def update_viewable_area(self, view_max, root_instances):
+        """
+        """
+        def enable_tile(row, col, enable):
+            tile_name = f"tile_{row}_{col}"
+            for root_instance in root_instances:
+                children = root_instance["children"]
+                if tile_name in children:
+                    root_instance["children"][tile_name]["enabled"] = enable
+
+        # Turn off everything
+        for row in range(self.rows):
+            for col in range(self.cols):
+                enable_tile(row, col, False)
+
+        def pos_to_cell(z, x):
+            return [self.rows - 1 + int(z / self.tile_size), int(x / self.tile_size)]
+
+        cam_rot_y = self.camera["rot"][1]
+        cam_v_forward = [-math.cos(cam_rot_y), -math.sin(cam_rot_y)]
+
+        step = self.tile_size / 4.0
+        enables = set()
+        for delta_angle in range(-60, 60, 2):
+            delta_rad = vecmat.deg_to_rad(delta_angle)
+            cos = math.cos(delta_rad)
+            sin = math.sin(delta_rad)
+            rot_forward = [cos * cam_v_forward[0] - sin * cam_v_forward[1], sin * cam_v_forward[0] + cos * cam_v_forward[1]]
+            pos_zx = [self.camera["pos"][2], self.camera["pos"][0]]
+            for _ in range(int(view_max / step)):
+                pos_zx[0] += rot_forward[0] * step
+                pos_zx[1] += rot_forward[1] * step
+                row,col = pos_to_cell(pos_zx[0], pos_zx[1])
+                if row < 0:
+                    break
+                if col < 0:
+                    break
+                if row >= self.rows:
+                    break
+                if col >= self.cols:
+                    break
+                if self.tiles[row][col] == "#":
+                    enables.add((row, col))
+                    break
+                enables.add((row, col))
+
+        for row,col in enables:
+            enable_tile(row, col, True)
