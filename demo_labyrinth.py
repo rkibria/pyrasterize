@@ -166,85 +166,11 @@ def main_function(): # PYGBAG: decorate with 'async'
             f = 1
             projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
 
-    def get_tile_pos(x, z):
-        """
-        Lower left corner of the map is at 0,0
-        (the cell in the last row and first column)
-        """
-        row = labyrinth.rows - 1 + int(z / labyrinth.tile_size)
-        col = int(x / labyrinth.tile_size)
-        return row, col
-
-    def tile_to_world_pos(row, col):
-        x = col * labyrinth.ceil_height
-        z = (labyrinth.rows - 1 - row) * -labyrinth.tile_size
-        return x,z
-
-    def is_position_reachable(x, y, z):
-        """Is this position in open air (i.e. not inside a wall)"""
-        if y < 0 or y > labyrinth.ceil_height:
-            return False
-
-        row,col = get_tile_pos(x, z)
-
-        if row < 0 or row >= labyrinth.rows or col < 0 or col >= labyrinth.cols:
-            return False
-
-        if labyrinth.tiles[row][col] == "#":
-            return False
-
-        return True
-
-    def is_position_walkable(x, y, z, char_radius):
-        if not is_position_reachable(x, y, z):
-            return False
-
-        # We are in a free cell, don't let char get closer than their radius to walls
-        row,col = get_tile_pos(x, z)
-        tile_x,tile_z = tile_to_world_pos(row, col)
-
-        # Check if we are too close to any surrounding walls
-        tiles = labyrinth.tiles
-        # NW
-        if (tiles[row - 1][col - 1] == "#"):
-            if x < tile_x + char_radius and z < tile_z - labyrinth.tile_size + char_radius:
-                return False
-        # N
-        if (tiles[row - 1][col] == "#"):
-            if z < tile_z - labyrinth.tile_size + char_radius:
-                return False
-        # NE
-        if (tiles[row - 1][col + 1] == "#"):
-            if x > tile_x + labyrinth.tile_size - char_radius and z < tile_z - labyrinth.tile_size + char_radius:
-                return False
-        # E
-        if (tiles[row][col + 1] == "#"):
-            if x > tile_x + labyrinth.tile_size - char_radius:
-                return False
-        # SE
-        if (tiles[row + 1][col + 1] == "#"):
-            if x > tile_x + labyrinth.tile_size - char_radius and z > tile_z - char_radius:
-                return False
-        # S
-        if (tiles[row + 1][col] == "#"):
-            if z > tile_z - char_radius:
-                return False
-        # SW
-        if (tiles[row + 1][col - 1] == "#"):
-            if x < tile_x + char_radius and z > tile_z - char_radius:
-                return False
-        # W
-        if (tiles[row][col - 1] == "#"):
-            if x < tile_x + char_radius:
-                return False
-
-        return True
-
     def do_player_movement():
         fpscontrols.do_movement()
         # Prevent clipping through walls
         cam_pos = CAMERA["pos"]
-        if not is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
+        if not labyrinth.is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
             CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
             CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
 
@@ -265,7 +191,7 @@ def main_function(): # PYGBAG: decorate with 'async'
             mdl_tr_copy[0] += projectile_inst["dir"][0]
             mdl_tr_copy[1] += projectile_inst["dir"][1]
             mdl_tr_copy[2] += projectile_inst["dir"][2]
-            if not is_position_reachable(*mdl_tr_copy[0:3]):
+            if not labyrinth.is_position_reachable(*mdl_tr_copy[0:3]):
                 # Projectile explodes and is removed
                 projectile_inst["enabled"] = False
                 render_settings["pointlight_enabled"] = False

@@ -171,3 +171,79 @@ class Labyrinth:
 
         for row,col in enables:
             enable_tile(row, col, True)
+
+    def get_tile_pos(self, x, z):
+        """
+        Lower left corner of the map is at 0,0
+        (the tile in the last row and first column)
+        """
+        row = self.rows - 1 + int(z / self.tile_size)
+        col = int(x / self.tile_size)
+        return row, col
+
+    def tile_to_world_pos(self, row, col):
+        x = col * self.tile_size
+        z = (self.rows - 1 - row) * -self.tile_size
+        return x,z
+
+    def is_position_reachable(self, x, y, z):
+        """
+        Is this position in open air (i.e. not inside a wall)
+        """
+        if y < 0 or y > self.ceil_height:
+            return False
+
+        row,col = self.get_tile_pos(x, z)
+
+        if row < 0 or row >= self.rows or col < 0 or col >= self.cols:
+            return False
+
+        if self.tiles[row][col] == "#":
+            return False
+
+        return True
+
+    def is_position_walkable(self, x, y, z, char_radius):
+        if not self.is_position_reachable(x, y, z):
+            return False
+
+        # We are in a free cell, don't let char get closer than their radius to walls
+        row,col = self.get_tile_pos(x, z)
+        tile_x,tile_z = self.tile_to_world_pos(row, col)
+
+        # Check if we are too close to any surrounding walls
+        tiles = self.tiles
+        # NW
+        if (tiles[row - 1][col - 1] == "#"):
+            if x < tile_x + char_radius and z < tile_z - self.tile_size + char_radius:
+                return False
+        # N
+        if (tiles[row - 1][col] == "#"):
+            if z < tile_z - self.tile_size + char_radius:
+                return False
+        # NE
+        if (tiles[row - 1][col + 1] == "#"):
+            if x > tile_x + self.tile_size - char_radius and z < tile_z - self.tile_size + char_radius:
+                return False
+        # E
+        if (tiles[row][col + 1] == "#"):
+            if x > (tile_x + self.tile_size - char_radius):
+                return False
+        # SE
+        if (tiles[row + 1][col + 1] == "#"):
+            if x > tile_x + self.tile_size - char_radius and z > tile_z - char_radius:
+                return False
+        # S
+        if (tiles[row + 1][col] == "#"):
+            if z > tile_z - char_radius:
+                return False
+        # SW
+        if (tiles[row + 1][col - 1] == "#"):
+            if x < tile_x + char_radius and z > tile_z - char_radius:
+                return False
+        # W
+        if (tiles[row][col - 1] == "#"):
+            if x < tile_x + char_radius:
+                return False
+
+        return True
