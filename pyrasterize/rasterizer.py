@@ -65,8 +65,8 @@ def get_default_render_settings():
 
             # Light comes from a right, top, and back direction (over the "right shoulder")
             "light_dir": norm_vec3((1, 1, 1)),
-            "ambient": 0.3,
-            "diffuse": 0.7,
+            "ambient": 0.1,
+            "diffuse": 0.5,
 
             "pointlight_enabled": False,
             "pointlight": [0, 0, 0, 1], # Position vec4
@@ -646,7 +646,7 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                     + proj_light_dir[2] * normal[2])
                 intensity = min(1, max(0, ambient + diffuse * dot_prd))
             else:
-                intensity = 1
+                intensity = ambient + diffuse
 
             intensity = min(1, intensity)
             textured = "texture" in model
