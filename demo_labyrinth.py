@@ -16,6 +16,7 @@ from pyrasterize import meshes
 from pyrasterize import model_file_io
 from pyrasterize.fpscontrols import FpsControls
 from pyrasterize.labyrinth import Labyrinth
+from pyrasterize.sprites import Sprites
 
 from spritesheet import SpriteSheet
 
@@ -29,6 +30,8 @@ CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_W
 
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
+    SPRITE_FIREBALL = "fireball"
+
     pygame.init()
 
     screen = pygame.display.set_mode(RASTER_SCR_SIZE, flags=pygame.SCALED)
@@ -82,6 +85,9 @@ def main_function(): # PYGBAG: decorate with 'async'
         { "root": rasterizer.get_model_instance(None) }
     ]
 
+    scene_graphs[1]["root"]["children"]["sprites"] = rasterizer.get_model_instance(None)
+    sprites = Sprites(scene_graphs[1]["root"]["children"]["sprites"])
+
     baked_light_dir = vecmat.norm_vec3((1, 1, 1))
     baked_ambient = 0.05
     baked_diffuse = 0.6
@@ -112,10 +118,13 @@ def main_function(): # PYGBAG: decorate with 'async'
     player_radius = 1
 
     # Projectile - only one active at any time
-    projectile_billboard = rasterizer.get_billboard(0, 0, 0, 4, 4, pygame.image.load("assets/plasmball.png").convert_alpha())
-    projectile_inst = rasterizer.get_model_instance(projectile_billboard)
-    scene_graphs[1]["root"]["children"]["projectile"] = projectile_inst
-    projectile_inst["enabled"] = False
+    sprites.add(SPRITE_FIREBALL,
+                rasterizer.get_billboard(0, 0, 0,
+                                         4, 4,
+                                         pygame.image.load("assets/plasmball.png")
+                                         .convert_alpha()),
+                1)
+    sprites.get_instance(SPRITE_FIREBALL)["enabled"] = False
     render_settings["pointlight_enabled"] = False
 
     # Projectile explosion - only one active at any time
@@ -153,18 +162,19 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
 
-    def on_mouse_button_down(event):
+    def on_mouse_button_down():
         """Handle mouse button down"""
-        if not projectile_inst["enabled"]:
-            projectile_inst["enabled"] = True
+        fireball_inst = sprites.get_instance(SPRITE_FIREBALL)
+        if not fireball_inst["enabled"]:
+            fireball_inst["enabled"] = True
             render_settings["pointlight_enabled"] = True
-            projectile_inst["model"]["translate"][0] = CAMERA["pos"][0]
-            projectile_inst["model"]["translate"][1] = CAMERA["pos"][1]
-            projectile_inst["model"]["translate"][2] = CAMERA["pos"][2]
+            fireball_inst["model"]["translate"][0] = CAMERA["pos"][0]
+            fireball_inst["model"]["translate"][1] = CAMERA["pos"][1]
+            fireball_inst["model"]["translate"][2] = CAMERA["pos"][2]
             dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0], vecmat.get_rot_x_m4(CAMERA["rot"][0]))
             dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
             f = 1
-            projectile_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
+            fireball_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
 
     def do_player_movement():
         fpscontrols.do_movement()
@@ -185,15 +195,16 @@ def main_function(): # PYGBAG: decorate with 'async'
         return False
 
     def do_projectile_movement():
-        if projectile_inst["enabled"]:
-            mdl_tr = projectile_inst["model"]["translate"]
+        fireball_inst = sprites.get_instance(SPRITE_FIREBALL)
+        if fireball_inst["enabled"]:
+            mdl_tr = fireball_inst["model"]["translate"]
             mdl_tr_copy = mdl_tr.copy()
-            mdl_tr_copy[0] += projectile_inst["dir"][0]
-            mdl_tr_copy[1] += projectile_inst["dir"][1]
-            mdl_tr_copy[2] += projectile_inst["dir"][2]
+            mdl_tr_copy[0] += fireball_inst["dir"][0]
+            mdl_tr_copy[1] += fireball_inst["dir"][1]
+            mdl_tr_copy[2] += fireball_inst["dir"][2]
             if not labyrinth.is_position_reachable(*mdl_tr_copy[0:3]):
                 # Projectile explodes and is removed
-                projectile_inst["enabled"] = False
+                fireball_inst["enabled"] = False
                 render_settings["pointlight_enabled"] = False
                 explo_inst["enabled"] = True
                 explo_billboard["cur_frame"] = 0
@@ -213,14 +224,14 @@ def main_function(): # PYGBAG: decorate with 'async'
                 pl_tr[2] = mdl_tr_copy[2]
                 # Collision check
                 nonlocal enemies
-                nonlocal projectile_billboard
+                projectile_billboard = fireball_inst["model"]
                 projectile_pos = projectile_billboard["translate"]
                 for enemy_inst in enemies:
                     if enemy_inst["enabled"]:
                         enemy_billboard = enemy_inst["model"]
                         enemy_pos = enemy_billboard["translate"]
                         if projectile_collides_with_enemy(projectile_pos, enemy_pos):
-                            projectile_inst["enabled"] = False
+                            fireball_inst["enabled"] = False
                             enemy_inst["enabled"] = False
                             render_settings["pointlight_enabled"] = False
                             explo_inst["enabled"] = True

@@ -217,6 +217,9 @@ class FpsControls:
                 if key in self.key_moves:
                     index, value = self.key_moves[key]
                     self.move_dir[index] = value
+                elif key == pg.K_SPACE:
+                    if self.on_mouse_button_down_cb is not None:
+                        self.on_mouse_button_down_cb()
             else:
                 pass
 
@@ -243,7 +246,7 @@ class FpsControls:
                     self.on_mouse_movement(mouse_position[0], mouse_position[1])
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if self.on_mouse_button_down_cb is not None:
-                    self.on_mouse_button_down_cb(event)
+                    self.on_mouse_button_down_cb()
         else:
             if event.type == pg.KEYDOWN:
                 self.on_key_down(event.key)
