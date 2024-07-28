@@ -48,3 +48,19 @@ class Sprites:
                     new_translate[1] += move_dir[1]
                     new_translate[2] += move_dir[2]
                     move_cb(sprite_inst, new_translate)
+
+    def move_linear_from_cam(self, name, camera, move_cb) -> None:
+        """Move a sprite starting from camera position towards viewing direction"""
+        inst = self.get_instance(name)
+        inst["enabled"] = True
+
+        dir = vecmat.vec4_mat4_mul((0, 0, -1, 0), vecmat.get_rot_x_m4(camera["rot"][0]))
+        dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(camera["rot"][1]))
+
+        trans = inst["model"]["translate"]
+        for i in range(3):
+            trans[i] = camera["pos"][i]
+
+        move_setting = self.get_move_setting(name)
+        move_setting[0] = self.MOVE_MODE_LINEAR
+        move_setting[1] = [dir, move_cb]

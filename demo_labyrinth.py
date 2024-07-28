@@ -23,13 +23,13 @@ from spritesheet import SpriteSheet
 RASTER_SCR_SIZE = RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT = 640, 480
 RASTER_SCR_AREA = (0, 0, RASTER_SCR_WIDTH, RASTER_SCR_HEIGHT)
 
-# Set up a camera that is at the origin point, facing forward (i.e. to negative z)
-CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
-
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     SPRITE_FIREBALL = "fireball"
     SPRITE_FIREBALL_EXPLOSION = "fireball_explosion"
+
+    # Set up a camera that is at the origin point, facing forward (i.e. to negative z)
+    camera = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_WIDTH/RASTER_SCR_HEIGHT }
 
     pygame.init()
 
@@ -44,12 +44,12 @@ def main_function(): # PYGBAG: decorate with 'async'
     fog_color = [0, 32, 0, 0]
     render_settings["fog_color"] = fog_color
 
-    fpscontrols = FpsControls(RASTER_SCR_SIZE, CAMERA, render_settings, clock)
+    fpscontrols = FpsControls(RASTER_SCR_SIZE, camera, render_settings, clock)
 
-    labyrinth = Labyrinth(CAMERA, 8, 4)
-    CAMERA["pos"][0] = labyrinth.tile_size * 1.5
-    CAMERA["pos"][1] = 2
-    CAMERA["pos"][2] = -labyrinth.tile_size * 1.5
+    labyrinth = Labyrinth(camera, 8, 4)
+    camera["pos"][0] = labyrinth.tile_size * 1.5
+    camera["pos"][1] = 2
+    camera["pos"][2] = -labyrinth.tile_size * 1.5
 
     tiles = [
         '#################',
@@ -180,10 +180,8 @@ def main_function(): # PYGBAG: decorate with 'async'
                 fireball_trans[0] = new_translate[0]
                 fireball_trans[1] = new_translate[1]
                 fireball_trans[2] = new_translate[2]
-                pl_tr = render_settings["pointlight"]
-                pl_tr[0] = new_translate[0]
-                pl_tr[1] = new_translate[1]
-                pl_tr[2] = new_translate[2]
+                for i in range(3):
+                    render_settings["pointlight"][i] = new_translate[i]
                 # Collision check
                 nonlocal enemies
                 projectile_billboard = fireball_inst["model"]
@@ -208,25 +206,18 @@ def main_function(): # PYGBAG: decorate with 'async'
         """Handle mouse button down"""
         fireball_inst = sprites.get_instance(SPRITE_FIREBALL)
         if not fireball_inst["enabled"]:
-            fireball_inst["enabled"] = True
+            sprites.move_linear_from_cam(SPRITE_FIREBALL, camera, fireball_move_cb)
             render_settings["pointlight_enabled"] = True
-            fireball_trans = fireball_inst["model"]["translate"]
-            fireball_trans[0] = CAMERA["pos"][0]
-            fireball_trans[1] = CAMERA["pos"][1]
-            fireball_trans[2] = CAMERA["pos"][2]
-            dir = vecmat.vec4_mat4_mul((0, 0, -1, 0), vecmat.get_rot_x_m4(CAMERA["rot"][0]))
-            dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
-            move_setting = sprites.get_move_setting(SPRITE_FIREBALL)
-            move_setting[0] = sprites.MOVE_MODE_LINEAR
-            move_setting[1] = [dir, fireball_move_cb]
+            for i in range(3):
+                render_settings["pointlight"][i] = camera["pos"][i]
 
     def do_player_movement():
         fpscontrols.do_movement()
         # Prevent clipping through walls
-        cam_pos = CAMERA["pos"]
+        cam_pos = camera["pos"]
         if not labyrinth.is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
-            CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
-            CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
+            camera["pos"][0] = fpscontrols.last_cam_pos[0]
+            camera["pos"][2] = fpscontrols.last_cam_pos[2]
 
     def projectile_collides_with_enemy(projectile_pos, enemy_pos):
         # For simplicity enemy collision volume is a stack of spheres
@@ -257,14 +248,14 @@ def main_function(): # PYGBAG: decorate with 'async'
         do_player_movement()
         sprites.update()
 
-        persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
+        persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(camera["fov"]), camera["ar"])
         # t = time.perf_counter()
         labyrinth.update_viewable_area(view_max, root_instances)
 
         screen.fill(fog_color)
         for scene_graph in scene_graphs:
             rasterizer.render(screen, RASTER_SCR_AREA, scene_graph,
-                              vecmat.get_simple_camera_m(CAMERA), persp_m,
+                              vecmat.get_simple_camera_m(camera), persp_m,
                               render_settings)
         # elapsed_time = time.perf_counter() - t
         # if frame % 60 == 0:
