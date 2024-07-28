@@ -31,6 +31,7 @@ CAMERA = { "pos": [0.5, 1, 0.5], "rot": [0, 0, 0], "fov": 90, "ar": RASTER_SCR_W
 def main_function(): # PYGBAG: decorate with 'async'
     """Main"""
     SPRITE_FIREBALL = "fireball"
+    SPRITE_FIREBALL_EXPLOSION = "fireball_explosion"
 
     pygame.init()
 
@@ -117,7 +118,7 @@ def main_function(): # PYGBAG: decorate with 'async'
 
     player_radius = 1
 
-    # Projectile - only one active at any time
+    # Fireball & explosion
     sprites.add(SPRITE_FIREBALL,
                 rasterizer.get_billboard(0, 0, 0,
                                          4, 4,
@@ -127,17 +128,15 @@ def main_function(): # PYGBAG: decorate with 'async'
     sprites.get_instance(SPRITE_FIREBALL)["enabled"] = False
     render_settings["pointlight_enabled"] = False
 
-    # Projectile explosion - only one active at any time
     explo_ss = SpriteSheet("assets/explosion_pixelfied.png")
     explo_imgs = []
     for y in range(4):
         for x in range(4):
             explo_imgs.append(explo_ss.get_image(x * 32, y * 32, 32, 32))
-    explo_billboard = rasterizer.get_animated_billboard(0, 0, 0, 16, 16, explo_imgs)
-    explo_billboard["play_mode"] = rasterizer.BILLBOARD_PLAY_ONCE
-    explo_inst = rasterizer.get_model_instance(explo_billboard)
-    scene_graphs[1]["root"]["children"]["projectile_explo"] = explo_inst
-    explo_inst["enabled"] = False
+    sprites.add(SPRITE_FIREBALL_EXPLOSION,
+                rasterizer.get_animated_billboard(0, 0, 0, 16, 16, explo_imgs), 0)
+    sprites.get_instance(SPRITE_FIREBALL_EXPLOSION)["enabled"] = False
+    sprites.get_instance(SPRITE_FIREBALL_EXPLOSION)["model"]["play_mode"] = rasterizer.BILLBOARD_PLAY_ONCE
 
     # Skeleton
     skeleton_ss = SpriteSheet("assets/zombie_n_skeleton2.png")
@@ -197,6 +196,9 @@ def main_function(): # PYGBAG: decorate with 'async'
     def do_projectile_movement():
         fireball_inst = sprites.get_instance(SPRITE_FIREBALL)
         if fireball_inst["enabled"]:
+            explo_inst = sprites.get_instance(SPRITE_FIREBALL_EXPLOSION)
+            explo_billboard = explo_inst["model"]
+
             mdl_tr = fireball_inst["model"]["translate"]
             mdl_tr_copy = mdl_tr.copy()
             mdl_tr_copy[0] += fireball_inst["dir"][0]
