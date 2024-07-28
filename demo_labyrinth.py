@@ -4,8 +4,6 @@ Demonstrates movement through a labyrinth in first person view
 
 # import asyncio # PYGBAG
 
-import math
-
 import pygame
 import pygame.mouse
 import pygame.cursors
@@ -161,50 +159,12 @@ def main_function(): # PYGBAG: decorate with 'async'
     pygame.mouse.set_visible(False)
     pygame.event.set_grab(True)
 
-    def on_mouse_button_down():
-        """Handle mouse button down"""
-        fireball_inst = sprites.get_instance(SPRITE_FIREBALL)
-        if not fireball_inst["enabled"]:
-            fireball_inst["enabled"] = True
-            render_settings["pointlight_enabled"] = True
-            fireball_inst["model"]["translate"][0] = CAMERA["pos"][0]
-            fireball_inst["model"]["translate"][1] = CAMERA["pos"][1]
-            fireball_inst["model"]["translate"][2] = CAMERA["pos"][2]
-            dir = vecmat.vec4_mat4_mul([0.0, 0.0, -1.0, 0.0], vecmat.get_rot_x_m4(CAMERA["rot"][0]))
-            dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
-            f = 1
-            fireball_inst["dir"] = [dir[0] * f, dir[1] * f, dir[2] * f]
-
-    def do_player_movement():
-        fpscontrols.do_movement()
-        # Prevent clipping through walls
-        cam_pos = CAMERA["pos"]
-        if not labyrinth.is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
-            CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
-            CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
-
-    def projectile_collides_with_enemy(projectile_pos, enemy_pos):
-        # For simplicity enemy collision volume is a stack of spheres
-        sphere_radius = 0.5
-        for i in range(3):
-            sphere_pos = [enemy_pos[0], sphere_radius + i * 2 * sphere_radius, enemy_pos[2]]
-            dist_sq_v = vecmat.mag_sq_vec3(vecmat.sub_vec3(sphere_pos, projectile_pos))
-            if dist_sq_v <= 1:
-                return True
-        return False
-
-    def do_projectile_movement():
-        fireball_inst = sprites.get_instance(SPRITE_FIREBALL)
+    def fireball_move_cb(fireball_inst, new_translate):
         if fireball_inst["enabled"]:
             explo_inst = sprites.get_instance(SPRITE_FIREBALL_EXPLOSION)
             explo_billboard = explo_inst["model"]
-
-            mdl_tr = fireball_inst["model"]["translate"]
-            mdl_tr_copy = mdl_tr.copy()
-            mdl_tr_copy[0] += fireball_inst["dir"][0]
-            mdl_tr_copy[1] += fireball_inst["dir"][1]
-            mdl_tr_copy[2] += fireball_inst["dir"][2]
-            if not labyrinth.is_position_reachable(*mdl_tr_copy[0:3]):
+            fireball_trans = fireball_inst["model"]["translate"]
+            if not labyrinth.is_position_reachable(*new_translate[0:3]):
                 # Projectile explodes and is removed
                 fireball_inst["enabled"] = False
                 render_settings["pointlight_enabled"] = False
@@ -212,18 +172,18 @@ def main_function(): # PYGBAG: decorate with 'async'
                 explo_billboard["cur_frame"] = 0
                 explo_billboard["size_scale"] = 1
                 explo_tr = explo_billboard["translate"]
-                explo_tr[0] = mdl_tr[0]
-                explo_tr[1] = mdl_tr[1]
-                explo_tr[2] = mdl_tr[2]
+                explo_tr[0] = fireball_trans[0]
+                explo_tr[1] = fireball_trans[1]
+                explo_tr[2] = fireball_trans[2]
             else:
                 # Projectile moves
-                mdl_tr[0] = mdl_tr_copy[0]
-                mdl_tr[1] = mdl_tr_copy[1]
-                mdl_tr[2] = mdl_tr_copy[2]
+                fireball_trans[0] = new_translate[0]
+                fireball_trans[1] = new_translate[1]
+                fireball_trans[2] = new_translate[2]
                 pl_tr = render_settings["pointlight"]
-                pl_tr[0] = mdl_tr_copy[0]
-                pl_tr[1] = mdl_tr_copy[1]
-                pl_tr[2] = mdl_tr_copy[2]
+                pl_tr[0] = new_translate[0]
+                pl_tr[1] = new_translate[1]
+                pl_tr[2] = new_translate[2]
                 # Collision check
                 nonlocal enemies
                 projectile_billboard = fireball_inst["model"]
@@ -244,6 +204,40 @@ def main_function(): # PYGBAG: decorate with 'async'
                             explo_tr[1] = projectile_pos[1]
                             explo_tr[2] = projectile_pos[2]
 
+    def on_mouse_button_down():
+        """Handle mouse button down"""
+        fireball_inst = sprites.get_instance(SPRITE_FIREBALL)
+        if not fireball_inst["enabled"]:
+            fireball_inst["enabled"] = True
+            render_settings["pointlight_enabled"] = True
+            fireball_trans = fireball_inst["model"]["translate"]
+            fireball_trans[0] = CAMERA["pos"][0]
+            fireball_trans[1] = CAMERA["pos"][1]
+            fireball_trans[2] = CAMERA["pos"][2]
+            dir = vecmat.vec4_mat4_mul((0, 0, -1, 0), vecmat.get_rot_x_m4(CAMERA["rot"][0]))
+            dir = vecmat.vec4_mat4_mul(dir, vecmat.get_rot_y_m4(CAMERA["rot"][1]))
+            move_setting = sprites.get_move_setting(SPRITE_FIREBALL)
+            move_setting[0] = sprites.MOVE_MODE_LINEAR
+            move_setting[1] = [dir, fireball_move_cb]
+
+    def do_player_movement():
+        fpscontrols.do_movement()
+        # Prevent clipping through walls
+        cam_pos = CAMERA["pos"]
+        if not labyrinth.is_position_walkable(cam_pos[0], cam_pos[1], cam_pos[2], player_radius):
+            CAMERA["pos"][0] = fpscontrols.last_cam_pos[0]
+            CAMERA["pos"][2] = fpscontrols.last_cam_pos[2]
+
+    def projectile_collides_with_enemy(projectile_pos, enemy_pos):
+        # For simplicity enemy collision volume is a stack of spheres
+        sphere_radius = 0.5
+        for i in range(3):
+            sphere_pos = [enemy_pos[0], sphere_radius + i * 2 * sphere_radius, enemy_pos[2]]
+            dist_sq_v = vecmat.mag_sq_vec3(vecmat.sub_vec3(sphere_pos, projectile_pos))
+            if dist_sq_v <= 1:
+                return True
+        return False
+
     view_max = 3 * labyrinth.tile_size
     render_settings["far_clip"] = -view_max
 
@@ -261,7 +255,7 @@ def main_function(): # PYGBAG: decorate with 'async'
             fpscontrols.on_event(event)
 
         do_player_movement()
-        do_projectile_movement()
+        sprites.update()
 
         persp_m = vecmat.get_persp_m4(vecmat.get_view_plane_from_fov(CAMERA["fov"]), CAMERA["ar"])
         # t = time.perf_counter()
