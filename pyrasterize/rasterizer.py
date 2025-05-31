@@ -654,7 +654,8 @@ def _get_screen_primitives_for_instance(scene_primitives, near_clip, far_clip, p
                           (intensity, get_pointlight_intensity(tri)),
                           model["texture"] if textured else model_colors[tri_idx],
                           [model["uv"][vert_idx] for vert_idx in tri] if textured else None,
-                          subdivide_max_iterations)
+                          subdivide_max_iterations,
+                          [view_verts[tri[i]] for i in range(3)])
         else: # draw_mode == DRAW_MODE_GOURAUD:
             if textured:
                 uv = model["uv"]
@@ -857,12 +858,19 @@ def render(surface : pygame.surface.Surface, screen_area,
             subdivide_max_iterations = shading_data[4]
             if textured:
                 mip_textures = shading_data[2]
-                uv = shading_data[3]
                 v_a = (points[0][0], points[0][1])
                 v_b = (points[1][0], points[1][1])
                 v_c = (points[2][0], points[2][1])
                 tri_area = get_2d_triangle_area(v_a, v_b, v_c)
                 if tri_area > 0:
+                    uv = shading_data[3]
+                    cam_verts = shading_data[5]
+                    w0 = cam_verts[0][2]
+                    w1 = cam_verts[1][2]
+                    w2 = cam_verts[2][2]
+                    i_uv = [(uv[0][0] / w0, uv[0][1] / w0),
+                            (uv[1][0] / w1, uv[1][1] / w1),
+                            (uv[2][0] / w2, uv[2][1] / w2)]
                     tex_ip = TextureInterpolation(uv, mip_textures, z_order, mip_dist)
                     def cb_subdivide(v_0, v_1, v_2, iteration):
                         area = tri_area / (2 ** iteration) # triangles split in 2 per iteration
@@ -870,7 +878,16 @@ def render(surface : pygame.surface.Surface, screen_area,
                             centroid = get_vec2_triangle_centroid(v_0, v_1, v_2)
                             x,y = centroid[0], centroid[1]
                             u,v,w = get_barycentric_vec2(v_a, v_b, v_c, (x, y))
-                            color = tex_ip.get_color(u, v, w)
+
+                            s = i_uv[0][0] * u + i_uv[1][0] * v + i_uv[2][0] * w
+                            t = i_uv[0][1] * u + i_uv[1][1] * v + i_uv[2][1] * w
+                            inv_w = u / w0 + v / w1 + w / w2
+                            s = s / inv_w
+                            t = t / inv_w
+                            s_i = min(tex_ip.tex_w - 1, max(0, int(s * tex_ip.tex_w)))
+                            t_i = min(tex_ip.tex_h - 1, max(0, int(t * tex_ip.tex_h)))
+                            color = tex_ip.texture[t_i][s_i]
+
                             color = (intensity * color[0], intensity * color[1], intensity * color[2])
                             posns = ((v_0[0], v_0[1]), (v_1[0], v_1[1]), (v_2[0], v_2[1]))
                             aapolygon(surface, posns, color)
